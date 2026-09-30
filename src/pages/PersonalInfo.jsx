@@ -502,7 +502,7 @@ const KycForm = ({ onSuccess }) => {
       await api.put("/user/kyc/submit-personal-info", form);
 
       localStorage.removeItem(DRAFT_KEY);
-      onSuccess?.(); // সফল হলে পেমেন্ট ইনফো পেজে যাবে
+      onSuccess?.(); // সফল হলে /loan পেজে যাবে
     } catch (err) {
       const d = err?.response?.data?.detail;
       setServerError(
@@ -806,9 +806,9 @@ const PersonalInfo = () => {
     fetchData();
   }, [fetchData]);
 
-  // জমা সফল হলে পেমেন্ট ইনফো পেজে নিয়ে যাবে
+  // জমা সফল হলে /loan পেজে নিয়ে যাবে
   const handleSuccess = () => {
-    navigate("/payment-info", { replace: true });
+    navigate("/loan", { replace: true });
   };
 
   if (loading) {
