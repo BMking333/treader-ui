@@ -11,7 +11,16 @@ import nagadIcon from "../assets/icons/Nagad.png";
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
 
-.wd-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; }
+.wd-root {
+  font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif;
+  line-height: 1.75;
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.wd-root h1, .wd-root h2, .wd-root h3, .wd-root p, .wd-root span, .wd-root button {
+  letter-spacing: 0 !important;
+}
 `;
 
 const NAVY_BG = {
@@ -102,14 +111,6 @@ const BankIcon = () => (
   </Svg>
 );
 
-const EyeIcon = ({ off }) => (
-  <Svg className="w-5 h-5">
-    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
-    <circle cx="12" cy="12" r="3" />
-    {off && <path d="M3 3l18 18" />}
-  </Svg>
-);
-
 const CopyIcon = () => (
   <Svg className="w-4 h-4">
     <rect x="9" y="9" width="12" height="12" rx="2" />
@@ -160,46 +161,46 @@ const authHeaders = () => {
 
 const STATUS = {
   Approved: {
-    wrap: "bg-[#EEF8F3] border-[#BFE3D0]",
-    circle: "bg-[#D6F0E2] text-[#1F9D6B]",
-    title: "text-[#15724E]",
-    text: "text-[#2B5B47]",
+    wrap: "bg-[#E8F6EE] border-[#8FD1AF]",
+    circle: "bg-[#C5EBD5] text-[#116B47]",
+    title: "text-[#0C5A3B]",
+    text: "text-[#1D4A38]",
     icon: <CheckCircleIcon />,
     heading: "ঋণ অনুমোদিত হয়েছে",
     message: "অভিনন্দন! আপনার ঋণ অনুমোদিত হয়েছে, আপনি এখন ঋণ উত্তোলন করতে পারেন।",
   },
   Pending: {
-    wrap: "bg-[#FDF6E3] border-[#EBDCA8]",
-    circle: "bg-[#F8E9B8] text-[#B07A10]",
-    title: "text-[#8A5F08]",
-    text: "text-[#6B5320]",
+    wrap: "bg-[#FFF6DC] border-[#E6CB7A]",
+    circle: "bg-[#F8E2A0] text-[#8A5A00]",
+    title: "text-[#6E4700]",
+    text: "text-[#4F3A10]",
     icon: <ClockIcon />,
     heading: "অনুমোদনের অপেক্ষায়",
     message: "আপনার ঋণের আবেদন পর্যবেক্ষণ করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।",
   },
   Rejected: {
-    wrap: "bg-[#F3F4F5] border-[#D9DCDF]",
-    circle: "bg-[#E4E7EA] text-[#5B6770]",
-    title: "text-[#33404A]",
-    text: "text-[#5B6770]",
+    wrap: "bg-[#EEF0F2] border-[#B9C0C6]",
+    circle: "bg-[#D9DEE2] text-[#3F4A53]",
+    title: "text-[#222D35]",
+    text: "text-[#3F4A53]",
     icon: <CrossCircleIcon />,
     heading: "আবেদন প্রত্যাখ্যাত",
     message: "আপনার ঋণ আবেদন বাতিল করা হয়েছে।",
   },
   Processing: {
-    wrap: "bg-[#FCEFEF] border-[#F0C9C9]",
-    circle: "bg-[#F9D9D9] text-[#D64545]",
-    title: "text-[#B02F2F]",
-    text: "text-[#7A3A3A]",
+    wrap: "bg-[#FDECEC] border-[#EDA9A9]",
+    circle: "bg-[#F8CFCF] text-[#B92A2A]",
+    title: "text-[#961F1F]",
+    text: "text-[#5E2626]",
     icon: <AlertIcon />,
     heading: "প্রক্রিয়াধীন",
     message: "আপনার অনুমোদিত ঋণ দেরির কারণে উত্তোলন এখন সম্ভব নয়!",
   },
   "Payment Pending": {
-    wrap: "bg-[#EDF3FB] border-[#C9DBF2]",
-    circle: "bg-[#DCE9F7] text-[#1F4E8C]",
-    title: "text-[#1F4E8C]",
-    text: "text-[#33557F]",
+    wrap: "bg-[#E8F0FB] border-[#A5C3EA]",
+    circle: "bg-[#CFE0F5] text-[#174382]",
+    title: "text-[#123A73]",
+    text: "text-[#22436F]",
     icon: <ClockIcon />,
     heading: "পেমেন্ট যাচাই চলছে",
     message: "আপনার পাঠানো পেমেন্ট স্ক্রিনশট যাচাই করা হচ্ছে।",
@@ -215,7 +216,6 @@ const Withdrew = () => {
   const [loan, setLoan] = useState(null);
   const [methods, setMethods] = useState([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const [showNumber, setShowNumber] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
 
   useEffect(() => {
@@ -284,7 +284,7 @@ const Withdrew = () => {
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
           <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
         </svg>
-        <p className="text-[17px] font-semibold text-[#0A1F2E]">লোড হচ্ছে...</p>
+        <p className="text-[18px] font-bold text-[#0A1F2E]">লোড হচ্ছে...</p>
       </div>
     );
   }
@@ -298,12 +298,12 @@ const Withdrew = () => {
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3.5">
           <button
             onClick={() => navigate(-1)}
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
             aria-label="পেছনে যান"
           >
             <BackIcon />
           </button>
-          <h1 className="text-lg font-bold tracking-wide">ঋণ উত্তোলন</h1>
+          <h1 className="text-[21px] font-bold">ঋণ উত্তোলন</h1>
         </div>
       </header>
 
@@ -319,45 +319,22 @@ const Withdrew = () => {
             <div className="relative">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[13px] uppercase tracking-widest text-white/60">
+                  <p className="text-[16px] font-medium text-white/85">
                     পেমেন্ট পদ্ধতি
                   </p>
-                  <p className="mt-1 text-xl font-bold text-[#E6C878]">
+                  <p className="mt-1 text-[24px] font-bold text-[#F2D98F]">
                     {bnMethodName(payment.payment_method)}
                   </p>
                 </div>
-                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-[#E6C878]">
+                <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-[#F2D98F]">
                   {isBank ? <BankIcon /> : <CardIcon />}
                 </span>
               </div>
 
-              <p className="mt-7 text-[13px] text-white/60">অ্যাকাউন্ট নম্বর</p>
-              <div className="mt-1 flex items-center justify-between gap-3">
-                <p className="break-all font-mono text-2xl font-semibold tracking-[0.14em]">
-                  {showNumber ? accountNumber : maskNumber(accountNumber)}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowNumber((s) => !s)}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 transition hover:bg-white/20 active:scale-95"
-                  aria-label="নম্বর দেখান বা লুকান"
-                >
-                  <EyeIcon off={showNumber} />
-                </button>
-              </div>
-
-              {isBank && (
-                <div className="mt-5 grid grid-cols-2 gap-3 text-[14px]">
-                  <div className="rounded-xl bg-white/10 p-3">
-                    <p className="text-white/60">অ্যাকাউন্ট হোল্ডার</p>
-                    <p className="mt-0.5 truncate font-bold">{payment.bank_account_name || "—"}</p>
-                  </div>
-                  <div className="rounded-xl bg-white/10 p-3">
-                    <p className="text-white/60">ব্যাংক</p>
-                    <p className="mt-0.5 truncate font-bold">{payment.bank_name || "—"}</p>
-                  </div>
-                </div>
-              )}
+              <p className="mt-7 text-[16px] font-medium text-white/85">অ্যাকাউন্ট নম্বর</p>
+              <p className="mt-1 break-all font-mono text-[26px] font-bold tracking-[0.12em]">
+                {maskNumber(accountNumber)}
+              </p>
             </div>
           </section>
         ) : (
@@ -381,21 +358,21 @@ const Withdrew = () => {
 
         {/* ================= SHOT ON: ফি ও তথ্য ================= */}
         {isShotOn && (
-          <section className="rounded-3xl border border-[#E9E2CF] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)] sm:p-6">
-            <div className="mb-3 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0A1F2E] text-[#E6C878]">
+          <section className="rounded-3xl border border-[#E0D7BC] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)] sm:p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0A1F2E] text-[#F2D98F]">
                 <InfoIcon />
               </span>
-              <h2 className="text-lg font-bold">উত্তোলনের তথ্য</h2>
+              <h2 className="text-[20px] font-bold text-[#0A1F2E]">উত্তোলনের তথ্য</h2>
             </div>
 
-            <div className="whitespace-pre-line rounded-2xl border border-[#F0EBDD] bg-[#FAF8F3] p-4 text-[15px] leading-relaxed text-[#33404A]">
+            <div className="whitespace-pre-line rounded-2xl border border-[#E6DFC9] bg-[#FAF8F3] p-4 text-[17px] font-medium leading-[1.85] text-[#1F2A33]">
               {loan?.shot_info || "কোনো তথ্য নেই"}
             </div>
 
             <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0A1F2E] px-5 py-4 text-white">
-              <span className="text-[15px] text-white/70">প্রদেয় ফি</span>
-              <span className="text-2xl font-bold text-[#E6C878]">
+              <span className="text-[17px] font-medium text-white/90">প্রদেয় ফি</span>
+              <span className="text-[28px] font-bold text-[#F2D98F]">
                 ৳{formatTk(loan?.shot_amount)}
               </span>
             </div>
@@ -408,7 +385,7 @@ const Withdrew = () => {
             className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)]"
             style={NAVY_BG}
           >
-            <p className="text-center text-[15px] leading-relaxed text-white/80">
+            <p className="text-center text-[17px] font-medium leading-[1.8] text-white">
               ফি প্রদানের জন্য নিচের কর্পোরেট নম্বরে সেন্ড-মানি করুন।
             </p>
 
@@ -416,15 +393,15 @@ const Withdrew = () => {
               {feeMethods.map((m) => (
                 <div
                   key={m.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/10 p-3.5"
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-white/15 p-3.5"
                 >
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/90 text-[#0A1F2E]">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#0A1F2E]">
                       {methodIcon(m)}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[13px] text-white/65">{bnMethodName(m.method_name)}</p>
-                      <p className="truncate font-mono text-lg font-bold tracking-wider">
+                      <p className="text-[15px] font-medium text-white/85">{bnMethodName(m.method_name)}</p>
+                      <p className="truncate font-mono text-[19px] font-bold tracking-wider">
                         {m.account_number}
                       </p>
                     </div>
@@ -433,7 +410,7 @@ const Withdrew = () => {
                   <button
                     type="button"
                     onClick={() => copy(m.id, m.account_number)}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-[13px] font-semibold transition hover:bg-white/25 active:scale-95"
+                    className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-[15px] font-bold transition hover:bg-white/30 active:scale-95"
                   >
                     <CopyIcon />
                     {copiedId === m.id ? "কপি হয়েছে" : "কপি"}
@@ -446,23 +423,16 @@ const Withdrew = () => {
 
         {/* ================= লোনের অবস্থা ================= */}
         {!isShotOn && status && (
-          <section className={`rounded-2xl border p-5 ${status.wrap}`}>
+          <section className={`rounded-2xl border-2 p-5 ${status.wrap}`}>
             <div className="flex items-start gap-4">
-              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${status.circle}`}>
+              <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${status.circle}`}>
                 {status.icon}
               </span>
               <div className="min-w-0">
-                <h2 className={`text-lg font-bold ${status.title}`}>{status.heading}</h2>
-                <p className={`mt-1 text-[16px] leading-relaxed ${status.text}`}>{status.message}</p>
+                <h2 className={`text-[21px] font-bold ${status.title}`}>{status.heading}</h2>
+                <p className={`mt-1 text-[17px] font-medium leading-[1.8] ${status.text}`}>{status.message}</p>
               </div>
             </div>
-
-            {loan?.amount != null && (
-              <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-4">
-                <span className={`text-[15px] ${status.text}`}>ঋণের পরিমাণ</span>
-                <span className={`text-lg font-bold ${status.title}`}>৳{formatTk(loan.amount)}</span>
-              </div>
-            )}
           </section>
         )}
       </main>
@@ -474,20 +444,20 @@ const Withdrew = () => {
 
 /* ================= NOTICE BOX ================= */
 const NoticeBox = ({ title, text, buttonText, onClick }) => (
-  <section className="rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] p-5">
+  <section className="rounded-2xl border-2 border-[#E6CB7A] bg-[#FFF6DC] p-5">
     <div className="flex items-start gap-3.5">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8E9B8] text-[#B07A10]">
+      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F8E2A0] text-[#8A5A00]">
         <InfoIcon />
       </span>
       <div>
-        <h3 className="text-[17px] font-bold text-[#5C4512]">{title}</h3>
-        <p className="mt-1 text-[15px] leading-relaxed text-[#6B5320]">{text}</p>
+        <h3 className="text-[19px] font-bold text-[#4A3608]">{title}</h3>
+        <p className="mt-1 text-[16px] font-medium leading-[1.8] text-[#4F3A10]">{text}</p>
       </div>
     </div>
 
     <button
       onClick={onClick}
-      className={`mt-4 w-full rounded-xl px-6 py-3 text-[16px] font-semibold transition ${INK_BTN}`}
+      className={`mt-4 w-full rounded-xl px-6 py-3.5 text-[17px] font-bold transition ${INK_BTN}`}
     >
       {buttonText}
     </button>
