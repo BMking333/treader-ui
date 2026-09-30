@@ -1,3 +1,4 @@
+// src/pages/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -12,6 +13,10 @@ const styles = `
 
 .db-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; }
 `;
+
+const NAVY_BG = {
+  background: "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
+};
 
 /* ================= BUTTON STYLES ================= */
 
@@ -87,48 +92,95 @@ const WalletIcon = () => (
 );
 
 /* ================= LOAN STATUS CONFIG ================= */
+// কালার স্কিম: সবুজ = সফল, হলুদ = অপেক্ষা, ধূসর = বাতিল, লাল = সমস্যা, নীল = যাচাই চলছে
 
-const STATUS = {
-  Approved: {
+const TONES = {
+  green: {
     wrap: "bg-[#EEF8F3] border-[#BFE3D0]",
     circle: "bg-[#D6F0E2] text-[#1F9D6B]",
     title: "text-[#15724E]",
     text: "text-[#2B5B47]",
-    icon: <CheckCircleIcon />,
-    heading: "ঋণ অনুমোদিত হয়েছে",
-    message: "অভিনন্দন! আপনার ঋণ অনুমোদিত হয়েছে, আপনি এখন ঋণ উত্তোলন করতে পারেন।",
   },
-
-  Pending: {
+  yellow: {
     wrap: "bg-[#FDF6E3] border-[#EBDCA8]",
     circle: "bg-[#F8E9B8] text-[#B07A10]",
     title: "text-[#8A5F08]",
     text: "text-[#6B5320]",
-    icon: <ClockIcon />,
-    heading: "অনুমোদনের অপেক্ষায়",
-    message: "আপনার ঋণের আবেদন পর্যবেক্ষণ করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।",
   },
-
-  Rejected: {
+  gray: {
     wrap: "bg-[#F3F4F5] border-[#D9DCDF]",
     circle: "bg-[#E4E7EA] text-[#5B6770]",
     title: "text-[#33404A]",
     text: "text-[#5B6770]",
-    icon: <CrossCircleIcon />,
-    heading: "আবেদন প্রত্যাখ্যাত",
-    message: "আপনার ঋণ আবেদন বাতিল করা হয়েছে।",
   },
-
-  Processing: {
+  red: {
     wrap: "bg-[#FCEFEF] border-[#F0C9C9]",
     circle: "bg-[#F9D9D9] text-[#D64545]",
     title: "text-[#B02F2F]",
     text: "text-[#7A3A3A]",
+  },
+  blue: {
+    wrap: "bg-[#EAF1FB] border-[#B9D0EE]",
+    circle: "bg-[#D3E3F6] text-[#1F5BA8]",
+    title: "text-[#174382]",
+    text: "text-[#2A4D78]",
+  },
+};
+
+const STATUS = {
+  Approved: {
+    ...TONES.green,
+    icon: <CheckCircleIcon />,
+    heading: "ঋণ অনুমোদিত হয়েছে",
+    message: "অভিনন্দন! আপনার ঋণ অনুমোদিত হয়েছে, আপনি এখন ঋণ উত্তোলন করতে পারেন।",
+  },
+  Pending: {
+    ...TONES.yellow,
+    icon: <ClockIcon />,
+    heading: "অনুমোদনের অপেক্ষায়",
+    message: "আপনার ঋণের আবেদন পর্যবেক্ষণ করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।",
+  },
+  Rejected: {
+    ...TONES.gray,
+    icon: <CrossCircleIcon />,
+    heading: "আবেদন প্রত্যাখ্যাত",
+    message: "আপনার ঋণ আবেদন বাতিল করা হয়েছে।",
+  },
+  Processing: {
+    ...TONES.red,
     icon: <AlertIcon />,
     heading: "প্রক্রিয়াধীন",
     message: "আপনার অনুমোদিত ঋণ দেরির কারণে উত্তোলন সম্ভব নয়!",
   },
+  "Payment Pending": {
+    ...TONES.blue,
+    icon: <ClockIcon />,
+    heading: "পেমেন্ট যাচাই চলছে",
+    message: "আপনার পাঠানো পেমেন্ট স্ক্রিনশট যাচাই করা হচ্ছে।",
+  },
+  "Payment Success": {
+    ...TONES.green,
+    icon: <CheckCircleIcon />,
+    heading: "পেমেন্ট সফল হয়েছে",
+    message: "আপনার পেমেন্ট সফলভাবে যাচাই হয়েছে।",
+  },
+  "Payment Failed": {
+    ...TONES.red,
+    icon: <AlertIcon />,
+    heading: "পেমেন্ট ব্যর্থ হয়েছে",
+    message: "আপনার পেমেন্ট যাচাই করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
+  },
 };
+
+// অচেনা স্ট্যাটাস এলে যেন কার্ড হারিয়ে না যায়
+const FALLBACK_STATUS = {
+  ...TONES.gray,
+  icon: <InfoIcon />,
+  heading: "ঋণের অবস্থা",
+  message: "আপনার ঋণের তথ্য হালনাগাদ হচ্ছে।",
+};
+
+const getStatus = (loan) => (loan ? STATUS[loan.loan_status] || FALLBACK_STATUS : null);
 
 /* ================= DASHBOARD ================= */
 
@@ -137,47 +189,27 @@ const Dashboard = () => {
 
   const [user, setUser] = useState(null);
   const [loan, setLoan] = useState(null);
+  const [loanLoaded, setLoanLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const [showInfoNotice, setShowInfoNotice] = useState(false);
-  const [showLoanNotice, setShowLoanNotice] = useState(false);
 
   // ================= FETCH =================
   const fetchData = async () => {
     try {
       setLoading(true);
 
-      const token =
-        localStorage.getItem("access") ||
-        localStorage.getItem("token");
+      const token = localStorage.getItem("access") || localStorage.getItem("token");
+      const headers = { Authorization: token ? `Bearer ${token}` : "" };
 
-      const headers = {
-        Authorization: token ? `Bearer ${token}` : "",
-      };
-
-      // USER
-      const userRes = await api.get("/user/kyc/me", { headers });
-
-      const userData = userRes.data;
-      setUser(userData);
-
-      // LOANS
-      const loanRes = await api.get("/loan/loan/my-loans", { headers });
-
-      const loanData = loanRes.data || [];
-
-      // latest loan
-      const latestLoan = loanData.length ? loanData[0] : null;
-      setLoan(latestLoan);
-
-      // UI states
-      setShowInfoNotice(!userData?.kyc_submitted);
-      setShowLoanNotice(loanData.length === 0);
-    } catch (err) {
-      console.log(err);
+      const [userRes, loanRes] = await Promise.allSettled([
+        api.get("/user/kyc/me", { headers }),
+        api.get("/loan/loan/my-loans", { headers }),
+      ]);
 
       // সেশন শেষ হলে লগইন পেজে পাঠানো হবে
-      if (err.response?.status === 401) {
+      const unauthorized = [userRes, loanRes].some(
+        (r) => r.status === "rejected" && r.reason?.response?.status === 401
+      );
+      if (unauthorized) {
         localStorage.removeItem("access");
         localStorage.removeItem("token");
         localStorage.removeItem("role");
@@ -185,8 +217,24 @@ const Dashboard = () => {
         return;
       }
 
+      // USER
+      setUser(userRes.status === "fulfilled" ? userRes.value.data : null);
+
+      // LOANS: সবচেয়ে নতুন ঋণ বেছে নেওয়া হচ্ছে
+      if (loanRes.status === "fulfilled") {
+        const list = Array.isArray(loanRes.value.data) ? [...loanRes.value.data] : [];
+        list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setLoan(list[0] || null);
+        setLoanLoaded(true);
+      } else {
+        setLoan(null);
+        setLoanLoaded(false); // লোড ব্যর্থ হলে "আবেদন করেননি" দেখানো হবে না
+      }
+    } catch (err) {
+      console.error(err);
       setUser(null);
       setLoan(null);
+      setLoanLoaded(false);
     } finally {
       setLoading(false);
     }
@@ -214,8 +262,9 @@ const Dashboard = () => {
     );
   }
 
-  const status = loan ? STATUS[loan.loan_status] : null;
-  const loanAmount = loan?.amount ?? loan?.loan_amount;
+  const status = getStatus(loan);
+  const showInfoNotice = !!user && !user.kyc_submitted;
+  const showLoanNotice = loanLoaded && !loan && !showInfoNotice;
 
   return (
     <div className="db-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
@@ -226,24 +275,19 @@ const Dashboard = () => {
       <main className="mx-auto mt-8 max-w-3xl space-y-6 px-4">
         {/* ================= BALANCE ================= */}
         <section
-          className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white
-                     shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
-          style={{
-            background:
-              "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
-          }}
+          className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
+          style={NAVY_BG}
         >
-          <p className="text-[15px] text-white/70">অ্যাকাউন্ট </p>
+          <p className="text-[15px] text-white/70">অ্যাকাউন্ট ব্যালেন্স</p>
 
-          <p className="mt-2 text-5xl font-bold tracking-tight">
+          <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
             <span className="mr-1 text-[#E6C878]">৳</span>
             {Number(user?.balance || 0).toLocaleString("en-BD")}
           </p>
 
           <button
             onClick={() => navigate("/withdrew")}
-            className={`mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl
-                        py-3.5 text-[17px] font-semibold transition ${GOLD_BTN}`}
+            className={`mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-[17px] font-semibold transition ${GOLD_BTN}`}
           >
             <WalletIcon />
             <span>ঋণ উত্তোলন</span>
@@ -259,7 +303,7 @@ const Dashboard = () => {
           />
         )}
 
-        {showLoanNotice && !showInfoNotice && (
+        {showLoanNotice && (
           <NoticeBox
             text="আপনি এখনো ঋণের জন্য আবেদন করেননি।"
             buttonText="আবেদন করুন"
@@ -268,9 +312,7 @@ const Dashboard = () => {
         )}
 
         {/* ================= LOAN STATE ================= */}
-        {status && (
-          <StatusCard status={status} amount={loanAmount} />
-        )}
+        {status && <StatusCard status={status} />}
       </main>
 
       <DownBar />
@@ -279,33 +321,18 @@ const Dashboard = () => {
 };
 
 /* ================= STATUS CARD ================= */
-const StatusCard = ({ status, amount }) => (
+const StatusCard = ({ status }) => (
   <section className={`rounded-2xl border p-5 ${status.wrap}`}>
     <div className="flex items-start gap-4">
-      <span
-        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${status.circle}`}
-      >
+      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${status.circle}`}>
         {status.icon}
       </span>
 
       <div className="min-w-0">
         <h2 className={`text-lg font-bold ${status.title}`}>{status.heading}</h2>
-
-        <p className={`mt-1 text-[16px] leading-relaxed ${status.text}`}>
-          {status.message}
-        </p>
+        <p className={`mt-1 text-[16px] leading-relaxed ${status.text}`}>{status.message}</p>
       </div>
     </div>
-
-    {amount != null && (
-      <div className="mt-4 flex items-center justify-between border-t border-black/10 pt-4">
-        <span className={`text-[15px] ${status.text}`}>ঋণের পরিমাণ</span>
-
-        <span className={`text-lg font-bold ${status.title}`}>
-          ৳{Number(amount).toLocaleString("en-BD")}
-        </span>
-      </div>
-    )}
   </section>
 );
 
@@ -317,9 +344,7 @@ const NoticeBox = ({ text, buttonText, onClick }) => (
         <InfoIcon />
       </span>
 
-      <p className="text-[16px] font-medium leading-relaxed text-[#5C4512]">
-        {text}
-      </p>
+      <p className="text-[16px] font-medium leading-relaxed text-[#5C4512]">{text}</p>
     </div>
 
     <button
