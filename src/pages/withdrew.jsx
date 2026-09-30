@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DownBar from "../components/DownBar";
 import api from "../services/api";
@@ -118,6 +118,21 @@ const CopyIcon = () => (
   </Svg>
 );
 
+const CameraIcon = () => (
+  <Svg>
+    <path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+    <circle cx="12" cy="13.5" r="3.5" />
+  </Svg>
+);
+
+const ImageIcon = () => (
+  <Svg>
+    <rect x="3" y="4" width="18" height="16" rx="2.5" />
+    <circle cx="9" cy="10" r="1.5" />
+    <path d="M21 16l-5-5-8 8" />
+  </Svg>
+);
+
 /* ================= HELPERS ================= */
 
 const METHOD_BN = {
@@ -218,6 +233,14 @@ const Withdrew = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
 
+  // screenshot upload
+  const cameraRef = useRef(null);
+  const galleryRef = useRef(null);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState("");
+
   useEffect(() => {
     const load = async () => {
       const headers = authHeaders();
@@ -252,12 +275,76 @@ const Withdrew = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // preview cleanup
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
   const copy = async (id, text) => {
     try {
       await navigator.clipboard.writeText(text);
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 1500);
     } catch {}
+  };
+
+  const onPickFile = (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = "";
+    if (!f) return;
+
+    if (!f.type.startsWith("image/")) {
+      setUploadErr("অনুগ্রহ করে একটি ছবি বেছে নিন।");
+      return;
+    }
+    if (f.size > 8 * 1024 * 1024) {
+      setUploadErr("ছবির সাইজ ৮ MB-এর বেশি হতে পারবে না।");
+      return;
+    }
+
+    setUploadErr("");
+    setFile(f);
+    setPreview(URL.createObjectURL(f));
+  };
+
+  const clearFile = () => {
+    setFile(null);
+    setPreview("");
+    setUploadErr("");
+  };
+
+  const submitProof = async () => {
+    if (!file || !loan || uploading) return;
+
+    setUploading(true);
+    setUploadErr("");
+
+    try {
+      const fd = new FormData();
+      fd.append("loan_id", loan.id);
+      fd.append("shot_amount", loan.shot_amount || 0);
+      fd.append("shot_info", "");
+      fd.append("screenshot", file);
+
+      const res = await api.post("/loan/loan/submit-shot", fd, {
+        headers: authHeaders(),
+      });
+
+      // এখন shot_status = Pending হবে, তাই পেজ "পেমেন্ট যাচাই চলছে" দেখাবে
+      setLoan((prev) => ({
+        ...prev,
+        loan_status: res.data?.loan_status || "Payment Pending",
+        shot_status: res.data?.shot_status || "Pending",
+      }));
+      clearFile();
+    } catch (err) {
+      const d = err?.response?.data?.detail;
+      setUploadErr(typeof d === "string" ? d : "জমা দেওয়া যায়নি, আবার চেষ্টা করুন।");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const hasPayment = !!(
@@ -370,9 +457,10 @@ const Withdrew = () => {
               {loan?.shot_info || "কোনো তথ্য নেই"}
             </div>
 
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0A1F2E] px-5 py-4 text-white">
-              <span className="text-[17px] font-medium text-white/90">প্রদেয় ফি</span>
-              <span className="text-[28px] font-bold text-[#F2D98F]">
+            {/* ফি: আগের চেয়ে ছোট */}
+            <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0A1F2E] px-4 py-3 text-white">
+              <span className="text-[15px] font-medium text-white/90">প্রদেয় ফি</span>
+              <span className="text-[20px] font-bold text-[#F2D98F]">
                 ৳{formatTk(loan?.shot_amount)}
               </span>
             </div>
@@ -418,6 +506,89 @@ const Withdrew = () => {
                 </div>
               ))}
             </div>
+          </section>
+        )}
+
+        {/* ================= ফি প্রদানের স্ক্রিনশট জমা ================= */}
+        {isShotOn && (
+          <section className="rounded-3xl border border-[#E0D7BC] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)] sm:p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0A1F2E] text-[#F2D98F]">
+                <CameraIcon />
+              </span>
+              <h2 className="text-[20px] font-bold text-[#0A1F2E]">
+                ফি প্রদানের স্ক্রিনশট জমা দিন
+              </h2>
+            </div>
+
+            {/* hidden inputs: ক্যামেরা ও গ্যালারি */}
+            <input
+              ref={cameraRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={onPickFile}
+              className="hidden"
+            />
+            <input
+              ref={galleryRef}
+              type="file"
+              accept="image/*"
+              onChange={onPickFile}
+              className="hidden"
+            />
+
+            {preview ? (
+              <div className="rounded-2xl border border-[#E6DFC9] bg-[#FAF8F3] p-3">
+                <img
+                  src={preview}
+                  alt="স্ক্রিনশট প্রিভিউ"
+                  className="mx-auto max-h-72 w-auto rounded-xl object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={clearFile}
+                  disabled={uploading}
+                  className="mt-3 w-full rounded-xl border border-[#C9CFD4] bg-white py-2.5 text-[16px] font-bold text-[#3F4A53] transition active:scale-95 disabled:opacity-50"
+                >
+                  ছবি পাল্টান
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => cameraRef.current?.click()}
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] px-3 py-6 text-[#6E4700] transition active:scale-95"
+                >
+                  <CameraIcon />
+                  <span className="text-[16px] font-bold">ক্যামেরা</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => galleryRef.current?.click()}
+                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] px-3 py-6 text-[#6E4700] transition active:scale-95"
+                >
+                  <ImageIcon />
+                  <span className="text-[16px] font-bold">গ্যালারি</span>
+                </button>
+              </div>
+            )}
+
+            {uploadErr && (
+              <p className="mt-3 rounded-xl bg-[#FDECEC] px-4 py-2.5 text-[15px] font-medium text-[#961F1F]">
+                {uploadErr}
+              </p>
+            )}
+
+            <button
+              type="button"
+              onClick={submitProof}
+              disabled={!file || uploading}
+              className={`mt-4 w-full rounded-xl px-6 py-3.5 text-[17px] font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${GOLD_BTN}`}
+            >
+              {uploading ? "জমা হচ্ছে..." : "স্ক্রিনশট জমা দিন"}
+            </button>
           </section>
         )}
 
