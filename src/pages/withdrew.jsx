@@ -419,7 +419,8 @@ const Withdrew = () => {
               </div>
 
               <p className="mt-7 text-[16px] font-medium text-white/85">অ্যাকাউন্ট নম্বর</p>
-              <p className="mt-1 break-all font-mono text-[26px] font-bold tracking-[0.12em]">
+              {/* মাস্ক করা নম্বর: আগের চেয়ে ছোট */}
+              <p className="mt-1 break-all font-mono text-[19px] font-bold tracking-[0.08em]">
                 {maskNumber(accountNumber)}
               </p>
             </div>
@@ -457,8 +458,8 @@ const Withdrew = () => {
               {loan?.shot_info || "কোনো তথ্য নেই"}
             </div>
 
-            {/* ফি: আগের চেয়ে ছোট */}
-            <div className="mt-4 flex items-center justify-between rounded-2xl bg-[#0A1F2E] px-4 py-3 text-white">
+            {/* ফি: মাঝখানে (center) */}
+            <div className="mt-4 flex items-center justify-center gap-3 rounded-2xl bg-[#0A1F2E] px-4 py-3 text-center text-white">
               <span className="text-[15px] font-medium text-white/90">প্রদেয় ফি</span>
               <span className="text-[20px] font-bold text-[#F2D98F]">
                 ৳{formatTk(loan?.shot_amount)}
@@ -555,11 +556,12 @@ const Withdrew = () => {
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              /* ক্যামেরা + গ্যালারি: একটাই ঘরের ভেতরে */
+              <div className="grid grid-cols-2 overflow-hidden rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] text-[#6E4700]">
                 <button
                   type="button"
                   onClick={() => cameraRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] px-3 py-6 text-[#6E4700] transition active:scale-95"
+                  className="flex flex-col items-center justify-center gap-2 px-3 py-6 transition hover:bg-[#FFF3CF] active:scale-95"
                 >
                   <CameraIcon />
                   <span className="text-[16px] font-bold">ক্যামেরা</span>
@@ -567,7 +569,7 @@ const Withdrew = () => {
                 <button
                   type="button"
                   onClick={() => galleryRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] px-3 py-6 text-[#6E4700] transition active:scale-95"
+                  className="flex flex-col items-center justify-center gap-2 border-l-2 border-dashed border-[#C9A24B] px-3 py-6 transition hover:bg-[#FFF3CF] active:scale-95"
                 >
                   <ImageIcon />
                   <span className="text-[16px] font-bold">গ্যালারি</span>
