@@ -563,13 +563,13 @@ const Withdrew = () => {
                   key={m.id}
                   className="flex items-center justify-between gap-3 rounded-2xl bg-white/15 p-3.5"
                 >
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex items-center gap-3">
                     <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#0A1F2E]">
                       {methodIcon(m)}
                     </span>
-                    <div className="min-w-0">
+                    <div>
                       <p className="text-[15px] font-medium text-white/85">{bnMethodName(m.method_name)}</p>
-                      <p className="truncate font-mono text-[19px] font-bold tracking-wider">
+                      <p className="whitespace-nowrap font-mono text-[18px] font-bold tracking-normal">
                         {m.account_number}
                       </p>
                     </div>
@@ -578,7 +578,7 @@ const Withdrew = () => {
                   <button
                     type="button"
                     onClick={() => copy(m.id, m.account_number)}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-[15px] font-bold transition hover:bg-white/30 active:scale-95"
+                    className="flex shrink-0 items-center gap-1.5 rounded-full bg-white/20 px-3 py-2 text-[14px] font-bold transition hover:bg-white/30 active:scale-95"
                   >
                     <CopyIcon />
                     {copiedId === m.id ? "কপি হয়েছে" : "কপি"}
