@@ -8,11 +8,18 @@ import DownBar from "../components/DownBar";
 /* ================= STYLES ================= */
 
 const styles = `
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
 
-.ln-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
+.ln-root {
+  font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', system-ui, sans-serif;
+  font-feature-settings: "liga" 1, "clig" 1, "rlig" 1, "calt" 1, "locl" 1;
+  font-variant-ligatures: common-ligatures contextual;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
 .ln-num { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
-.ln-root h1, .ln-root h2, .ln-root h3, .ln-root p, .ln-root span, .ln-root button { letter-spacing: 0 !important; }
+.ln-root h1, .ln-root h2, .ln-root h3, .ln-root p, .ln-root span, .ln-root button { letter-spacing: 0 !important; word-spacing: 0; }
 
 /* কার্ডের উপর হালকা সোনালি ঝলক */
 .ln-card-sheen::before {
@@ -24,10 +31,10 @@ const styles = `
 }
 `;
 
-/* ===== THEME: dark navy blue + gold =====
-   page bg   #06121F   card #0D2538   field #0A1D2E
-   cream     #F5EBCB   muted #A9B7C2
-   gold      #C9A24B   light gold #F2D98F
+/* ===== THEME: cream page (Dashboard-এর মতো) + navy/gold কার্ড =====
+   page   #FAF8F3   panel #FFFFFF   border #E3DDCC
+   ink    #0A1F2E   muted #5B6770
+   gold   #C9A24B   light gold #F2D98F   gold dark #8A6A1F
 */
 
 const HERO_BG = {
@@ -50,7 +57,7 @@ const GOLD_BTN =
   "disabled:opacity-60 disabled:cursor-not-allowed";
 
 const PANEL =
-  "rounded-3xl border-2 border-[#C9A24B]/30 bg-[#0D2538] p-5 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.8)] sm:p-6";
+  "rounded-3xl border border-[#E3DDCC] bg-white p-5 shadow-[0_10px_40px_-24px_rgba(10,31,46,0.35)] sm:p-6";
 
 /* ================= CONFIG (ব্যাকএন্ডের সাথে মিল) ================= */
 
@@ -286,13 +293,13 @@ const Loan = () => {
   /* ================= LOADING ================= */
   if (pageLoading) {
     return (
-      <div className="ln-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#06121F]">
+      <div lang="bn" className="ln-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
         <style>{styles}</style>
         <svg className="h-10 w-10 animate-spin text-[#C9A24B]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
           <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
         </svg>
-        <p className="text-[17px] font-semibold text-[#F2D98F]">লোড হচ্ছে...</p>
+        <p className="text-[17px] font-semibold text-[#0A1F2E]">লোড হচ্ছে...</p>
       </div>
     );
   }
@@ -315,7 +322,7 @@ const Loan = () => {
     const totalPayable = loanCalc.total;
 
     return (
-      <div className="ln-root min-h-screen bg-[#06121F] pb-28 text-[#F5EBCB]">
+      <div lang="bn" className="ln-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
         <style>{styles}</style>
         <TopBar />
 
@@ -323,7 +330,7 @@ const Loan = () => {
           {/* ===== LOAN CARD (ব্যাংক কার্ড স্টাইল) ===== */}
           <section
             className="ln-card-sheen relative overflow-hidden rounded-[28px] border border-[#C9A24B]/60 p-5 text-white
-                       shadow-[0_30px_70px_-26px_rgba(0,0,0,0.95),0_0_0_1px_rgba(242,217,143,0.08)] sm:p-7"
+                       shadow-[0_30px_70px_-28px_rgba(10,31,46,0.85),0_0_0_1px_rgba(242,217,143,0.08)] sm:p-7"
             style={LOAN_CARD_BG}
           >
             {/* সাজসজ্জা */}
@@ -396,13 +403,13 @@ const Loan = () => {
           {/* ===== DETAILS ===== */}
           <section className={PANEL}>
             <div className="mb-3 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#C9A24B]/50 bg-[#16384F] text-[#F2D98F]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#C9A24B]/50 bg-[#FDF6E3] text-[#8A6A1F]">
                 <BankIcon />
               </span>
-              <h2 className="text-lg font-bold text-[#F2D98F]">ঋণের বিস্তারিত</h2>
+              <h2 className="text-lg font-bold text-[#0A1F2E]">ঋণের বিস্তারিত</h2>
             </div>
 
-            <div className="divide-y divide-[#C9A24B]/20">
+            <div className="divide-y divide-[#EFE9D8]">
               <Row label="আবেদনের তারিখ" value={formatDate(loanDetails.created_at)} />
               <Row label="ঋণের মেয়াদ" value={`${totalMonths} মাস (${yearsLabel(totalMonths)})`} />
               <Row label="সুদের হার (বার্ষিক)" value={`${rate}%`} />
@@ -414,8 +421,8 @@ const Loan = () => {
             </div>
           </section>
 
-          <div className="flex items-start gap-3 rounded-2xl border border-[#C9A24B]/50 bg-[#C9A24B]/10 p-4 text-[15px] leading-relaxed text-[#F0E3B8]">
-            <span className="mt-0.5 text-[#F2D98F]">
+          <div className="flex items-start gap-3 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] p-4 text-[15px] leading-relaxed text-[#5C4512]">
+            <span className="mt-0.5 text-[#B07A10]">
               <AlertIcon />
             </span>
             <p>
@@ -432,7 +439,7 @@ const Loan = () => {
 
   /* ================= APPLY FORM ================= */
   return (
-    <div className="ln-root min-h-screen bg-[#06121F] pb-28 text-[#F5EBCB]">
+    <div lang="bn" className="ln-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
       <style>{styles}</style>
       <TopBar />
 
@@ -440,7 +447,7 @@ const Loan = () => {
         {/* ===== HEADER CARD ===== */}
         <section
           className="ln-card-sheen relative overflow-hidden rounded-3xl border border-[#C9A24B]/50 p-6 text-white
-                     shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)] sm:p-8"
+                     shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
           style={HERO_BG}
         >
           <span className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full border border-[#C9A24B]/25" />
@@ -506,7 +513,7 @@ const Loan = () => {
         {showSummary && (
           <section
             className="ln-card-sheen relative overflow-hidden rounded-[28px] border border-[#C9A24B]/60 p-6 text-white
-                       shadow-[0_30px_70px_-26px_rgba(0,0,0,0.95)]"
+                       shadow-[0_30px_70px_-28px_rgba(10,31,46,0.85)]"
             style={LOAN_CARD_BG}
           >
             <span className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full border border-[#C9A24B]/25" />
@@ -530,7 +537,7 @@ const Loan = () => {
 
         {/* ===== ERROR ===== */}
         {error && (
-          <div className="flex items-start gap-3 rounded-2xl border-2 border-[#D64545]/60 bg-[#3A1417] p-4 text-[15px] font-medium text-[#FFB3B3]">
+          <div className="flex items-start gap-3 rounded-2xl border border-[#F0C9C9] bg-[#FCEFEF] p-4 text-[15px] font-medium text-[#B02F2F]">
             <AlertIcon />
             <p>{error}</p>
           </div>
@@ -538,7 +545,7 @@ const Loan = () => {
 
         {/* ===== নির্দেশনা ===== */}
         {(!months || !amount) && !error && (
-          <p className="text-center text-[14px] text-[#A9B7C2]">
+          <p className="text-center text-[14px] text-[#5B6770]">
             {!months && !amount
               ? "প্রথমে মেয়াদ (ধাপ 1) ও পরিমাণ (ধাপ 2) নির্বাচন করুন"
               : !months
@@ -572,7 +579,7 @@ const StepTitle = ({ no, text }) => (
     >
       ধাপ <span className="ln-num ml-1">{no}</span>
     </span>
-    <h2 className="text-[17px] font-bold text-[#F5EBCB]">{text}</h2>
+    <h2 className="text-[17px] font-bold text-[#0A1F2E]">{text}</h2>
   </div>
 );
 
@@ -584,12 +591,12 @@ const Chip = ({ active, onClick, children, sub }) => (
     className={`flex flex-col items-center justify-center rounded-xl border-2 px-2 py-2.5 transition active:scale-95 ${
       active
         ? `border-transparent ${GOLD_GRAD} shadow-[0_10px_24px_-8px_rgba(201,162,75,0.7),inset_0_1px_0_rgba(255,255,255,0.5)]`
-        : "border-[#C9A24B]/30 bg-[#0A1D2E] text-[#F5EBCB] hover:border-[#C9A24B]"
+        : "border-[#E3DDCC] bg-white text-[#0A1F2E] hover:border-[#C9A24B]"
     }`}
   >
     <span className="ln-num text-[16px] font-bold leading-tight">{children}</span>
     {sub && (
-      <span className={`ln-num mt-0.5 text-[11px] font-medium ${active ? "text-[#1B1405]/75" : "text-[#A9B7C2]"}`}>
+      <span className={`ln-num mt-0.5 text-[11px] font-medium ${active ? "text-[#1B1405]/75" : "text-[#5B6770]"}`}>
         {sub}
       </span>
     )}
@@ -605,10 +612,10 @@ const SummaryItem = ({ label, value, gold }) => (
 
 const Row = ({ label, value, highlight, danger }) => (
   <div className="flex items-center justify-between gap-4 py-3.5">
-    <span className="text-[15px] text-[#A9B7C2]">{label}</span>
+    <span className="text-[15px] text-[#5B6770]">{label}</span>
     <span
       className={`ln-num text-right text-[16px] font-bold ${
-        highlight ? "text-[#F2D98F]" : danger ? "text-[#FF8A8A]" : "text-[#F5EBCB]"
+        highlight ? "text-[#8A6A1F]" : danger ? "text-[#B02F2F]" : "text-[#0A1F2E]"
       }`}
     >
       {value}
