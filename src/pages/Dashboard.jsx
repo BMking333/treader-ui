@@ -1,4 +1,4 @@
-// src/pages/Dashboard.jsx
+// src/pages/Dashboard.jsx  (ইউজার ড্যাশবোর্ড)
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -8,10 +8,24 @@ import DownBar from "../components/DownBar";
 
 /* ================= STYLES ================= */
 
+// বাংলা যুক্তাক্ষর (যেমন "ন্স") ঠিকমতো দেখানোর জন্য:
+// - Noto Sans Bengali আগে, Hind Siliguri পরে
+// - ligature চালু, letter-spacing বন্ধ
 const styles = `
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
 
-.db-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; }
+.db-root {
+  font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', system-ui, sans-serif;
+  font-feature-settings: "liga" 1, "clig" 1, "rlig" 1, "calt" 1, "locl" 1;
+  font-variant-ligatures: common-ligatures contextual;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+.db-root h1, .db-root h2, .db-root h3, .db-root p, .db-root span, .db-root button {
+  letter-spacing: 0 !important;
+  word-spacing: 0;
+}
 `;
 
 const NAVY_BG = {
@@ -249,7 +263,7 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="db-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
+      <div lang="bn" className="db-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
         <style>{styles}</style>
 
         <svg className="h-10 w-10 animate-spin text-[#C9A24B]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -267,7 +281,7 @@ const Dashboard = () => {
   const showLoanNotice = loanLoaded && !loan && !showInfoNotice;
 
   return (
-    <div className="db-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
+    <div lang="bn" className="db-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
       <style>{styles}</style>
 
       <TopBar />
@@ -278,9 +292,11 @@ const Dashboard = () => {
           className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
           style={NAVY_BG}
         >
-          <p className="text-[15px] text-white/70">অ্যাকাউন্ট ব্যালেন্স</p>
+          <p lang="bn" className="text-[16px] font-medium text-white/75">
+            অ্যাকাউন্ট ব্যালেন্স
+          </p>
 
-          <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
+          <p className="mt-2 text-4xl font-bold sm:text-5xl">
             <span className="mr-1 text-[#E6C878]">৳</span>
             {Number(user?.balance || 0).toLocaleString("en-BD")}
           </p>
