@@ -10,16 +10,47 @@ import DownBar from "../components/DownBar";
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
 
-.ln-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; }
+.ln-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; -webkit-tap-highlight-color: transparent; }
 .ln-num { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.ln-root h1, .ln-root h2, .ln-root h3, .ln-root p, .ln-root span, .ln-root button { letter-spacing: 0 !important; }
+
+/* কার্ডের উপর হালকা সোনালি ঝলক */
+.ln-card-sheen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(242,217,143,0.16) 50%, transparent 65%);
+  pointer-events: none;
+}
 `;
 
+/* ===== THEME: dark navy blue + gold =====
+   page bg   #06121F   card #0D2538   field #0A1D2E
+   cream     #F5EBCB   muted #A9B7C2
+   gold      #C9A24B   light gold #F2D98F
+*/
+
+const HERO_BG = {
+  background:
+    "radial-gradient(900px 420px at 15% -20%, #1B4F66 0%, #071826 65%)",
+};
+
+const LOAN_CARD_BG = {
+  background:
+    "radial-gradient(520px 260px at 100% 0%, rgba(201,162,75,0.28) 0%, transparent 60%), linear-gradient(145deg, #12384F 0%, #0A2234 55%, #06121F 100%)",
+};
+
+const GOLD_GRAD = "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405]";
+
 const GOLD_BTN =
-  "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
-  "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
+  GOLD_GRAD +
+  " shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
   "hover:brightness-105 active:translate-y-px " +
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#C9A24B]/40 " +
   "disabled:opacity-60 disabled:cursor-not-allowed";
+
+const PANEL =
+  "rounded-3xl border-2 border-[#C9A24B]/30 bg-[#0D2538] p-5 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.8)] sm:p-6";
 
 /* ================= CONFIG (ব্যাকএন্ডের সাথে মিল) ================= */
 
@@ -148,6 +179,28 @@ const ShieldIcon = () => (
   </Svg>
 );
 
+// কার্ডের সোনালি চিপ
+const ChipIcon = () => (
+  <svg viewBox="0 0 48 36" className="h-9 w-12" aria-hidden="true">
+    <defs>
+      <linearGradient id="ln-chip" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stopColor="#F2D98F" />
+        <stop offset="0.55" stopColor="#C9A24B" />
+        <stop offset="1" stopColor="#8F6A1E" />
+      </linearGradient>
+    </defs>
+    <rect x="1" y="1" width="46" height="34" rx="6" fill="url(#ln-chip)" />
+    <path
+      d="M1 12h46M1 24h46M16 1v34M32 1v34"
+      stroke="#6B4E12"
+      strokeOpacity="0.55"
+      strokeWidth="1.2"
+      fill="none"
+    />
+    <rect x="16" y="12" width="16" height="12" rx="2.5" fill="none" stroke="#6B4E12" strokeOpacity="0.6" strokeWidth="1.2" />
+  </svg>
+);
+
 /* ================= MAIN ================= */
 
 const Loan = () => {
@@ -233,13 +286,13 @@ const Loan = () => {
   /* ================= LOADING ================= */
   if (pageLoading) {
     return (
-      <div className="ln-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
+      <div className="ln-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#06121F]">
         <style>{styles}</style>
         <svg className="h-10 w-10 animate-spin text-[#C9A24B]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
           <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
         </svg>
-        <p className="text-[17px] font-semibold text-[#0A1F2E]">লোড হচ্ছে...</p>
+        <p className="text-[17px] font-semibold text-[#F2D98F]">লোড হচ্ছে...</p>
       </div>
     );
   }
@@ -262,36 +315,65 @@ const Loan = () => {
     const totalPayable = loanCalc.total;
 
     return (
-      <div className="ln-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
+      <div className="ln-root min-h-screen bg-[#06121F] pb-28 text-[#F5EBCB]">
         <style>{styles}</style>
         <TopBar />
 
         <main className="mx-auto mt-8 max-w-3xl space-y-6 px-4">
-          {/* ===== BANK CARD ===== */}
+          {/* ===== LOAN CARD (ব্যাংক কার্ড স্টাইল) ===== */}
           <section
-            className="relative overflow-hidden rounded-3xl border border-[#C9A24B]/40 p-6 text-white
-                       shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
-            style={{
-              background:
-                "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
-            }}
+            className="ln-card-sheen relative overflow-hidden rounded-[28px] border border-[#C9A24B]/60 p-5 text-white
+                       shadow-[0_30px_70px_-26px_rgba(0,0,0,0.95),0_0_0_1px_rgba(242,217,143,0.08)] sm:p-7"
+            style={LOAN_CARD_BG}
           >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[15px] text-white/70">ঋণের পরিমাণ</p>
-                <p className="ln-num mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-                  <span className="mr-1 text-[#E6C878]">৳</span>
-                  {formatTk(loanDetails.amount)}
-                </p>
-              </div>
+            {/* সাজসজ্জা */}
+            <span className="pointer-events-none absolute -right-14 -top-14 h-44 w-44 rounded-full border border-[#C9A24B]/25" />
+            <span className="pointer-events-none absolute -right-4 -top-4 h-24 w-24 rounded-full border border-[#C9A24B]/20" />
+            <span className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full border border-[#C9A24B]/15" />
 
+            {/* উপরের সারি: ব্র্যান্ড + স্ট্যাটাস */}
+            <div className="relative flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[13px] font-medium text-[#F2D98F]/90">ক্ষুদ্র ঋণ উন্নয়ন প্রজেক্ট</p>
+                <p className="text-[15px] font-bold text-white/90">ঋণ কার্ড</p>
+              </div>
               <span className={`shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-bold ${st.badge}`}>
                 {st.label}
               </span>
             </div>
 
+            {/* চিপ + পরিমাণ */}
+            <div className="relative mt-5 flex items-center gap-4">
+              <ChipIcon />
+              <div className="min-w-0">
+                <p className="text-[13px] text-white/65">ঋণের পরিমাণ</p>
+                <p className="ln-num text-[34px] font-bold leading-tight tracking-tight sm:text-5xl">
+                  <span className="mr-1 text-[#F2D98F]">৳</span>
+                  {formatTk(loanDetails.amount)}
+                </p>
+              </div>
+            </div>
+
+            {/* কার্ডের নিচের তথ্য */}
+            <div className="relative mt-6 grid grid-cols-3 gap-2 rounded-2xl border border-[#C9A24B]/30 bg-black/25 p-3 text-center">
+              <div>
+                <p className="text-[12px] text-white/60">মাসিক কিস্তি</p>
+                <p className="ln-num text-[16px] font-bold text-[#F2D98F]">
+                  ৳{formatTk(loanDetails.monthly_installment)}
+                </p>
+              </div>
+              <div className="border-x border-[#C9A24B]/25">
+                <p className="text-[12px] text-white/60">মেয়াদ</p>
+                <p className="ln-num text-[16px] font-bold">{totalMonths} মাস</p>
+              </div>
+              <div>
+                <p className="text-[12px] text-white/60">বাকি কিস্তি</p>
+                <p className="ln-num text-[16px] font-bold">{remaining} টি</p>
+              </div>
+            </div>
+
             {/* কিস্তির অগ্রগতি */}
-            <div className="mt-7">
+            <div className="relative mt-5">
               <div className="mb-2 flex items-center justify-between text-[14px] text-white/75">
                 <span>কিস্তি পরিশোধ</span>
                 <span className="ln-num">
@@ -306,19 +388,21 @@ const Loan = () => {
               </div>
             </div>
 
-            <p className="mt-5 text-[15px] leading-relaxed text-white/80">{st.note}</p>
+            {st.note && (
+              <p className="relative mt-5 text-[15px] leading-relaxed text-white/80">{st.note}</p>
+            )}
           </section>
 
           {/* ===== DETAILS ===== */}
-          <section className="rounded-3xl border border-[#E9E2CF] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)] sm:p-6">
+          <section className={PANEL}>
             <div className="mb-3 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0A1F2E] text-[#E6C878]">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#C9A24B]/50 bg-[#16384F] text-[#F2D98F]">
                 <BankIcon />
               </span>
-              <h2 className="text-lg font-bold">ঋণের বিস্তারিত</h2>
+              <h2 className="text-lg font-bold text-[#F2D98F]">ঋণের বিস্তারিত</h2>
             </div>
 
-            <div className="divide-y divide-[#F0EBDD]">
+            <div className="divide-y divide-[#C9A24B]/20">
               <Row label="আবেদনের তারিখ" value={formatDate(loanDetails.created_at)} />
               <Row label="ঋণের মেয়াদ" value={`${totalMonths} মাস (${yearsLabel(totalMonths)})`} />
               <Row label="সুদের হার (বার্ষিক)" value={`${rate}%`} />
@@ -330,8 +414,8 @@ const Loan = () => {
             </div>
           </section>
 
-          <div className="flex items-start gap-3 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] p-4 text-[15px] leading-relaxed text-[#5C4512]">
-            <span className="mt-0.5 text-[#B07A10]">
+          <div className="flex items-start gap-3 rounded-2xl border border-[#C9A24B]/50 bg-[#C9A24B]/10 p-4 text-[15px] leading-relaxed text-[#F0E3B8]">
+            <span className="mt-0.5 text-[#F2D98F]">
               <AlertIcon />
             </span>
             <p>
@@ -348,38 +432,36 @@ const Loan = () => {
 
   /* ================= APPLY FORM ================= */
   return (
-    <div className="ln-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
+    <div className="ln-root min-h-screen bg-[#06121F] pb-28 text-[#F5EBCB]">
       <style>{styles}</style>
       <TopBar />
 
       <main className="mx-auto mt-8 max-w-3xl space-y-6 px-4">
         {/* ===== HEADER CARD ===== */}
         <section
-          className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white
-                     shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
-          style={{
-            background:
-              "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
-          }}
+          className="ln-card-sheen relative overflow-hidden rounded-3xl border border-[#C9A24B]/50 p-6 text-white
+                     shadow-[0_24px_60px_-24px_rgba(0,0,0,0.9)] sm:p-8"
+          style={HERO_BG}
         >
-          <div className="flex items-center gap-3">
-            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-[#E6C878]">
+          <span className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full border border-[#C9A24B]/25" />
+          <div className="relative flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#C9A24B]/50 bg-white/10 text-[#F2D98F]">
               <BankIcon />
             </span>
             <div>
-              <h1 className="text-2xl font-bold">ঋণের আবেদন</h1>
-              <p className="text-[14px] text-white/70">ক্ষুদ্র ঋণ উন্নয়ন প্রজেক্ট</p>
+              <h1 className="text-2xl font-bold text-white">ঋণের আবেদন</h1>
+              <p className="text-[14px] text-[#F2D98F]/90">ক্ষুদ্র ঋণ উন্নয়ন প্রজেক্ট</p>
             </div>
           </div>
 
-          <p className="mt-5 text-[15px] leading-relaxed text-white/80">
+          <p className="relative mt-5 text-[15px] leading-relaxed text-white/80">
             ঋণ অনুমোদিত হলে প্রতি মাসের <span className="ln-num">1–10</span> তারিখের মধ্যে কিস্তি পরিশোধ করতে
             হবে। বার্ষিক সুদের হার <span className="ln-num">{INTEREST_RATE}%</span> (flat)।
           </p>
         </section>
 
         {/* ===== STEP 1: MONTHS ===== */}
-        <section className="rounded-3xl border border-[#E9E2CF] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)] sm:p-6">
+        <section className={PANEL}>
           <StepTitle no="1" text="কত মাসের জন্য ঋণ নিতে চান?" />
 
           <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
@@ -400,7 +482,7 @@ const Loan = () => {
         </section>
 
         {/* ===== STEP 2: AMOUNT ===== */}
-        <section className="rounded-3xl border border-[#E9E2CF] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)] sm:p-6">
+        <section className={PANEL}>
           <StepTitle no="2" text="কত টাকা নিতে চান?" />
 
           <div className="mt-4 grid grid-cols-3 gap-2.5 sm:grid-cols-4">
@@ -420,23 +502,24 @@ const Loan = () => {
           </div>
         </section>
 
-        {/* ===== SUMMARY ===== */}
+        {/* ===== SUMMARY (লোন কার্ড প্রিভিউ) ===== */}
         {showSummary && (
           <section
-            className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white
-                       shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)]"
-            style={{
-              background:
-                "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
-            }}
+            className="ln-card-sheen relative overflow-hidden rounded-[28px] border border-[#C9A24B]/60 p-6 text-white
+                       shadow-[0_30px_70px_-26px_rgba(0,0,0,0.95)]"
+            style={LOAN_CARD_BG}
           >
-            <p className="text-[15px] text-white/70">মাসিক কিস্তি</p>
-            <p className="ln-num mt-1 text-4xl font-bold tracking-tight">
-              <span className="mr-1 text-[#E6C878]">৳</span>
+            <span className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full border border-[#C9A24B]/25" />
+            <div className="relative flex items-center justify-between gap-3">
+              <p className="text-[15px] text-white/70">মাসিক কিস্তি</p>
+              <ChipIcon />
+            </div>
+            <p className="ln-num relative mt-1 text-4xl font-bold tracking-tight">
+              <span className="mr-1 text-[#F2D98F]">৳</span>
               {formatTk(calc.monthly)}
             </p>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 text-[14px]">
+            <div className="relative mt-5 grid grid-cols-2 gap-3 text-[14px]">
               <SummaryItem label="ঋণের পরিমাণ" value={`৳${formatTk(amount)}`} />
               <SummaryItem label="মেয়াদ" value={`${months} মাস`} />
               <SummaryItem label={`মোট সুদ (${INTEREST_RATE}% বার্ষিক)`} value={`৳${formatTk(calc.interest)}`} />
@@ -447,7 +530,7 @@ const Loan = () => {
 
         {/* ===== ERROR ===== */}
         {error && (
-          <div className="flex items-start gap-3 rounded-2xl border border-[#F0C9C9] bg-[#FCEFEF] p-4 text-[15px] font-medium text-[#B02F2F]">
+          <div className="flex items-start gap-3 rounded-2xl border-2 border-[#D64545]/60 bg-[#3A1417] p-4 text-[15px] font-medium text-[#FFB3B3]">
             <AlertIcon />
             <p>{error}</p>
           </div>
@@ -455,7 +538,7 @@ const Loan = () => {
 
         {/* ===== নির্দেশনা ===== */}
         {(!months || !amount) && !error && (
-          <p className="text-center text-[14px] text-[#5B6770]">
+          <p className="text-center text-[14px] text-[#A9B7C2]">
             {!months && !amount
               ? "প্রথমে মেয়াদ (ধাপ 1) ও পরিমাণ (ধাপ 2) নির্বাচন করুন"
               : !months
@@ -468,7 +551,7 @@ const Loan = () => {
         <button
           onClick={handleSubmit}
           disabled={submitting || !months || !amount}
-          className={`flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-[17px] font-semibold transition ${GOLD_BTN}`}
+          className={`flex w-full items-center justify-center gap-2.5 rounded-xl py-4 text-[17px] font-bold transition ${GOLD_BTN}`}
         >
           <ShieldIcon />
           <span>{submitting ? "প্রসেসিং..." : "আবেদন সম্পূর্ণ করুন"}</span>
@@ -484,10 +567,12 @@ const Loan = () => {
 
 const StepTitle = ({ no, text }) => (
   <div className="flex items-center gap-3">
-    <span className="flex h-9 shrink-0 items-center justify-center rounded-full bg-[#0A1F2E] px-3.5 text-[13px] font-bold text-[#E6C878]">
+    <span
+      className={`flex h-9 shrink-0 items-center justify-center rounded-full px-3.5 text-[13px] font-bold ${GOLD_GRAD}`}
+    >
       ধাপ <span className="ln-num ml-1">{no}</span>
     </span>
-    <h2 className="text-[17px] font-bold">{text}</h2>
+    <h2 className="text-[17px] font-bold text-[#F5EBCB]">{text}</h2>
   </div>
 );
 
@@ -495,15 +580,16 @@ const Chip = ({ active, onClick, children, sub }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`flex flex-col items-center justify-center rounded-xl border px-2 py-2.5 transition active:scale-95 ${
+    aria-pressed={active}
+    className={`flex flex-col items-center justify-center rounded-xl border-2 px-2 py-2.5 transition active:scale-95 ${
       active
-        ? "border-[#C9A24B] bg-[#0A1F2E] text-[#E6C878] shadow-[0_8px_20px_-8px_rgba(10,31,46,0.7)]"
-        : "border-[#E2DAC2] bg-[#FAF8F3] text-[#0A1F2E] hover:border-[#C9A24B]"
+        ? `border-transparent ${GOLD_GRAD} shadow-[0_10px_24px_-8px_rgba(201,162,75,0.7),inset_0_1px_0_rgba(255,255,255,0.5)]`
+        : "border-[#C9A24B]/30 bg-[#0A1D2E] text-[#F5EBCB] hover:border-[#C9A24B]"
     }`}
   >
     <span className="ln-num text-[16px] font-bold leading-tight">{children}</span>
     {sub && (
-      <span className={`ln-num mt-0.5 text-[11px] font-medium ${active ? "text-[#E6C878]/80" : "text-[#5B6770]"}`}>
+      <span className={`ln-num mt-0.5 text-[11px] font-medium ${active ? "text-[#1B1405]/75" : "text-[#A9B7C2]"}`}>
         {sub}
       </span>
     )}
@@ -511,18 +597,18 @@ const Chip = ({ active, onClick, children, sub }) => (
 );
 
 const SummaryItem = ({ label, value, gold }) => (
-  <div className="rounded-xl bg-white/10 p-3">
+  <div className="rounded-xl border border-[#C9A24B]/25 bg-black/25 p-3">
     <p className="text-white/65">{label}</p>
-    <p className={`ln-num mt-0.5 text-[16px] font-bold ${gold ? "text-[#E6C878]" : "text-white"}`}>{value}</p>
+    <p className={`ln-num mt-0.5 text-[16px] font-bold ${gold ? "text-[#F2D98F]" : "text-white"}`}>{value}</p>
   </div>
 );
 
 const Row = ({ label, value, highlight, danger }) => (
   <div className="flex items-center justify-between gap-4 py-3.5">
-    <span className="text-[15px] text-[#5B6770]">{label}</span>
+    <span className="text-[15px] text-[#A9B7C2]">{label}</span>
     <span
       className={`ln-num text-right text-[16px] font-bold ${
-        highlight ? "text-[#B07A10]" : danger ? "text-[#B02F2F]" : "text-[#0A1F2E]"
+        highlight ? "text-[#F2D98F]" : danger ? "text-[#FF8A8A]" : "text-[#F5EBCB]"
       }`}
     >
       {value}
