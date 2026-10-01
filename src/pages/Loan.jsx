@@ -118,12 +118,6 @@ const STATUS = {
 const formatTk = (value) =>
   Number(value || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-// মাস -> বছর লেখা: 12 -> "1 বছর", 18 -> "1.5 বছর"
-const yearsLabel = (m) => {
-  const y = m / 12;
-  return `${Number.isInteger(y) ? y : y.toFixed(1)} বছর`;
-};
-
 // বার্ষিক flat সুদ (ব্যাকএন্ডের calc_loan-এর মতো)
 const calcLoan = (amount, months, rate = INTEREST_RATE) => {
   if (!amount || !months) return { total: 0, monthly: 0, interest: 0 };
@@ -135,16 +129,6 @@ const calcLoan = (amount, months, rate = INTEREST_RATE) => {
 const authHeaders = () => {
   const token = localStorage.getItem("access") || localStorage.getItem("token");
   return { Authorization: token ? `Bearer ${token}` : "" };
-};
-
-const formatDate = (d) => {
-  const date = new Date(d);
-  if (isNaN(date)) return "—";
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
 };
 
 /* ================= ICONS ================= */
@@ -304,7 +288,7 @@ const Loan = () => {
     );
   }
 
-  /* ================= EXISTING LOAN ================= */
+  /* ================= EXISTING LOAN (শুধু কার্ড) ================= */
   if (loanDetails) {
     const st = STATUS[loanDetails.loan_status] || {
       label: loanDetails.loan_status || "—",
@@ -316,10 +300,6 @@ const Loan = () => {
     const paid = Number(loanDetails.paid_installments || 0);
     const remaining = Math.max(totalMonths - paid, 0);
     const percent = totalMonths ? Math.min((paid / totalMonths) * 100, 100) : 0;
-
-    const rate = Number(loanDetails.interest_rate ?? INTEREST_RATE);
-    const loanCalc = calcLoan(Number(loanDetails.amount || 0), totalMonths, rate);
-    const totalPayable = loanCalc.total;
 
     return (
       <div lang="bn" className="ln-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
@@ -399,37 +379,6 @@ const Loan = () => {
               <p className="relative mt-5 text-[15px] leading-relaxed text-white/80">{st.note}</p>
             )}
           </section>
-
-          {/* ===== DETAILS ===== */}
-          <section className={PANEL}>
-            <div className="mb-3 flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#C9A24B]/50 bg-[#FDF6E3] text-[#8A6A1F]">
-                <BankIcon />
-              </span>
-              <h2 className="text-lg font-bold text-[#0A1F2E]">ঋণের বিস্তারিত</h2>
-            </div>
-
-            <div className="divide-y divide-[#EFE9D8]">
-              <Row label="আবেদনের তারিখ" value={formatDate(loanDetails.created_at)} />
-              <Row label="ঋণের মেয়াদ" value={`${totalMonths} মাস (${yearsLabel(totalMonths)})`} />
-              <Row label="সুদের হার (বার্ষিক)" value={`${rate}%`} />
-              <Row label="মোট সুদ" value={`৳${formatTk(loanCalc.interest)}`} />
-              <Row label="মাসিক কিস্তি" value={`৳${formatTk(loanDetails.monthly_installment)}`} highlight />
-              <Row label="মোট পরিশোধযোগ্য" value={`৳${formatTk(totalPayable)}`} />
-              <Row label="পরিশোধ হয়েছে" value={`${paid} টি`} />
-              <Row label="বাকি কিস্তি" value={`${remaining} টি`} danger />
-            </div>
-          </section>
-
-          <div className="flex items-start gap-3 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] p-4 text-[15px] leading-relaxed text-[#5C4512]">
-            <span className="mt-0.5 text-[#B07A10]">
-              <AlertIcon />
-            </span>
-            <p>
-              প্রতি মাসের <span className="ln-num">1–10</span> তারিখের মধ্যে কিস্তি পরিশোধ করতে হবে। একটি ঋণ
-              চলাকালীন নতুন ঋণের আবেদন করা যাবে না।
-            </p>
-          </div>
         </main>
 
         <DownBar />
@@ -476,7 +425,6 @@ const Loan = () => {
               <Chip
                 key={m}
                 active={months === m}
-                sub={yearsLabel(m)}
                 onClick={() => {
                   setMonths(m);
                   setError("");
@@ -497,7 +445,6 @@ const Loan = () => {
               <Chip
                 key={a.value}
                 active={amount === a.value}
-                sub={`৳${formatTk(a.value)}`}
                 onClick={() => {
                   setAmount(a.value);
                   setError("");
@@ -583,23 +530,18 @@ const StepTitle = ({ no, text }) => (
   </div>
 );
 
-const Chip = ({ active, onClick, children, sub }) => (
+const Chip = ({ active, onClick, children }) => (
   <button
     type="button"
     onClick={onClick}
     aria-pressed={active}
-    className={`flex flex-col items-center justify-center rounded-xl border-2 px-2 py-2.5 transition active:scale-95 ${
+    className={`flex items-center justify-center rounded-xl border-2 px-2 py-3.5 transition active:scale-95 ${
       active
         ? `border-transparent ${GOLD_GRAD} shadow-[0_10px_24px_-8px_rgba(201,162,75,0.7),inset_0_1px_0_rgba(255,255,255,0.5)]`
         : "border-[#E3DDCC] bg-white text-[#0A1F2E] hover:border-[#C9A24B]"
     }`}
   >
     <span className="ln-num text-[16px] font-bold leading-tight">{children}</span>
-    {sub && (
-      <span className={`ln-num mt-0.5 text-[11px] font-medium ${active ? "text-[#1B1405]/75" : "text-[#5B6770]"}`}>
-        {sub}
-      </span>
-    )}
   </button>
 );
 
@@ -607,19 +549,6 @@ const SummaryItem = ({ label, value, gold }) => (
   <div className="rounded-xl border border-[#C9A24B]/25 bg-black/25 p-3">
     <p className="text-white/65">{label}</p>
     <p className={`ln-num mt-0.5 text-[16px] font-bold ${gold ? "text-[#F2D98F]" : "text-white"}`}>{value}</p>
-  </div>
-);
-
-const Row = ({ label, value, highlight, danger }) => (
-  <div className="flex items-center justify-between gap-4 py-3.5">
-    <span className="text-[15px] text-[#5B6770]">{label}</span>
-    <span
-      className={`ln-num text-right text-[16px] font-bold ${
-        highlight ? "text-[#8A6A1F]" : danger ? "text-[#B02F2F]" : "text-[#0A1F2E]"
-      }`}
-    >
-      {value}
-    </span>
   </div>
 );
 
