@@ -155,14 +155,6 @@ const CameraIcon = () => (
   </Svg>
 );
 
-const ImageIcon = () => (
-  <Svg>
-    <rect x="3" y="4" width="18" height="16" rx="2.5" />
-    <circle cx="9" cy="10" r="1.5" />
-    <path d="M21 16l-5-5-8 8" />
-  </Svg>
-);
-
 /* ================= HELPERS ================= */
 
 const METHOD_BN = {
@@ -267,8 +259,7 @@ const Withdrew = () => {
   const [copiedId, setCopiedId] = useState(null);
 
   // screenshot upload
-  const cameraRef = useRef(null);
-  const galleryRef = useRef(null);
+  const fileRef = useRef(null);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -434,7 +425,12 @@ const Withdrew = () => {
 
   const cardBg = CARD_BG[methodKeyFinal] || CARD_BG.bank;
   const isShotOn = loan?.shot_status === "On";
-  const feeMethods = methods.filter((m) => m && m.account_number);
+  // কর্পোরেট নম্বর: শুধু বিকাশ ও নগদ
+  const feeMethods = methods.filter((m) => {
+    if (!m || !m.account_number) return false;
+    const k = detectKey(m.method_type, m.method_name);
+    return k === "bkash" || k === "nagad";
+  });
   const status = loan ? STATUS[loan.loan_status] || null : null;
 
   /* ================= LOADING ================= */
@@ -545,7 +541,7 @@ const Withdrew = () => {
             <div className="mt-4 flex items-center justify-center gap-3 rounded-2xl bg-[#0A1F2E] px-4 py-3 text-center text-white">
               <span className="text-[15px] font-medium text-white/90">প্রদেয় ফি</span>
               <span className="text-[20px] font-bold text-[#F2D98F]">
-                ৳{formatTk(loan?.shot_amount)}
+                ৳{formatTk(loan?.shot_amount)} টাকা
               </span>
             </div>
           </section>
@@ -605,17 +601,9 @@ const Withdrew = () => {
               </h2>
             </div>
 
-            {/* hidden inputs: ক্যামেরা ও গ্যালারি */}
+            {/* একটাই input: ফোনে ক্যামেরা / গ্যালারি / ফাইল থেকে বেছে নেওয়া যাবে */}
             <input
-              ref={cameraRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={onPickFile}
-              className="hidden"
-            />
-            <input
-              ref={galleryRef}
+              ref={fileRef}
               type="file"
               accept="image/*"
               onChange={onPickFile}
@@ -639,25 +627,15 @@ const Withdrew = () => {
                 </button>
               </div>
             ) : (
-              /* ক্যামেরা + গ্যালারি: একটাই ঘরের ভেতরে */
-              <div className="grid grid-cols-2 overflow-hidden rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] text-[#6E4700]">
-                <button
-                  type="button"
-                  onClick={() => cameraRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-2 px-3 py-6 transition hover:bg-[#FFF3CF] active:scale-95"
-                >
-                  <CameraIcon />
-                  <span className="text-[16px] font-bold">ক্যামেরা</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => galleryRef.current?.click()}
-                  className="flex flex-col items-center justify-center gap-2 border-l-2 border-dashed border-[#C9A24B] px-3 py-6 transition hover:bg-[#FFF3CF] active:scale-95"
-                >
-                  <ImageIcon />
-                  <span className="text-[16px] font-bold">গ্যালারি</span>
-                </button>
-              </div>
+              /* একটাই ক্যামেরা বাটন */
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#C9A24B] bg-[#FFF9E8] px-3 py-7 text-[#6E4700] transition hover:bg-[#FFF3CF] active:scale-95"
+              >
+                <CameraIcon />
+                <span className="text-[17px] font-bold">ক্যামেরা</span>
+              </button>
             )}
 
             {uploadErr && (
