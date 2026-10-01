@@ -27,6 +27,23 @@ const NAVY_BG = {
   background: "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
 };
 
+/* কার্ডের রং: পেমেন্ট মেথড অনুযায়ী */
+const CARD_BG = {
+  bkash: "radial-gradient(900px 420px at 15% -20%, #E2136E 0%, #6B0F36 70%)",
+  nagad: "radial-gradient(900px 420px at 15% -20%, #F26B21 0%, #6E2605 70%)",
+  rocket: "radial-gradient(900px 420px at 15% -20%, #8B2F97 0%, #2A0E5C 70%)",
+  bank: NAVY_BG.background,
+};
+
+const cardKey = (name, isBank) => {
+  if (isBank) return "bank";
+  const n = String(name || "").toLowerCase();
+  if (/bkash|bikash|বিকাশ/.test(n)) return "bkash";
+  if (/nagad|নগদ/.test(n)) return "nagad";
+  if (/rocket|রকেট/.test(n)) return "rocket";
+  return "bank";
+};
+
 const GOLD_BTN =
   "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
   "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
@@ -142,8 +159,9 @@ const METHOD_BN = {
   bank: "ব্যাংক",
 };
 
-const bnMethodName = (name = "") => {
-  const n = name.toLowerCase();
+// null/undefined হলেও ক্র্যাশ করবে না
+const bnMethodName = (name) => {
+  const n = String(name || "").toLowerCase();
   if (n.includes("bkash") || n.includes("বিকাশ")) return METHOD_BN.bkash;
   if (n.includes("nagad") || n.includes("নগদ")) return METHOD_BN.nagad;
   if (n.includes("rocket") || n.includes("রকেট")) return METHOD_BN.rocket;
@@ -158,10 +176,11 @@ const methodIcon = (m) => {
   return <CardIcon />;
 };
 
-const maskNumber = (num = "") => {
-  if (!num) return "•••• •••• ••••";
-  if (num.length <= 6) return "•".repeat(num.length);
-  return `${num.slice(0, 3)}${"•".repeat(num.length - 6)}${num.slice(-3)}`;
+const maskNumber = (num) => {
+  const s = String(num || "");
+  if (!s) return "•••• •••• ••••";
+  if (s.length <= 6) return "•".repeat(s.length);
+  return `${s.slice(0, 3)}${"•".repeat(s.length - 6)}${s.slice(-3)}`;
 };
 
 const formatTk = (v) =>
@@ -243,32 +262,41 @@ const Withdrew = () => {
 
   useEffect(() => {
     const load = async () => {
-      const headers = authHeaders();
+      try {
+        const headers = authHeaders();
 
-      const [pRes, lRes, mRes] = await Promise.allSettled([
-        api.get("/user/payment/me", { headers }),
-        api.get("/loan/loan/my-loans", { headers }),
-        api.get("/paymentmethod/active"),
-      ]);
+        const [pRes, lRes, mRes] = await Promise.allSettled([
+          api.get("/user/payment/me", { headers }),
+          api.get("/loan/loan/my-loans", { headers }),
+          api.get("/paymentmethod/active"),
+        ]);
 
-      if ([pRes, lRes].some((r) => r.status === "rejected" && r.reason?.response?.status === 401)) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("token");
-        navigate("/login", { replace: true });
-        return;
+        if ([pRes, lRes].some((r) => r.status === "rejected" && r.reason?.response?.status === 401)) {
+          localStorage.removeItem("access");
+          localStorage.removeItem("token");
+          navigate("/login", { replace: true });
+          return;
+        }
+
+        if (pRes.status === "fulfilled") {
+          const d = pRes.value.data;
+          setPayment(d && typeof d === "object" ? d : null);
+        }
+
+        if (lRes.status === "fulfilled") {
+          const loans = Array.isArray(lRes.value.data) ? [...lRes.value.data] : [];
+          loans.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          setLoan(loans[0] || null);
+        }
+
+        if (mRes.status === "fulfilled") {
+          setMethods(Array.isArray(mRes.value.data) ? mRes.value.data : []);
+        }
+      } catch (e) {
+        // কিছু ভুল হলেও পেজ যেন সাদা না হয়
+      } finally {
+        setPageLoading(false);
       }
-
-      if (pRes.status === "fulfilled") setPayment(pRes.value.data || null);
-
-      if (lRes.status === "fulfilled") {
-        const loans = Array.isArray(lRes.value.data) ? [...lRes.value.data] : [];
-        loans.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        setLoan(loans[0] || null);
-      }
-
-      if (mRes.status === "fulfilled") setMethods(mRes.value.data || []);
-
-      setPageLoading(false);
     };
 
     load();
@@ -358,14 +386,19 @@ const Withdrew = () => {
     payment?.mobile_wallet_number || payment?.bank_account_number || "";
 
   const isBank = !!payment?.bank_account_number;
+  const cardBg = CARD_BG[cardKey(payment?.payment_method, isBank)];
   const isShotOn = loan?.shot_status === "On";
-  const feeMethods = methods.filter((m) => m.account_number);
-  const status = loan ? STATUS[loan.loan_status] : null;
+  const feeMethods = methods.filter((m) => m && m.account_number);
+  const status = loan ? STATUS[loan.loan_status] || null : null;
 
   /* ================= LOADING ================= */
   if (pageLoading) {
     return (
-      <div className="wd-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
+      <div
+        lang="bn"
+        translate="no"
+        className="notranslate wd-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]"
+      >
         <style>{styles}</style>
         <svg className="h-10 w-10 animate-spin text-[#C9A24B]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
@@ -377,7 +410,11 @@ const Withdrew = () => {
   }
 
   return (
-    <div className="wd-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
+    <div
+      lang="bn"
+      translate="no"
+      className="notranslate wd-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]"
+    >
       <style>{styles}</style>
 
       {/* ===== TOP BAR ===== */}
@@ -399,7 +436,7 @@ const Withdrew = () => {
         {hasPayment ? (
           <section
             className="relative overflow-hidden rounded-3xl border border-[#C9A24B]/40 p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
-            style={NAVY_BG}
+            style={{ background: cardBg }}
           >
             <div className="absolute -right-12 -top-16 h-52 w-52 rounded-full bg-white/5" />
 
@@ -410,7 +447,7 @@ const Withdrew = () => {
                     পেমেন্ট পদ্ধতি
                   </p>
                   <p className="mt-1 text-[24px] font-bold text-[#F2D98F]">
-                    {bnMethodName(payment.payment_method)}
+                    {bnMethodName(payment?.payment_method)}
                   </p>
                 </div>
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-[#F2D98F]">
@@ -419,7 +456,7 @@ const Withdrew = () => {
               </div>
 
               <p className="mt-7 text-[16px] font-medium text-white/85">অ্যাকাউন্ট নম্বর</p>
-              {/* মাস্ক করা নম্বর: আগের চেয়ে ছোট */}
+              {/* মাস্ক করা নম্বর */}
               <p className="mt-1 break-all font-mono text-[19px] font-bold tracking-[0.08em]">
                 {maskNumber(accountNumber)}
               </p>
