@@ -1,375 +1,538 @@
-// src/pages/Dashboard.jsx  (ইউজার ড্যাশবোর্ড)
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
-
-import TopBar from "../components/TopBar";
-import DownBar from "../components/DownBar";
+import backIcon from "../assets/icons/back.png";
+import bkashLogo from "../assets/BKash.png";
+import nagadLogo from "../assets/Nagad.png";
+import rocketLogo from "../assets/rocket.png";
+import bankLogo from "../assets/bank.png";
 
 /* ================= STYLES ================= */
-
-// বাংলা যুক্তাক্ষর (যেমন "ন্স") ঠিকমতো দেখানোর জন্য:
-// - Noto Sans Bengali আগে, Hind Siliguri পরে
-// - ligature চালু, letter-spacing বন্ধ
 const styles = `
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
 
-.db-root {
+.pi-root {
   font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', system-ui, sans-serif;
   font-feature-settings: "liga" 1, "clig" 1, "rlig" 1, "calt" 1, "locl" 1;
-  font-variant-ligatures: common-ligatures contextual;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
 }
-.db-root h1, .db-root h2, .db-root h3, .db-root p, .db-root span, .db-root button {
+.pi-root h1, .pi-root h2, .pi-root h3, .pi-root p, .pi-root span, .pi-root button, .pi-root label {
   letter-spacing: 0 !important;
-  word-spacing: 0;
 }
+.pi-root input { font-size: 16px; }
 `;
 
-const NAVY_BG = {
-  background: "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
+/* ================= মেথড স্টাইল (type অনুযায়ী) ================= */
+const STYLES = {
+  bkash: {
+    bn: "বিকাশ",
+    logo: bkashLogo,
+    card: "from-[#6B0F36] via-[#B5124F] to-[#E2136E]",
+  },
+  nagad: {
+    bn: "নগদ",
+    logo: nagadLogo,
+    card: "from-[#6E2605] via-[#C2410C] to-[#F26B21]",
+  },
+  rocket: {
+    bn: "রকেট",
+    logo: rocketLogo,
+    card: "from-[#2A0E5C] via-[#5B2A86] to-[#8B2F97]",
+  },
+  bank: {
+    bn: "ব্যাংক",
+    logo: bankLogo,
+    card: "from-[#06121F] via-[#0F3045] to-[#1E5A74]",
+  },
+  default: {
+    bn: null,
+    logo: bankLogo,
+    card: "from-[#06121F] via-[#0F3045] to-[#1E5A74]",
+  },
 };
 
-/* ================= BUTTON STYLES ================= */
+const normalizeMethod = (m) => {
+  const t = (m.method_type || "").toLowerCase().trim();
+  const s = STYLES[t] || STYLES.default;
+  return {
+    id: String(m.id),
+    name: s.bn || m.method_name,
+    type: t === "bank" ? "bank" : "mobile",
+    card: s.card,
+    logo: s.logo,
+  };
+};
 
-const GOLD_BTN =
-  "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
-  "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
-  "hover:brightness-105 active:translate-y-px " +
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#C9A24B]/40";
+const groupDigits = (s = "") => s.replace(/(.{4})/g, "$1 ").trim();
 
-const INK_BTN =
-  "bg-[#0A1F2E] text-white hover:bg-[#123244] active:translate-y-px " +
-  "shadow-[0_10px_24px_-10px_rgba(10,31,46,0.8)] " +
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0A1F2E]/30";
+const maskNumber = (n = "") =>
+  n.length > 4 ? "•".repeat(n.length - 4) + n.slice(-4) : n;
 
-/* ================= ICONS ================= */
-
-const Svg = ({ children, className = "w-6 h-6", strokeWidth = 1.9 }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-  >
-    {children}
+/* ================= ছোট আইকন ================= */
+const ChipSvg = () => (
+  <svg width="44" height="34" viewBox="0 0 42 32" fill="none">
+    <rect x="1" y="1" width="40" height="30" rx="6" fill="#E8CB7E" stroke="#B48A34" strokeWidth="1.5" />
+    <path d="M1 11h40M1 21h40M15 1v30M27 1v30" stroke="#8A6A1F" strokeWidth="1" opacity="0.6" />
   </svg>
 );
 
-const CheckCircleIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M8 12.5l2.7 2.7L16 9.8" />
-  </Svg>
+const EyeIcon = ({ off }) => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" />
+    <circle cx="12" cy="12" r="3" />
+    {off && <path d="M3 3l18 18" />}
+  </svg>
 );
 
-const ClockIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 7v5l3 2" />
-  </Svg>
+const LockIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
 );
 
-const CrossCircleIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9 9l6 6M15 9l-6 6" />
-  </Svg>
-);
-
-const AlertIcon = () => (
-  <Svg>
-    <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-    <path d="M12 9v4M12 17h.01" />
-  </Svg>
-);
-
-const InfoIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 16v-5M12 8h.01" />
-  </Svg>
+const ShieldIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+    <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
+    <path d="M9 12l2 2 4-4" />
+  </svg>
 );
 
 const WalletIcon = () => (
-  <Svg className="w-5 h-5">
-    <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3" />
-    <path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3" />
-    <path d="M21 10h-5a2 2 0 0 0 0 4h5z" />
-  </Svg>
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="6" width="18" height="14" rx="3" />
+    <path d="M3 10h18M16 15h2" />
+    <path d="M6 6l9-3 2 3" />
+  </svg>
 );
 
-/* ================= LOAN STATUS CONFIG ================= */
-// কালার স্কিম: সবুজ = সফল, হলুদ = অপেক্ষা, ধূসর = বাতিল, লাল = সমস্যা, নীল = যাচাই চলছে
+/* ================= থিম (Dashboard-এর মতো) ================= */
+const GOLD_BTN =
+  "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
+  "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
+  "hover:brightness-105 active:translate-y-px active:scale-[0.99] " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#C9A24B]/40 " +
+  "disabled:cursor-not-allowed disabled:opacity-50";
 
-const TONES = {
-  green: {
-    wrap: "bg-[#EEF8F3] border-[#BFE3D0]",
-    circle: "bg-[#D6F0E2] text-[#1F9D6B]",
-    title: "text-[#15724E]",
-    text: "text-[#2B5B47]",
-  },
-  yellow: {
-    wrap: "bg-[#FDF6E3] border-[#EBDCA8]",
-    circle: "bg-[#F8E9B8] text-[#B07A10]",
-    title: "text-[#8A5F08]",
-    text: "text-[#6B5320]",
-  },
-  gray: {
-    wrap: "bg-[#F3F4F5] border-[#D9DCDF]",
-    circle: "bg-[#E4E7EA] text-[#5B6770]",
-    title: "text-[#33404A]",
-    text: "text-[#5B6770]",
-  },
-  red: {
-    wrap: "bg-[#FCEFEF] border-[#F0C9C9]",
-    circle: "bg-[#F9D9D9] text-[#D64545]",
-    title: "text-[#B02F2F]",
-    text: "text-[#7A3A3A]",
-  },
-  blue: {
-    wrap: "bg-[#EAF1FB] border-[#B9D0EE]",
-    circle: "bg-[#D3E3F6] text-[#1F5BA8]",
-    title: "text-[#174382]",
-    text: "text-[#2A4D78]",
-  },
-};
+const inputCls =
+  "w-full rounded-xl border border-[#E3DDCC] bg-white px-4 py-3 text-[16px] font-medium text-[#0A1F2E] " +
+  "outline-none transition placeholder:text-[#B5B09F] " +
+  "focus:border-[#C9A24B] focus:ring-4 focus:ring-[#C9A24B]/20";
 
-const STATUS = {
-  Approved: {
-    ...TONES.green,
-    icon: <CheckCircleIcon />,
-    heading: "ঋণ অনুমোদিত হয়েছে",
-    message: "অভিনন্দন! আপনার ঋণ অনুমোদিত হয়েছে, আপনি এখন ঋণ উত্তোলন করতে পারেন।",
-  },
-  Pending: {
-    ...TONES.yellow,
-    icon: <ClockIcon />,
-    heading: "অনুমোদনের অপেক্ষায়",
-    message: "আপনার ঋণের আবেদন পর্যবেক্ষণ করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।",
-  },
-  Rejected: {
-    ...TONES.gray,
-    icon: <CrossCircleIcon />,
-    heading: "আবেদন প্রত্যাখ্যাত",
-    message: "আপনার ঋণ আবেদন বাতিল করা হয়েছে।",
-  },
-  Processing: {
-    ...TONES.red,
-    icon: <AlertIcon />,
-    heading: "প্রক্রিয়াধীন",
-    message: "আপনার অনুমোদিত ঋণ দেরির কারণে উত্তোলন সম্ভব নয়!",
-  },
-  "Payment Pending": {
-    ...TONES.blue,
-    icon: <ClockIcon />,
-    heading: "পেমেন্ট যাচাই চলছে",
-    message: "আপনার পাঠানো পেমেন্ট স্ক্রিনশট যাচাই করা হচ্ছে।",
-  },
-  "Payment Success": {
-    ...TONES.green,
-    icon: <CheckCircleIcon />,
-    heading: "পেমেন্ট সফল হয়েছে",
-    message: "আপনার পেমেন্ট সফলভাবে যাচাই হয়েছে।",
-  },
-  "Payment Failed": {
-    ...TONES.red,
-    icon: <AlertIcon />,
-    heading: "পেমেন্ট ব্যর্থ হয়েছে",
-    message: "আপনার পেমেন্ট যাচাই করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
-  },
-};
+const Label = ({ children }) => (
+  <label className="mb-1.5 block text-[14px] font-semibold text-[#33404A]">{children}</label>
+);
 
-// অচেনা স্ট্যাটাস এলে যেন কার্ড হারিয়ে না যায়
-const FALLBACK_STATUS = {
-  ...TONES.gray,
-  icon: <InfoIcon />,
-  heading: "ঋণের অবস্থা",
-  message: "আপনার ঋণের তথ্য হালনাগাদ হচ্ছে।",
-};
-
-const getStatus = (loan) => (loan ? STATUS[loan.loan_status] || FALLBACK_STATUS : null);
-
-/* ================= DASHBOARD ================= */
-
-const Dashboard = () => {
+/* ================= মূল কম্পোনেন্ট ================= */
+const PaymentInfo = () => {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(null);
-  const [loan, setLoan] = useState(null);
-  const [loanLoaded, setLoanLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [methods, setMethods] = useState([]);
+  const [savedName, setSavedName] = useState("");
+  const [payment, setPayment] = useState({
+    payment_method_id: "",
+    mobile_wallet_number: "",
+    bank_account_number: "",
+    bank_account_name: "",
+    bank_name: "",
+    bank_branch_name: "",
+  });
 
-  // ================= FETCH =================
-  const fetchData = async () => {
+  const [pageLoading, setPageLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [hasPayment, setHasPayment] = useState(false);
+  const [showNumber, setShowNumber] = useState(false);
+
+  /* ================= লোড ================= */
+  const fetchAll = async () => {
+    // একটি ফেইল করলেও অন্যটি কাজ করবে
+    const [mRes, pRes] = await Promise.allSettled([
+      api.get("/user/payment/methods"),
+      api.get("/user/payment/me"),
+    ]);
+
+    if (mRes.status === "fulfilled") {
+      setMethods((mRes.value.data || []).map(normalizeMethod));
+    }
+
+    if (pRes.status === "fulfilled") {
+      const data = pRes.value.data || {};
+      const exists =
+        data.payment_method_id ||
+        data.mobile_wallet_number ||
+        data.bank_account_number;
+
+      setHasPayment(!!exists);
+      setSavedName(data.payment_method || "");
+
+      setPayment({
+        payment_method_id: data.payment_method_id ? String(data.payment_method_id) : "",
+        mobile_wallet_number: data.mobile_wallet_number || "",
+        bank_account_number: data.bank_account_number || "",
+        bank_account_name: data.bank_account_name || "",
+        bank_name: data.bank_name || "",
+        bank_branch_name: data.bank_branch_name || "",
+      });
+    } else {
+      setHasPayment(false);
+      setMessage({ type: "error", text: "পেমেন্ট তথ্য লোড করতে সমস্যা হয়েছে" });
+    }
+
+    setPageLoading(false);
+  };
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  /* ================= পরিবর্তন ================= */
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    const digitsOnly = ["mobile_wallet_number", "bank_account_number"].includes(name);
+
+    setPayment((prev) => ({
+      ...prev,
+      [name]: digitsOnly ? value.replace(/\D/g, "") : value,
+    }));
+    if (message.text) setMessage({ type: "", text: "" });
+  };
+
+  const selectMethod = (id) => {
+    setPayment((prev) => ({ ...prev, payment_method_id: id }));
+    if (message.text) setMessage({ type: "", text: "" });
+  };
+
+  /* ================= বর্তমান মেথড ================= */
+  let method = methods.find((m) => m.id === payment.payment_method_id);
+
+  // মেথড লিস্ট না এলেও সেভ করা কার্ড দেখানোর ফলব্যাক
+  if (!method && hasPayment) {
+    method = {
+      id: payment.payment_method_id,
+      name: savedName || "পেমেন্ট",
+      type: payment.bank_account_number ? "bank" : "mobile",
+      card: STYLES.default.card,
+      logo: STYLES.default.logo,
+    };
+  }
+
+  const isBank = method?.type === "bank";
+  const isMobile = method?.type === "mobile";
+  const accountNumber = payment.mobile_wallet_number || payment.bank_account_number || "";
+
+  /* ================= জমা ================= */
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!method) {
+      setMessage({ type: "error", text: "একটি পেমেন্ট মেথড নির্বাচন করুন" });
+      return;
+    }
+
+    if (method.type === "mobile" && !/^01[3-9]\d{8}$/.test(payment.mobile_wallet_number)) {
+      setMessage({ type: "error", text: "সঠিক ১১ ডিজিটের মোবাইল নম্বর দিন" });
+      return;
+    }
+
+    if (method.type === "bank" && !payment.bank_account_number.trim()) {
+      setMessage({ type: "error", text: "ব্যাংক অ্যাকাউন্ট নম্বর দিন" });
+      return;
+    }
+
     try {
       setLoading(true);
+      setMessage({ type: "", text: "" });
 
-      const token = localStorage.getItem("access") || localStorage.getItem("token");
-      const headers = { Authorization: token ? `Bearer ${token}` : "" };
+      const formData = new FormData();
+      formData.append("payment_method_id", payment.payment_method_id);
+      formData.append("mobile_wallet_number", method.type === "mobile" ? payment.mobile_wallet_number : "");
+      formData.append("payment_description", "");
+      formData.append("bank_account_number", method.type === "bank" ? payment.bank_account_number : "");
+      formData.append("bank_account_name", method.type === "bank" ? payment.bank_account_name : "");
+      formData.append("bank_name", method.type === "bank" ? payment.bank_name : "");
+      formData.append("bank_branch_name", method.type === "bank" ? payment.bank_branch_name : "");
 
-      const [userRes, loanRes] = await Promise.allSettled([
-        api.get("/user/kyc/me", { headers }),
-        api.get("/loan/loan/my-loans", { headers }),
-      ]);
+      await api.post("/user/payment/update", formData);
 
-      // সেশন শেষ হলে লগইন পেজে পাঠানো হবে
-      const unauthorized = [userRes, loanRes].some(
-        (r) => r.status === "rejected" && r.reason?.response?.status === 401
-      );
-      if (unauthorized) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      // USER
-      setUser(userRes.status === "fulfilled" ? userRes.value.data : null);
-
-      // LOANS: সবচেয়ে নতুন ঋণ বেছে নেওয়া হচ্ছে
-      if (loanRes.status === "fulfilled") {
-        const list = Array.isArray(loanRes.value.data) ? [...loanRes.value.data] : [];
-        list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        setLoan(list[0] || null);
-        setLoanLoaded(true);
-      } else {
-        setLoan(null);
-        setLoanLoaded(false); // লোড ব্যর্থ হলে "আবেদন করেননি" দেখানো হবে না
-      }
+      setMessage({ type: "success", text: "সফলভাবে সংরক্ষণ হয়েছে" });
+      await fetchAll();
     } catch (err) {
-      console.error(err);
-      setUser(null);
-      setLoan(null);
-      setLoanLoaded(false);
+      const d = err?.response?.data?.detail;
+      setMessage({
+        type: "error",
+        text: typeof d === "string" ? d : "সংরক্ষণ করতে সমস্যা হয়েছে",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  /* ================= টপ বার ================= */
+  const TopBar = (
+    <div className="sticky top-0 z-30 border-b border-[#C9A24B]/30 bg-[#081A2B]/95 shadow-lg backdrop-blur">
+      <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3.5">
+        <button
+          type="button"
+          onClick={() => navigate("/profile")}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#C9A24B]/50 bg-[#C9A24B]/10 transition hover:bg-[#C9A24B]/20 active:scale-95"
+          aria-label="প্রোফাইলে ফিরে যান"
+        >
+          <img src={backIcon} alt="পেছনে" className="h-5 w-5 invert" />
+        </button>
+        <h1 className="text-lg font-bold tracking-wide text-[#F2D98F]">পেমেন্ট সেটিংস</h1>
+      </div>
+    </div>
+  );
 
-  /* ================= LOADING ================= */
-
-  if (loading) {
+  /* ================= লোডিং ================= */
+  if (pageLoading) {
     return (
-      <div lang="bn" className="db-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
+      <div lang="bn" className="pi-root min-h-screen bg-[#FAF8F3]">
         <style>{styles}</style>
-
-        <svg className="h-10 w-10 animate-spin text-[#C9A24B]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-
-        <p className="text-[17px] font-semibold text-[#0A1F2E]">লোড হচ্ছে...</p>
+        {TopBar}
+        <div className="mx-auto mt-6 max-w-md animate-pulse space-y-4 px-4">
+          <div className="h-52 rounded-3xl bg-[#EDE7D5]" />
+          <div className="h-16 rounded-2xl bg-[#EDE7D5]" />
+        </div>
       </div>
     );
   }
 
-  const status = getStatus(loan);
-  const showInfoNotice = !!user && !user.kyc_submitted;
-  const showLoanNotice = loanLoaded && !loan && !showInfoNotice;
-
   return (
-    <div lang="bn" className="db-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
+    <div lang="bn" className="pi-root min-h-screen bg-[#FAF8F3] pb-10 text-[#0A1F2E]">
       <style>{styles}</style>
+      {TopBar}
 
-      <TopBar />
-
-      <main className="mx-auto mt-8 max-w-3xl space-y-6 px-4">
-        {/* ================= BALANCE ================= */}
-        <section
-          className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
-          style={NAVY_BG}
-        >
-          <p lang="bn" className="text-[16px] font-medium text-white/75">
-            অ্যাকাউন্ট ব্যালেন্স
-          </p>
-
-          <p className="mt-2 text-4xl font-bold sm:text-5xl">
-            <span className="mr-1 text-[#E6C878]">৳</span>
-            {Number(user?.balance || 0).toLocaleString("en-BD")}
-          </p>
-
-          <button
-            onClick={() => navigate("/withdrew")}
-            className={`mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-[17px] font-semibold transition ${GOLD_BTN}`}
+      <div className="mx-auto mt-6 max-w-md space-y-5 px-4">
+        {/* ===== বার্তা ===== */}
+        {message.text && (
+          <div
+            className={`rounded-2xl border px-4 py-3 text-[15px] font-semibold ${
+              message.type === "success"
+                ? "border-[#BFE3D0] bg-[#EEF8F3] text-[#15724E]"
+                : "border-[#F0C9C9] bg-[#FCEFEF] text-[#B02F2F]"
+            }`}
           >
-            <WalletIcon />
-            <span>ঋণ উত্তোলন</span>
-          </button>
-        </section>
-
-        {/* ================= NOTICE ================= */}
-        {showInfoNotice && (
-          <NoticeBox
-            text="প্রথমে ব্যক্তিগত তথ্য পূরণ করুন।"
-            buttonText="তথ্য দিন"
-            onClick={() => navigate("/personal-info")}
-          />
+            {message.type === "success" ? "✅ " : "⚠️ "}
+            {message.text}
+          </div>
         )}
 
-        {showLoanNotice && (
-          <NoticeBox
-            text="আপনি এখনো ঋণের জন্য আবেদন করেননি।"
-            buttonText="আবেদন করুন"
-            onClick={() => navigate("/loan")}
-          />
+        {/* ================= সেভ করা পেমেন্ট কার্ড ================= */}
+        {hasPayment && method && (
+          <>
+            <div
+              className={`relative overflow-hidden rounded-3xl border border-[#E8CB7E]/50 bg-gradient-to-br ${method.card} p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)]`}
+            >
+              {/* সাজসজ্জা */}
+              <div className="pointer-events-none absolute -right-14 -top-16 h-56 w-56 rounded-full border border-white/15 bg-white/10" />
+              <div className="pointer-events-none absolute -bottom-24 -left-14 h-64 w-64 rounded-full bg-white/5" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0" />
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F2D98F] to-transparent" />
+
+              <div className="relative">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg ring-2 ring-[#E8CB7E]/70">
+                      <img src={method.logo} alt={method.name} className="h-full w-full object-contain" />
+                    </span>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/80">পেমেন্ট মেথড</p>
+                      <p className="mt-0.5 text-xl font-bold">{method.name}</p>
+                    </div>
+                  </div>
+                  <ChipSvg />
+                </div>
+
+                <div className="mt-8 flex items-center justify-between gap-3">
+                  <p className="break-all font-mono text-[22px] font-semibold tracking-[0.18em] drop-shadow">
+                    {groupDigits(showNumber ? accountNumber : maskNumber(accountNumber))}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowNumber((s) => !s)}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/15 transition hover:bg-white/25 active:scale-95"
+                    aria-label="নম্বর দেখান বা লুকান"
+                  >
+                    <EyeIcon off={showNumber} />
+                  </button>
+                </div>
+
+                <div className="mt-7 flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/70">
+                      {isBank ? "অ্যাকাউন্ট হোল্ডার" : "অ্যাকাউন্ট টাইপ"}
+                    </p>
+                    <p className="truncate text-sm font-semibold uppercase">
+                      {isBank ? payment.bank_account_name || "—" : "মোবাইল ওয়ালেট"}
+                    </p>
+                  </div>
+                  {isBank && (
+                    <div className="min-w-0 text-right">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/70">ব্যাংক</p>
+                      <p className="truncate text-sm font-semibold">{payment.bank_name || "—"}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {isBank && (
+              <div className="rounded-3xl border border-[#E3DDCC] bg-white px-5 py-2 shadow-[0_10px_40px_-24px_rgba(10,31,46,0.35)]">
+                {[
+                  ["অ্যাকাউন্টের নাম", payment.bank_account_name],
+                  ["ব্যাংকের নাম", payment.bank_name],
+                  ["শাখা", payment.bank_branch_name],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-4 border-b border-[#EFE9D8] py-3 last:border-0">
+                    <span className="shrink-0 text-[13px] font-medium text-[#5B6770]">{k}</span>
+                    <span className="break-words text-right text-[15px] font-semibold text-[#0A1F2E]">{v || "—"}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] px-4 py-3.5 text-[13px] font-semibold text-[#5C4512]">
+              <LockIcon />
+              <span>নিরাপত্তার জন্য পেমেন্ট তথ্য পরিবর্তন করা যাবে না</span>
+            </div>
+          </>
         )}
 
-        {/* ================= LOAN STATE ================= */}
-        {status && <StatusCard status={status} />}
-      </main>
+        {/* ================= ফর্ম ================= */}
+        {!hasPayment && (
+          <form
+            onSubmit={handleSubmit}
+            className="overflow-hidden rounded-3xl border border-[#C9A24B]/40 bg-white shadow-[0_20px_60px_-28px_rgba(10,31,46,0.45)]"
+          >
+            <div className="h-1.5 bg-gradient-to-r from-[#B48A34] via-[#F2D98F] to-[#B48A34]" />
 
-      <DownBar />
+            <div className="space-y-5 p-5">
+              <div className="flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#C9A24B]/50 bg-[#FDF6E3] text-[#8A6A1F]">
+                  <WalletIcon />
+                </span>
+                <div>
+                  <h2 className="text-[17px] font-bold text-[#0A1F2E]">পেমেন্ট অ্যাকাউন্ট যোগ করুন</h2>
+                  <p className="text-[13px] text-[#5B6770]">লোনের টাকা পাওয়ার জন্য এটি আবশ্যক</p>
+                </div>
+              </div>
+
+              {/* মেথড টাইল (ডাটাবেস থেকে) */}
+              <div>
+                <Label>পেমেন্ট মেথড</Label>
+                {methods.length === 0 ? (
+                  <p className="text-[13px] text-[#B02F2F]">কোনো পেমেন্ট মেথড পাওয়া যায়নি</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2.5">
+                    {methods.map((m) => {
+                      const active = payment.payment_method_id === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => selectMethod(m.id)}
+                          className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-1 py-3 text-xs font-bold transition active:scale-95 ${
+                            active
+                              ? "border-[#C9A24B] bg-[#FDF6E3] text-[#8A6A1F] shadow-[0_0_0_3px_rgba(201,162,75,0.2)]"
+                              : "border-[#E3DDCC] bg-white text-[#5B6770] hover:border-[#C9A24B]/60"
+                          }`}
+                        >
+                          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#EFE9D8] bg-white p-1.5 shadow-sm">
+                            <img src={m.logo} alt={m.name} className="h-full w-full object-contain" />
+                          </span>
+                          <span className="max-w-full truncate">{m.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* মোবাইল */}
+              {isMobile && (
+                <div>
+                  <Label>{method.name} নম্বর</Label>
+                  <input
+                    name="mobile_wallet_number"
+                    value={payment.mobile_wallet_number}
+                    onChange={handleChange}
+                    placeholder="01XXXXXXXXX"
+                    inputMode="numeric"
+                    maxLength={11}
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {/* ব্যাংক */}
+              {isBank && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>অ্যাকাউন্টের নাম</Label>
+                    <input
+                      name="bank_account_name"
+                      value={payment.bank_account_name}
+                      onChange={handleChange}
+                      placeholder="অ্যাকাউন্ট হোল্ডারের নাম"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <Label>অ্যাকাউন্ট নম্বর</Label>
+                    <input
+                      name="bank_account_number"
+                      value={payment.bank_account_number}
+                      onChange={handleChange}
+                      placeholder="অ্যাকাউন্ট নম্বর"
+                      inputMode="numeric"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <Label>ব্যাংকের নাম</Label>
+                    <input
+                      name="bank_name"
+                      value={payment.bank_name}
+                      onChange={handleChange}
+                      placeholder="যেমন: ডাচ-বাংলা ব্যাংক"
+                      className={inputCls}
+                    />
+                  </div>
+                  <div>
+                    <Label>শাখা</Label>
+                    <input
+                      name="bank_branch_name"
+                      value={payment.bank_branch_name}
+                      onChange={handleChange}
+                      placeholder="শাখার নাম"
+                      className={inputCls}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-start gap-2 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] px-3.5 py-3 text-[13px] leading-relaxed text-[#5C4512]">
+                <ShieldIcon />
+                <span>সংরক্ষণের পর এই তথ্য আর পরিবর্তন করা যাবে না। ভালোভাবে যাচাই করে জমা দিন।</span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading || !method}
+                className={`w-full rounded-xl py-3.5 text-[17px] font-bold transition ${GOLD_BTN}`}
+              >
+                {loading ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 };
 
-/* ================= STATUS CARD ================= */
-const StatusCard = ({ status }) => (
-  <section className={`rounded-2xl border p-5 ${status.wrap}`}>
-    <div className="flex items-start gap-4">
-      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${status.circle}`}>
-        {status.icon}
-      </span>
-
-      <div className="min-w-0">
-        <h2 className={`text-lg font-bold ${status.title}`}>{status.heading}</h2>
-        <p className={`mt-1 text-[16px] leading-relaxed ${status.text}`}>{status.message}</p>
-      </div>
-    </div>
-  </section>
-);
-
-/* ================= NOTICE ================= */
-const NoticeBox = ({ text, buttonText, onClick }) => (
-  <section className="flex flex-col gap-4 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] p-5 sm:flex-row sm:items-center sm:justify-between">
-    <div className="flex items-center gap-3.5">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8E9B8] text-[#B07A10]">
-        <InfoIcon />
-      </span>
-
-      <p className="text-[16px] font-medium leading-relaxed text-[#5C4512]">{text}</p>
-    </div>
-
-    <button
-      onClick={onClick}
-      className={`shrink-0 rounded-xl px-6 py-2.5 text-[16px] font-semibold transition ${INK_BTN}`}
-    >
-      {buttonText}
-    </button>
-  </section>
-);
-
-export default Dashboard;
+export default PaymentInfo;
