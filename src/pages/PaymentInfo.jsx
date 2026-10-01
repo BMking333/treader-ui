@@ -24,7 +24,7 @@ const styles = `
 .pi-root input { font-size: 16px; }
 `;
 
-/* ================= মেথড স্টাইল (type অনুযায়ী) ================= */
+/* ================= মেথড স্টাইল ================= */
 const STYLES = {
   bkash: {
     bn: "বিকাশ",
@@ -53,13 +53,37 @@ const STYLES = {
   },
 };
 
+/*
+ * AdminPayment-এ সেভ হয়:
+ *  - বিকাশ/নগদ/রকেট → method_type = "mobile", method_name = "Bkash" / "Nagad" / "Rocket"
+ *  - ব্যাংক         → method_type = "bank",   method_name = ব্যাংকের নাম
+ * তাই আগে method_type "bank" কিনা দেখা হয়, তারপর নাম থেকে মোবাইল মেথড চেনা হয়।
+ */
+const detectKey = (type, name) => {
+  const ty = String(type || "").toLowerCase().trim();
+  if (ty === "bank") return "bank";
+
+  const n = String(name || "").toLowerCase();
+  if (/bkash|bikash|বিকাশ/.test(n)) return "bkash";
+  if (/nagad|নগদ/.test(n)) return "nagad";
+  if (/rocket|রকেট/.test(n)) return "rocket";
+  if (/bank|ব্যাংক/.test(n)) return "bank";
+
+  // টাইপেই নাম থাকলে (পুরোনো ডাটা)
+  if (/bkash|bikash/.test(ty)) return "bkash";
+  if (/nagad/.test(ty)) return "nagad";
+  if (/rocket/.test(ty)) return "rocket";
+
+  return "default";
+};
+
 const normalizeMethod = (m) => {
-  const t = (m.method_type || "").toLowerCase().trim();
-  const s = STYLES[t] || STYLES.default;
+  const key = detectKey(m.method_type, m.method_name);
+  const s = STYLES[key];
   return {
     id: String(m.id),
-    name: s.bn || m.method_name,
-    type: t === "bank" ? "bank" : "mobile",
+    name: key === "bank" ? m.method_name || s.bn : s.bn || m.method_name,
+    type: key === "bank" ? "bank" : "mobile",
     card: s.card,
     logo: s.logo,
   };
@@ -69,6 +93,32 @@ const groupDigits = (s = "") => s.replace(/(.{4})/g, "$1 ").trim();
 
 const maskNumber = (n = "") =>
   n.length > 4 ? "•".repeat(n.length - 4) + n.slice(-4) : n;
+
+/* ================= লোগো (ইমেজ না এলে প্রথম অক্ষর) ================= */
+const MethodLogo = ({ src, name }) => {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  if (!src || failed) {
+    return (
+      <span className="text-[18px] font-bold text-[#8A6A1F]">
+        {(name || "?").trim().charAt(0)}
+      </span>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      onError={() => setFailed(true)}
+      className="h-full w-full object-contain"
+    />
+  );
+};
 
 /* ================= ছোট আইকন ================= */
 const ChipSvg = () => (
@@ -210,12 +260,14 @@ const PaymentInfo = () => {
 
   // মেথড লিস্ট না এলেও সেভ করা কার্ড দেখানোর ফলব্যাক
   if (!method && hasPayment) {
+    const fbKey = payment.bank_account_number ? "bank" : detectKey("", savedName);
+    const fb = STYLES[fbKey];
     method = {
       id: payment.payment_method_id,
-      name: savedName || "পেমেন্ট",
-      type: payment.bank_account_number ? "bank" : "mobile",
-      card: STYLES.default.card,
-      logo: STYLES.default.logo,
+      name: fbKey === "bank" ? savedName || fb.bn : fb.bn || savedName || "পেমেন্ট",
+      type: fbKey === "bank" ? "bank" : "mobile",
+      card: fb.card,
+      logo: fb.logo,
     };
   }
 
@@ -335,13 +387,13 @@ const PaymentInfo = () => {
 
               <div className="relative">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg ring-2 ring-[#E8CB7E]/70">
-                      <img src={method.logo} alt={method.name} className="h-full w-full object-contain" />
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg ring-2 ring-[#E8CB7E]/70">
+                      <MethodLogo src={method.logo} name={method.name} />
                     </span>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/80">পেমেন্ট মেথড</p>
-                      <p className="mt-0.5 text-xl font-bold">{method.name}</p>
+                      <p className="mt-0.5 truncate text-xl font-bold">{method.name}</p>
                     </div>
                   </div>
                   <ChipSvg />
@@ -442,7 +494,7 @@ const PaymentInfo = () => {
                           }`}
                         >
                           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-[#EFE9D8] bg-white p-1.5 shadow-sm">
-                            <img src={m.logo} alt={m.name} className="h-full w-full object-contain" />
+                            <MethodLogo src={m.logo} name={m.name} />
                           </span>
                           <span className="max-w-full truncate">{m.name}</span>
                         </button>
