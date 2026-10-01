@@ -2,14 +2,38 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
 import backIcon from "../assets/icons/back.png";
+import bkashLogo from "../assets/icons/BKash.png";
+import nagadLogo from "../assets/icons/Nagad.png";
+import rocketLogo from "../assets/icons/rocket.png";
+import bankLogo from "../assets/icons/bank.png";
 
 /* ================= মেথড স্টাইল (type অনুযায়ী) ================= */
 const STYLES = {
-  bkash: { bn: "বিকাশ", card: "from-pink-600 via-rose-600 to-pink-500", tile: "border-pink-400 bg-pink-50 text-pink-700" },
-  nagad: { bn: "নগদ", card: "from-orange-600 via-orange-500 to-amber-500", tile: "border-orange-400 bg-orange-50 text-orange-700" },
-  rocket: { bn: "রকেট", card: "from-purple-700 via-violet-600 to-fuchsia-600", tile: "border-violet-400 bg-violet-50 text-violet-700" },
-  bank: { bn: "ব্যাংক", card: "from-slate-900 via-indigo-900 to-blue-800", tile: "border-indigo-400 bg-indigo-50 text-indigo-700" },
-  default: { bn: null, card: "from-indigo-800 via-indigo-700 to-blue-600", tile: "border-indigo-400 bg-indigo-50 text-indigo-700" },
+  bkash: {
+    bn: "বিকাশ",
+    logo: bkashLogo,
+    card: "from-[#6B0F36] via-[#B5124F] to-[#E2136E]",
+  },
+  nagad: {
+    bn: "নগদ",
+    logo: nagadLogo,
+    card: "from-[#6E2605] via-[#C2410C] to-[#F26B21]",
+  },
+  rocket: {
+    bn: "রকেট",
+    logo: rocketLogo,
+    card: "from-[#2A0E5C] via-[#5B2A86] to-[#8B2F97]",
+  },
+  bank: {
+    bn: "ব্যাংক",
+    logo: bankLogo,
+    card: "from-[#06121F] via-[#0F3045] to-[#1E5A74]",
+  },
+  default: {
+    bn: null,
+    logo: bankLogo,
+    card: "from-[#06121F] via-[#0F3045] to-[#1E5A74]",
+  },
 };
 
 const normalizeMethod = (m) => {
@@ -20,7 +44,7 @@ const normalizeMethod = (m) => {
     name: s.bn || m.method_name,
     type: t === "bank" ? "bank" : "mobile",
     card: s.card,
-    tile: s.tile,
+    logo: s.logo,
   };
 };
 
@@ -31,9 +55,9 @@ const maskNumber = (n = "") =>
 
 /* ================= ছোট আইকন ================= */
 const ChipSvg = () => (
-  <svg width="42" height="32" viewBox="0 0 42 32" fill="none">
-    <rect x="1" y="1" width="40" height="30" rx="6" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5" />
-    <path d="M1 11h40M1 21h40M15 1v30M27 1v30" stroke="#b45309" strokeWidth="1" opacity="0.6" />
+  <svg width="44" height="34" viewBox="0 0 42 32" fill="none">
+    <rect x="1" y="1" width="40" height="30" rx="6" fill="#E8CB7E" stroke="#B48A34" strokeWidth="1.5" />
+    <path d="M1 11h40M1 21h40M15 1v30M27 1v30" stroke="#8A6A1F" strokeWidth="1" opacity="0.6" />
   </svg>
 );
 
@@ -53,18 +77,35 @@ const LockIcon = () => (
 );
 
 const ShieldIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5">
     <path d="M12 2l8 3v6c0 5-3.5 9.5-8 11-4.5-1.5-8-6-8-11V5l8-3z" />
     <path d="M9 12l2 2 4-4" />
   </svg>
 );
 
-/* ================= ইনপুট স্টাইল ================= */
+const WalletIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="6" width="18" height="14" rx="3" />
+    <path d="M3 10h18M16 15h2" />
+    <path d="M6 6l9-3 2 3" />
+  </svg>
+);
+
+/* ================= থিম ================= */
+const GOLD_BTN =
+  "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
+  "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.7),inset_0_1px_0_rgba(255,255,255,0.5)] " +
+  "hover:brightness-105 active:translate-y-px active:scale-[0.99] " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#C9A24B]/40 " +
+  "disabled:cursor-not-allowed disabled:opacity-50";
+
 const inputCls =
-  "w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100";
+  "w-full rounded-xl border-2 border-[#C9A24B]/30 bg-[#0A1D2E] px-4 py-3 text-[16px] font-medium text-[#F5EBCB] " +
+  "outline-none transition placeholder:text-[#7F90A0] " +
+  "focus:border-[#C9A24B] focus:ring-4 focus:ring-[#C9A24B]/20";
 
 const Label = ({ children }) => (
-  <label className="block text-xs font-semibold text-slate-600 mb-1.5">{children}</label>
+  <label className="mb-1.5 block text-[13px] font-semibold text-[#F2D98F]/90">{children}</label>
 );
 
 /* ================= মূল কম্পোনেন্ট ================= */
@@ -156,7 +197,8 @@ const PaymentInfo = () => {
       id: payment.payment_method_id,
       name: savedName || "পেমেন্ট",
       type: payment.bank_account_number ? "bank" : "mobile",
-      ...STYLES.default,
+      card: STYLES.default.card,
+      logo: STYLES.default.logo,
     };
   }
 
@@ -213,47 +255,53 @@ const PaymentInfo = () => {
 
   /* ================= টপ বার ================= */
   const TopBar = (
-    <div className="sticky top-0 z-30 bg-gradient-to-r from-indigo-700 via-indigo-600 to-blue-600 text-white shadow-lg">
-      <div className="max-w-md mx-auto flex items-center gap-3 px-4 py-3.5">
+    <div className="sticky top-0 z-30 border-b border-[#C9A24B]/30 bg-[#081A2B]/95 shadow-lg backdrop-blur">
+      <div className="mx-auto flex max-w-md items-center gap-3 px-4 py-3.5">
         <button
-          onClick={() => navigate(-1)}
-          className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 transition flex items-center justify-center"
-          aria-label="পেছনে যান"
+          type="button"
+          onClick={() => navigate("/profile")}
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-[#C9A24B]/50 bg-[#C9A24B]/10 transition hover:bg-[#C9A24B]/20 active:scale-95"
+          aria-label="প্রোফাইলে ফিরে যান"
         >
-          <img src={backIcon} alt="পেছনে" className="w-5 h-5 invert" />
+          <img src={backIcon} alt="পেছনে" className="h-5 w-5 invert" />
         </button>
-        <h1 className="text-lg font-semibold tracking-wide">পেমেন্ট সেটিংস</h1>
+        <h1 className="text-lg font-bold tracking-wide text-[#F2D98F]">পেমেন্ট সেটিংস</h1>
       </div>
     </div>
   );
 
+  const pageBg = {
+    background: "radial-gradient(900px 420px at 50% -10%, #17495a 0%, #06121F 60%)",
+  };
+
   /* ================= লোডিং ================= */
   if (pageLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white">
+      <div className="min-h-screen" style={pageBg}>
         {TopBar}
-        <div className="max-w-md mx-auto px-4 mt-6 space-y-4 animate-pulse">
-          <div className="h-52 rounded-3xl bg-slate-200" />
-          <div className="h-16 rounded-2xl bg-slate-200" />
+        <div className="mx-auto mt-6 max-w-md animate-pulse space-y-4 px-4">
+          <div className="h-52 rounded-3xl bg-[#0D2538]" />
+          <div className="h-16 rounded-2xl bg-[#0D2538]" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-100 via-slate-50 to-white pb-10">
+    <div className="min-h-screen pb-10" style={pageBg}>
       {TopBar}
 
-      <div className="max-w-md mx-auto px-4 mt-6 space-y-5">
+      <div className="mx-auto mt-6 max-w-md space-y-5 px-4">
         {/* ===== বার্তা ===== */}
         {message.text && (
           <div
-            className={`rounded-2xl px-4 py-3 text-sm font-medium border ${
+            className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
               message.type === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                : "bg-red-50 border-red-200 text-red-600"
+                ? "border-[#1F9D6B]/50 bg-[#0C3A2A] text-[#9FE5C4]"
+                : "border-[#D64545]/50 bg-[#3A1417] text-[#FFB3B3]"
             }`}
           >
+            {message.type === "success" ? "✅ " : "⚠️ "}
             {message.text}
           </div>
         )}
@@ -262,28 +310,36 @@ const PaymentInfo = () => {
         {hasPayment && method && (
           <>
             <div
-              className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${method.card} text-white p-6 shadow-[0_20px_50px_rgba(30,27,75,0.35)]`}
+              className={`relative overflow-hidden rounded-3xl border border-[#E8CB7E]/50 bg-gradient-to-br ${method.card} p-6 text-white shadow-[0_24px_60px_-20px_rgba(0,0,0,0.9)]`}
             >
-              <div className="absolute -top-16 -right-12 w-56 h-56 rounded-full bg-white/10" />
-              <div className="absolute -bottom-24 -left-14 w-64 h-64 rounded-full bg-white/5" />
+              {/* সাজসজ্জা */}
+              <div className="pointer-events-none absolute -right-14 -top-16 h-56 w-56 rounded-full border border-white/15 bg-white/10" />
+              <div className="pointer-events-none absolute -bottom-24 -left-14 h-64 w-64 rounded-full bg-white/5" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/0" />
+              <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F2D98F] to-transparent" />
 
               <div className="relative">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest text-white/70">পেমেন্ট মেথড</p>
-                    <p className="text-xl font-bold mt-0.5">{method.name}</p>
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-lg ring-2 ring-[#E8CB7E]/70">
+                      <img src={method.logo} alt={method.name} className="h-full w-full object-contain" />
+                    </span>
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/80">পেমেন্ট মেথড</p>
+                      <p className="mt-0.5 text-xl font-bold">{method.name}</p>
+                    </div>
                   </div>
                   <ChipSvg />
                 </div>
 
                 <div className="mt-8 flex items-center justify-between gap-3">
-                  <p className="text-[22px] font-mono font-semibold tracking-[0.18em] break-all">
+                  <p className="break-all font-mono text-[22px] font-semibold tracking-[0.18em] drop-shadow">
                     {groupDigits(showNumber ? accountNumber : maskNumber(accountNumber))}
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowNumber((s) => !s)}
-                    className="shrink-0 w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center active:scale-95 transition"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/25 bg-white/15 transition hover:bg-white/25 active:scale-95"
                     aria-label="নম্বর দেখান বা লুকান"
                   >
                     <EyeIcon off={showNumber} />
@@ -292,17 +348,17 @@ const PaymentInfo = () => {
 
                 <div className="mt-7 flex items-end justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-[10px] uppercase tracking-widest text-white/60">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/70">
                       {isBank ? "অ্যাকাউন্ট হোল্ডার" : "অ্যাকাউন্ট টাইপ"}
                     </p>
-                    <p className="text-sm font-semibold uppercase truncate">
+                    <p className="truncate text-sm font-semibold uppercase">
                       {isBank ? payment.bank_account_name || "—" : "মোবাইল ওয়ালেট"}
                     </p>
                   </div>
                   {isBank && (
-                    <div className="text-right min-w-0">
-                      <p className="text-[10px] uppercase tracking-widest text-white/60">ব্যাংক</p>
-                      <p className="text-sm font-semibold truncate">{payment.bank_name || "—"}</p>
+                    <div className="min-w-0 text-right">
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-[#F2D98F]/70">ব্যাংক</p>
+                      <p className="truncate text-sm font-semibold">{payment.bank_name || "—"}</p>
                     </div>
                   )}
                 </div>
@@ -310,21 +366,21 @@ const PaymentInfo = () => {
             </div>
 
             {isBank && (
-              <div className="rounded-3xl bg-white border border-slate-100 shadow-[0_10px_40px_rgba(79,70,229,0.07)] px-5 py-2">
+              <div className="rounded-3xl border-2 border-[#C9A24B]/30 bg-[#0D2538] px-5 py-2 shadow-[0_10px_40px_-20px_rgba(0,0,0,0.85)]">
                 {[
                   ["অ্যাকাউন্টের নাম", payment.bank_account_name],
                   ["ব্যাংকের নাম", payment.bank_name],
                   ["শাখা", payment.bank_branch_name],
                 ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-4 py-3 border-b border-slate-100 last:border-0">
-                    <span className="text-xs font-medium text-slate-500 shrink-0">{k}</span>
-                    <span className="text-sm font-semibold text-slate-800 text-right break-words">{v || "—"}</span>
+                  <div key={k} className="flex justify-between gap-4 border-b border-[#C9A24B]/15 py-3 last:border-0">
+                    <span className="shrink-0 text-xs font-medium text-[#A9B7C2]">{k}</span>
+                    <span className="break-words text-right text-sm font-semibold text-[#F5EBCB]">{v || "—"}</span>
                   </div>
                 ))}
               </div>
             )}
 
-            <div className="flex items-center justify-center gap-2 rounded-2xl bg-slate-100 border border-slate-200 text-slate-600 text-xs font-semibold px-4 py-3.5">
+            <div className="flex items-center justify-center gap-2 rounded-2xl border border-[#C9A24B]/30 bg-[#0D2538] px-4 py-3.5 text-xs font-semibold text-[#F2D98F]">
               <LockIcon />
               <span>নিরাপত্তার জন্য পেমেন্ট তথ্য পরিবর্তন করা যাবে না</span>
             </div>
@@ -335,18 +391,18 @@ const PaymentInfo = () => {
         {!hasPayment && (
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-3xl border border-slate-100 shadow-[0_10px_40px_rgba(79,70,229,0.08)] overflow-hidden"
+            className="overflow-hidden rounded-3xl border-2 border-[#C9A24B]/30 bg-[#0D2538] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.9)]"
           >
-            <div className="h-1.5 bg-gradient-to-r from-indigo-600 via-blue-500 to-sky-400" />
+            <div className="h-1.5 bg-gradient-to-r from-[#B48A34] via-[#F2D98F] to-[#B48A34]" />
 
-            <div className="p-5 space-y-5">
+            <div className="space-y-5 p-5">
               <div className="flex items-center gap-3">
-                <span className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-50 to-blue-100 flex items-center justify-center text-xl">
-                  💳
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-[#C9A24B]/50 bg-[#16384F] text-[#F2D98F]">
+                  <WalletIcon />
                 </span>
                 <div>
-                  <h2 className="font-bold text-slate-800 text-base">পেমেন্ট অ্যাকাউন্ট যোগ করুন</h2>
-                  <p className="text-xs text-slate-400">লোনের টাকা পাওয়ার জন্য এটি আবশ্যক</p>
+                  <h2 className="text-base font-bold text-[#F2D98F]">পেমেন্ট অ্যাকাউন্ট যোগ করুন</h2>
+                  <p className="text-xs text-[#A9B7C2]">লোনের টাকা পাওয়ার জন্য এটি আবশ্যক</p>
                 </div>
               </div>
 
@@ -354,7 +410,7 @@ const PaymentInfo = () => {
               <div>
                 <Label>পেমেন্ট মেথড</Label>
                 {methods.length === 0 ? (
-                  <p className="text-xs text-red-500">কোনো পেমেন্ট মেথড পাওয়া যায়নি</p>
+                  <p className="text-xs text-[#FF8A8A]">কোনো পেমেন্ট মেথড পাওয়া যায়নি</p>
                 ) : (
                   <div className="grid grid-cols-4 gap-2.5">
                     {methods.map((m) => {
@@ -364,16 +420,16 @@ const PaymentInfo = () => {
                           key={m.id}
                           type="button"
                           onClick={() => selectMethod(m.id)}
-                          className={`rounded-2xl border-2 py-3 px-1 flex flex-col items-center gap-1.5 text-xs font-bold transition active:scale-95 ${
-                            active ? m.tile : "border-slate-200 bg-slate-50 text-slate-500"
+                          className={`flex flex-col items-center gap-1.5 rounded-2xl border-2 px-1 py-3 text-xs font-bold transition active:scale-95 ${
+                            active
+                              ? "border-[#C9A24B] bg-[#C9A24B]/15 text-[#F2D98F] shadow-[0_0_0_3px_rgba(201,162,75,0.18)]"
+                              : "border-[#C9A24B]/20 bg-[#0A1D2E] text-[#A9B7C2] hover:border-[#C9A24B]/50"
                           }`}
                         >
-                          <span
-                            className={`w-9 h-9 rounded-full bg-gradient-to-br ${m.card} text-white flex items-center justify-center text-sm`}
-                          >
-                            {m.name.charAt(0)}
+                          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white p-1.5 shadow">
+                            <img src={m.logo} alt={m.name} className="h-full w-full object-contain" />
                           </span>
-                          <span className="truncate max-w-full">{m.name}</span>
+                          <span className="max-w-full truncate">{m.name}</span>
                         </button>
                       );
                     })}
@@ -389,7 +445,7 @@ const PaymentInfo = () => {
                     name="mobile_wallet_number"
                     value={payment.mobile_wallet_number}
                     onChange={handleChange}
-                    placeholder="০১৭XXXXXXXX"
+                    placeholder="01XXXXXXXXX"
                     inputMode="numeric"
                     maxLength={11}
                     className={inputCls}
@@ -444,7 +500,7 @@ const PaymentInfo = () => {
                 </div>
               )}
 
-              <div className="flex items-start gap-2 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs px-3.5 py-3">
+              <div className="flex items-start gap-2 rounded-2xl border border-[#C9A24B]/30 bg-[#C9A24B]/10 px-3.5 py-3 text-xs text-[#F2D98F]">
                 <ShieldIcon />
                 <span>সংরক্ষণের পর এই তথ্য আর পরিবর্তন করা যাবে না। ভালোভাবে যাচাই করে জমা দিন।</span>
               </div>
@@ -452,9 +508,9 @@ const PaymentInfo = () => {
               <button
                 type="submit"
                 disabled={loading || !method}
-                className="w-full rounded-2xl bg-gradient-to-r from-indigo-600 to-blue-600 text-white font-semibold py-3.5 shadow-lg shadow-indigo-200 active:scale-[0.98] transition disabled:opacity-50"
+                className={`w-full rounded-xl py-3.5 text-[17px] font-bold transition ${GOLD_BTN}`}
               >
-                {loading ? "সংরক্ষণ হচ্ছে..." : "✔ সংরক্ষণ করুন"}
+                {loading ? "সংরক্ষণ হচ্ছে..." : "সংরক্ষণ করুন"}
               </button>
             </div>
           </form>
