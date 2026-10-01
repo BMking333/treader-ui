@@ -20,6 +20,29 @@ import PaymentInfo from "./pages/PaymentInfo";
 /* ================= AUTH ================= */
 const getToken = () => localStorage.getItem("access");
 
+/* ================= ADMIN / STAFF IMPERSONATE =================
+ * URL: /#impersonate=TOKEN
+ * router চালুর আগেই token save করে /dashboard-এ নিয়ে যায়।
+ * তাই আগের কোনো user token থাকলেও নতুনটা দিয়ে ওভাররাইট হয়।
+ */
+(() => {
+  const match = window.location.hash.match(/impersonate=([^&]+)/);
+  if (!match) return;
+
+  try {
+    const token = decodeURIComponent(match[1]);
+    if (token) {
+      localStorage.setItem("access", token);
+      localStorage.setItem("role", "user");
+    }
+  } catch (e) {
+    console.error("impersonate failed", e);
+  }
+
+  // URL থেকে token মুছে সরাসরি dashboard-এ
+  window.history.replaceState(null, "", "/dashboard");
+})();
+
 /* ================= PROTECTED ROUTE ================= */
 const ProtectedRoute = ({ children }) => {
   const token = getToken();
@@ -46,7 +69,6 @@ const PublicRoute = ({ children }) => {
 function App() {
   return (
     <Routes>
-
       {/* ================= PUBLIC ================= */}
       <Route path="/" element={<Home />} />
 
@@ -69,116 +91,23 @@ function App() {
       />
 
       {/* ================= PROTECTED ================= */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/bank-info"
-        element={
-          <ProtectedRoute>
-            <BankInfo />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/personal-info"
-        element={
-          <ProtectedRoute>
-            <PersonalInfo />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/loan"
-        element={
-          <ProtectedRoute>
-            <Loan />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/change-password"
-        element={
-          <ProtectedRoute>
-            <ChangePassword />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/terms"
-        element={
-          <ProtectedRoute>
-            <Terms />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/transactions"
-        element={
-          <ProtectedRoute>
-            <TransactionHistory />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/payment-info"
-        element={
-          <ProtectedRoute>
-            <PaymentInfo />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/withdrew"
-        element={
-          <ProtectedRoute>
-            <Withdrew />
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/support"
-        element={
-          <ProtectedRoute>
-            <Support />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/bank-info" element={<ProtectedRoute><BankInfo /></ProtectedRoute>} />
+      <Route path="/personal-info" element={<ProtectedRoute><PersonalInfo /></ProtectedRoute>} />
+      <Route path="/loan" element={<ProtectedRoute><Loan /></ProtectedRoute>} />
+      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
+      <Route path="/transactions" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
+      <Route path="/payment-info" element={<ProtectedRoute><PaymentInfo /></ProtectedRoute>} />
+      <Route path="/withdrew" element={<ProtectedRoute><Withdrew /></ProtectedRoute>} />
+      <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
 
       {/* ================= DEFAULT ================= */}
       <Route
         path="*"
-        element={
-          <Navigate
-            to={getToken() ? "/dashboard" : "/"}
-            replace
-          />
-        }
+        element={<Navigate to={getToken() ? "/dashboard" : "/"} replace />}
       />
-
     </Routes>
   );
 }
