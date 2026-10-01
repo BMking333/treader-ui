@@ -35,13 +35,26 @@ const CARD_BG = {
   bank: NAVY_BG.background,
 };
 
-const cardKey = (name, isBank) => {
-  if (isBank) return "bank";
+/*
+ * PaymentInfo-এর মতোই:
+ *  - বিকাশ/নগদ/রকেট → method_type = "mobile", method_name = "Bkash" / "Nagad" / "Rocket"
+ *  - ব্যাংক         → method_type = "bank",   method_name = ব্যাংকের নাম
+ */
+const detectKey = (type, name) => {
+  const ty = String(type || "").toLowerCase().trim();
+  if (ty === "bank") return "bank";
+
   const n = String(name || "").toLowerCase();
   if (/bkash|bikash|বিকাশ/.test(n)) return "bkash";
   if (/nagad|নগদ/.test(n)) return "nagad";
   if (/rocket|রকেট/.test(n)) return "rocket";
-  return "bank";
+  if (/bank|ব্যাংক/.test(n)) return "bank";
+
+  if (/bkash|bikash/.test(ty)) return "bkash";
+  if (/nagad/.test(ty)) return "nagad";
+  if (/rocket/.test(ty)) return "rocket";
+
+  return "default";
 };
 
 const GOLD_BTN =
@@ -248,7 +261,8 @@ const Withdrew = () => {
 
   const [payment, setPayment] = useState(null);
   const [loan, setLoan] = useState(null);
-  const [methods, setMethods] = useState([]);
+  const [methods, setMethods] = useState([]); // কর্পোরেট নম্বর (ফি দেওয়ার জন্য)
+  const [payMethods, setPayMethods] = useState([]); // ইউজারের পেমেন্ট মেথড লিস্ট (নাম চেনার জন্য)
   const [pageLoading, setPageLoading] = useState(true);
   const [copiedId, setCopiedId] = useState(null);
 
@@ -265,10 +279,11 @@ const Withdrew = () => {
       try {
         const headers = authHeaders();
 
-        const [pRes, lRes, mRes] = await Promise.allSettled([
+        const [pRes, lRes, mRes, umRes] = await Promise.allSettled([
           api.get("/user/payment/me", { headers }),
           api.get("/loan/loan/my-loans", { headers }),
           api.get("/paymentmethod/active"),
+          api.get("/user/payment/methods"),
         ]);
 
         if ([pRes, lRes].some((r) => r.status === "rejected" && r.reason?.response?.status === 401)) {
@@ -291,6 +306,10 @@ const Withdrew = () => {
 
         if (mRes.status === "fulfilled") {
           setMethods(Array.isArray(mRes.value.data) ? mRes.value.data : []);
+        }
+
+        if (umRes.status === "fulfilled") {
+          setPayMethods(Array.isArray(umRes.value.data) ? umRes.value.data : []);
         }
       } catch (e) {
         // কিছু ভুল হলেও পেজ যেন সাদা না হয়
@@ -386,7 +405,34 @@ const Withdrew = () => {
     payment?.mobile_wallet_number || payment?.bank_account_number || "";
 
   const isBank = !!payment?.bank_account_number;
-  const cardBg = CARD_BG[cardKey(payment?.payment_method, isBank)];
+
+  // PaymentInfo-এর মতো: payment_method_id দিয়ে মেথড লিস্ট থেকে নাম/টাইপ বের করা
+  const matched = payMethods.find(
+    (m) => m && String(m.id) === String(payment?.payment_method_id)
+  );
+  const savedName = payment?.payment_method || "";
+
+  const methodKey = matched
+    ? detectKey(matched.method_type, matched.method_name)
+    : isBank
+    ? "bank"
+    : detectKey("", savedName);
+
+  const methodKeyFinal = methodKey === "default" ? "bank" : methodKey;
+
+  const methodLabel = (() => {
+    if (methodKeyFinal === "bank") {
+      return (
+        matched?.method_name ||
+        savedName ||
+        payment?.bank_name ||
+        METHOD_BN.bank
+      );
+    }
+    return METHOD_BN[methodKeyFinal] || matched?.method_name || savedName || "পেমেন্ট";
+  })();
+
+  const cardBg = CARD_BG[methodKeyFinal] || CARD_BG.bank;
   const isShotOn = loan?.shot_status === "On";
   const feeMethods = methods.filter((m) => m && m.account_number);
   const status = loan ? STATUS[loan.loan_status] || null : null;
@@ -447,7 +493,7 @@ const Withdrew = () => {
                     পেমেন্ট পদ্ধতি
                   </p>
                   <p className="mt-1 text-[24px] font-bold text-[#F2D98F]">
-                    {bnMethodName(payment?.payment_method)}
+                    {methodLabel}
                   </p>
                 </div>
                 <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-[#F2D98F]">
