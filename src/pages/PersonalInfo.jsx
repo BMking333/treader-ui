@@ -18,18 +18,19 @@ const PROFESSIONS = ["ব্যবসায়ী", "চাকরিজীবী
 const LOAN_REASONS = ["ব্যবসা", "চিকিৎসা", "শিক্ষা", "বিবাহ", "বাড়ি নির্মাণ", "কৃষি", "ব্যক্তিগত প্রয়োজন"];
 const RELATIONS = ["পিতা", "মাতা", "স্বামী", "স্ত্রী", "ভাই", "বোন", "ছেলে", "মেয়ে", "অন্যান্য"];
 
+// ২টি পেজ: ১) নাম-ঠিকানা-নমিনি  ২) ডকুমেন্ট ও সিগনেচার
 const STEPS = [
-  { title: "ব্যক্তিগত", icon: "user" },
-  { title: "ঠিকানা", icon: "pin" },
-  { title: "নমিনি", icon: "users" },
-  { title: "ডকুমেন্ট", icon: "doc" },
+  { title: "ব্যক্তিগত তথ্য", sub: "নাম, ঠিকানা ও নমিনি", icon: "badge" },
+  { title: "ডকুমেন্ট", sub: "ছবি, এনআইডি ও সিগনেচার", icon: "shield" },
 ];
 
 const STEP_FIELDS = {
-  1: ["full_name", "nid_number", "mobile_number", "profession", "loan_reason"],
-  2: ["current_address", "permanent_address"],
-  3: ["nominee_name", "nominee_relation", "nominee_phone"],
-  4: ["selfie", "nid_front", "nid_back", "signature"],
+  1: [
+    "full_name", "nid_number", "mobile_number", "profession", "loan_reason",
+    "current_address", "permanent_address",
+    "nominee_name", "nominee_relation", "nominee_phone",
+  ],
+  2: ["selfie", "nid_front", "nid_back", "signature"],
 };
 
 const INITIAL = {
@@ -49,219 +50,410 @@ const INITIAL = {
   signature: null,
 };
 
+const PHONE_RE = /^01[3-9]\d{8}$/;
+
 /* ============================================================
-   স্টাইল (Loan পেজের সাথে একই navy + gold)
+   স্টাইল (প্রিমিয়াম ব্যাংক: navy + orange)
 ============================================================ */
 const styles = `
-@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700;800&display=swap');
 
 .kc-root { font-family: 'Hind Siliguri', 'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif; }
 .kc-num { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; }
+.kc-sheet { animation: kcUp .25s ease-out; }
+@keyframes kcUp { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 `;
 
-const NAVY_BG = "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)";
+const CARD = "rounded-[28px] bg-white shadow-[0_10px_30px_-8px_rgba(15,27,61,0.14)]";
+const NAVY_GRAD = "bg-gradient-to-br from-[#1B2F6B] to-[#0F1B3D]";
 
-const GOLD_BTN =
-  "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
-  "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
-  "hover:brightness-105 active:translate-y-px " +
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#C9A24B]/40 " +
-  "disabled:opacity-60 disabled:cursor-not-allowed";
+const PRIMARY_BTN =
+  "bg-gradient-to-b from-[#FB923C] via-[#F97316] to-[#EA580C] text-white " +
+  "shadow-[0_10px_24px_-8px_rgba(249,115,22,0.6)] hover:brightness-105 active:translate-y-px " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#F97316]/30 " +
+  "disabled:opacity-70 disabled:cursor-not-allowed";
 
 /* ============================================================
    আইকন
 ============================================================ */
-const Svg = ({ children, className = "w-5 h-5" }) => (
+const PATHS = {
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21c1-4 4.5-6 8-6s7 2 8 6" />
+    </>
+  ),
+  pin: (
+    <>
+      <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" />
+      <circle cx="12" cy="9.5" r="2.5" />
+    </>
+  ),
+  users: (
+    <>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" />
+      <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 15.3c1.9.7 3.1 2.2 3.5 4.7" />
+    </>
+  ),
+  doc: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" />
+      <path d="M14 3v5h5M9 13h6M9 17h6" />
+    </>
+  ),
+  phone: (
+    <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z" />
+  ),
+  badge: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="9" cy="11" r="2" />
+      <path d="M6.5 16c.5-1.6 1.6-2.2 2.5-2.2s2 .6 2.5 2.2M14 10h4M14 14h3" />
+    </>
+  ),
+  briefcase: (
+    <>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18" />
+    </>
+  ),
+  wallet: (
+    <>
+      <rect x="3" y="6" width="18" height="14" rx="2" />
+      <path d="M3 10h18M16 15h2" />
+    </>
+  ),
+  home: (
+    <>
+      <path d="M3 11l9-8 9 8" />
+      <path d="M5 10v10h14V10" />
+    </>
+  ),
+  city: <path d="M4 21V8l6-3v16M10 21V11l6-2v12M3 21h18" />,
+  heart: <path d="M12 21s-8-5.2-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.8-8 11-8 11z" />,
+  camera: (
+    <>
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </>
+  ),
+  shield: (
+    <>
+      <path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z" />
+      <path d="M9 12l2 2 4-4" />
+    </>
+  ),
+  pen: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+    </>
+  ),
+  trash: <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />,
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 11v5M12 7.5h.01" />
+    </>
+  ),
+  bulb: (
+    <>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-4 10.5c.8.8 1 1.5 1 2.5h6c0-1 .2-1.7 1-2.5A6 6 0 0 0 12 3z" />
+    </>
+  ),
+  card: (
+    <>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20M6 15h5" />
+    </>
+  ),
+  flip: <path d="M3 7h13l-3-3M21 17H8l3 3" />,
+  face: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 14.5c1 1.3 2.2 2 3.5 2s2.5-.7 3.5-2M9 10h.01M15 10h.01" />
+    </>
+  ),
+  image: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="2" />
+      <path d="M21 16l-5-5-9 9" />
+    </>
+  ),
+  chevron: <path d="M6 9l6 6 6-6" />,
+  close: <path d="M6 6l12 12M18 6L6 18" />,
+  check: <path d="M5 13l4 4L19 7" />,
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V6a2 2 0 0 1 2-2h9" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </>
+  ),
+  alert: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 8v5M12 16.5h.01" />
+    </>
+  ),
+  back: <path d="M15 18l-6-6 6-6" />,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  refresh: (
+    <>
+      <path d="M20 11a8 8 0 0 0-14.9-3M4 5v4h4" />
+      <path d="M4 13a8 8 0 0 0 14.9 3M20 19v-4h-4" />
+    </>
+  ),
+};
+
+const Icon = ({ name, className = "h-5 w-5", strokeWidth = 1.9 }) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
-    strokeWidth="1.9"
+    strokeWidth={strokeWidth}
     strokeLinecap="round"
     strokeLinejoin="round"
     className={className}
     aria-hidden="true"
   >
-    {children}
+    {PATHS[name] || PATHS.doc}
   </svg>
 );
-
-const BackIcon = () => (
-  <Svg className="w-5 h-5">
-    <path d="M15 18l-6-6 6-6" />
-  </Svg>
-);
-
-const CheckIcon = ({ className = "w-4 h-4" }) => (
-  <Svg className={className}>
-    <path d="M5 13l4 4L19 7" />
-  </Svg>
-);
-
-const CameraSvg = () => (
-  <Svg className="w-8 h-8">
-    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-    <circle cx="12" cy="13" r="4" />
-  </Svg>
-);
-
-const ClockIcon = () => (
-  <Svg className="w-4 h-4">
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 7v5l3 2" />
-  </Svg>
-);
-
-const AlertIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 8v5M12 16.5h.01" />
-  </Svg>
-);
-
-const IconByName = ({ name, className }) => {
-  switch (name) {
-    case "user":
-      return (
-        <Svg className={className}>
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 21c1-4 4.5-6 8-6s7 2 8 6" />
-        </Svg>
-      );
-    case "pin":
-      return (
-        <Svg className={className}>
-          <path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z" />
-          <circle cx="12" cy="9.5" r="2.5" />
-        </Svg>
-      );
-    case "users":
-      return (
-        <Svg className={className}>
-          <circle cx="9" cy="8" r="3.5" />
-          <path d="M2.5 20c.8-3.4 3.4-5 6.5-5s5.7 1.6 6.5 5" />
-          <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 15.3c1.9.7 3.1 2.2 3.5 4.7" />
-        </Svg>
-      );
-    default:
-      return (
-        <Svg className={className}>
-          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" />
-          <path d="M14 3v5h5M9 13h6M9 17h6" />
-        </Svg>
-      );
-  }
-};
 
 /* ============================================================
    ছোট UI অংশ
 ============================================================ */
-const Shell = ({ title, children }) => (
-  <div className="kc-root min-h-screen bg-[#FAF8F3] text-[#0A1F2E]">
-    <style>{styles}</style>
-    <div
-      className="sticky top-0 z-30 border-b border-[#C9A24B]/40 text-white shadow-[0_12px_30px_-16px_rgba(10,31,46,0.8)]"
-      style={{ background: NAVY_BG }}
-    >
-      <div className="mx-auto flex max-w-xl items-center gap-3 px-4 py-3.5">
-        <button
-          onClick={() => window.history.back()}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-[#E6C878] transition hover:bg-white/20 active:scale-95"
-          aria-label="পেছনে যান"
-        >
-          <BackIcon />
-        </button>
-        <h1 className="text-lg font-bold tracking-wide">{title}</h1>
+const Shell = ({ title, children }) => {
+  // ব্রাউজার/মোবাইলের স্ট্যাটাস বার হালকা রাখা (ব্যাটারি, নেটওয়ার্ক স্পষ্ট দেখাবে)
+  useEffect(() => {
+    let meta = document.querySelector('meta[name="theme-color"]');
+    const created = !meta;
+    const prev = meta?.getAttribute("content");
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute("content", "#FFFFFF");
+    return () => {
+      if (created) meta.remove();
+      else if (prev) meta.setAttribute("content", prev);
+    };
+  }, []);
+
+  return (
+    <div className="kc-root min-h-screen bg-[#F3F6FB] text-[#111827]">
+      <style>{styles}</style>
+      <div className="sticky top-0 z-30 border-b border-[#E5E7EB] bg-white shadow-[0_6px_18px_-8px_rgba(15,27,61,0.18)] pt-[env(safe-area-inset-top)]">
+        <div className="mx-auto flex max-w-xl items-center gap-3.5 px-4 py-2.5">
+          <button
+            onClick={() => window.history.back()}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F3F6FB] text-[#0F1B3D] transition hover:bg-[#E5E7EB] active:scale-95"
+            aria-label="পেছনে যান"
+          >
+            <Icon name="back" className="h-5 w-5" strokeWidth={2.2} />
+          </button>
+          <h1 className="flex-1 truncate text-[20px] font-extrabold text-[#0F1B3D]">{title}</h1>
+          <Icon name="shield" className="h-[22px] w-[22px] text-[#16A34A]" />
+        </div>
       </div>
+      <div className="mx-auto max-w-xl px-4 py-5">{children}</div>
     </div>
-    <div className="mx-auto max-w-xl px-4 py-5">{children}</div>
-  </div>
-);
+  );
+};
 
 const IconTile = ({ name }) => (
-  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-[#C9A24B]/50 bg-[#0A1F2E] text-[#E6C878]">
-    <IconByName name={name} className="h-5 w-5" />
+  <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[15px] bg-[#FFF1E6] text-[#F97316]">
+    <Icon name={name} className="h-[23px] w-[23px]" />
   </span>
 );
 
-const Card = ({ title, icon, children }) => (
-  <div className="mb-4 rounded-3xl border border-[#E9E2CF] bg-white p-5 shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)]">
+const Chip = ({ children, tone = "green", icon }) => {
+  const tones = {
+    green: "bg-[#ECFDF3] text-[#16A34A]",
+    red: "bg-[#FEF2F2] text-[#DC2626]",
+  };
+  return (
+    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold ${tones[tone]}`}>
+      {icon && <Icon name={icon} className="h-3.5 w-3.5" strokeWidth={2.4} />}
+      {children}
+    </span>
+  );
+};
+
+const SectionHead = ({ title, subtitle, icon, right }) => (
+  <div className="flex items-center gap-3">
+    <IconTile name={icon} />
+    <div className="min-w-0 flex-1">
+      <h2 className="text-[18px] font-extrabold leading-tight text-[#0F1B3D]">{title}</h2>
+      {subtitle && <p className="text-[13px] text-[#6B7280]">{subtitle}</p>}
+    </div>
+    {right}
+  </div>
+);
+
+const Card = ({ title, subtitle, icon, children }) => (
+  <div className={`mb-4 p-5 ${CARD}`}>
     {title && (
-      <div className="mb-4 flex items-center gap-3">
-        {icon && <IconTile name={icon} />}
-        <h2 className="text-[18px] font-bold text-[#0A1F2E]">{title}</h2>
+      <div className="mb-[18px]">
+        <SectionHead title={title} subtitle={subtitle} icon={icon} />
       </div>
     )}
-    <div className="space-y-4">{children}</div>
+    <div className="space-y-[18px]">{children}</div>
   </div>
 );
 
 const inputBase =
-  "w-full rounded-xl border bg-[#FAF8F3] px-4 py-3 text-[16px] text-[#0A1F2E] outline-none transition placeholder:text-[#9AA3AA] focus:bg-white focus:ring-4";
-const inputOk = "border-[#E2DAC2] focus:border-[#C9A24B] focus:ring-[#C9A24B]/25";
-const inputErr = "border-[#E29B9B] bg-[#FCEFEF] focus:border-[#B02F2F] focus:ring-[#B02F2F]/15";
+  "w-full rounded-[20px] border bg-white px-4 py-3.5 text-[17px] text-[#111827] outline-none transition placeholder:text-[#9CA3AF] focus:ring-4";
+const inputOk = "border-[#E5E7EB] focus:border-[#F97316] focus:ring-[#F97316]/15";
+const inputErr = "border-[#FCA5A5] bg-[#FEF2F2] focus:border-[#DC2626] focus:ring-[#DC2626]/10";
+const softShadow = "shadow-[0_5px_14px_-6px_rgba(15,27,61,0.14)]";
 
 const Label = ({ children }) => (
-  <label className="mb-1.5 block text-[14px] font-semibold text-[#33404A]">{children}</label>
+  <label className="mb-2 block pl-1 text-[15px] font-bold text-[#1F2937]">{children}</label>
 );
 
 const ErrText = ({ children }) => (
-  <p className="mt-1.5 text-[13px] font-medium text-[#B02F2F]">{children}</p>
+  <p className="mt-1.5 flex items-center gap-1 pl-1 text-[13px] font-medium text-[#DC2626]">
+    <Icon name="alert" className="h-[15px] w-[15px]" />
+    {children}
+  </p>
 );
 
-const Field = ({ label, name, value, onChange, error, placeholder, type = "text", inputMode, textarea, maxLength }) => (
+const Field = ({ label, name, value, onChange, error, placeholder, inputMode, textarea, maxLength, icon }) => (
   <div>
     <Label>{label}</Label>
-    {textarea ? (
-      <textarea
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        rows={3}
-        className={`${inputBase} resize-none ${error ? inputErr : inputOk}`}
-      />
-    ) : (
-      <input
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        type={type}
-        inputMode={inputMode}
-        maxLength={maxLength}
-        className={`${inputBase} ${inputMode === "numeric" ? "kc-num" : ""} ${error ? inputErr : inputOk}`}
-      />
-    )}
+    <div className={`relative rounded-[20px] ${softShadow}`}>
+      {icon && (
+        <span
+          className={`pointer-events-none absolute left-4 z-10 ${
+            textarea ? "top-4" : "top-1/2 -translate-y-1/2"
+          } ${error ? "text-[#DC2626]" : "text-[#6B7280]"}`}
+        >
+          <Icon name={icon} className="h-[22px] w-[22px]" />
+        </span>
+      )}
+      {textarea ? (
+        <textarea
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          rows={3}
+          className={`${inputBase} ${icon ? "pl-12" : ""} resize-none ${error ? inputErr : inputOk}`}
+        />
+      ) : (
+        <input
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          type="text"
+          inputMode={inputMode}
+          maxLength={maxLength}
+          autoComplete="off"
+          className={`${inputBase} ${icon ? "pl-12" : ""} ${inputMode === "numeric" ? "kc-num" : ""} ${
+            error ? inputErr : inputOk
+          }`}
+        />
+      )}
+    </div>
     {error && <ErrText>{typeof error === "string" ? error : "এই ঘরটি পূরণ করুন"}</ErrText>}
   </div>
 );
 
-const SelectField = ({ label, name, value, onChange, options, error }) => (
-  <div>
-    <Label>{label}</Label>
-    <select
-      name={name}
-      value={value}
-      onChange={onChange}
-      className={`${inputBase} appearance-none ${error ? inputErr : inputOk}`}
-    >
-      <option value="">-- নির্বাচন করুন --</option>
-      {options.map((o) => (
-        <option key={o} value={o}>
-          {o}
-        </option>
-      ))}
-    </select>
-    {error && <ErrText>একটি অপশন নির্বাচন করুন</ErrText>}
-  </div>
-);
+/* প্রিমিয়াম ড্রপডাউন — ক্লিক করলে নিচ থেকে সুন্দর লিস্ট খুলবে */
+const SelectField = ({ label, name, value, onSelect, options, error, icon }) => {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const h = (e) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open]);
+
+  return (
+    <div>
+      <Label>{label}</Label>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={`flex w-full items-center gap-3 rounded-[20px] border bg-white px-4 py-3.5 text-left text-[17px] outline-none transition focus-visible:ring-4 ${softShadow} ${
+          error
+            ? "border-[#FCA5A5] bg-[#FEF2F2] focus-visible:ring-[#DC2626]/10"
+            : "border-[#E5E7EB] focus-visible:border-[#F97316] focus-visible:ring-[#F97316]/15"
+        }`}
+      >
+        <Icon name={icon} className={`h-[22px] w-[22px] ${error ? "text-[#DC2626]" : "text-[#6B7280]"}`} />
+        <span className={`flex-1 ${value ? "text-[#111827]" : "text-[#9CA3AF]"}`}>
+          {value || "-- নির্বাচন করুন --"}
+        </span>
+        <Icon name="chevron" className="h-5 w-5 text-[#6B7280]" strokeWidth={2.2} />
+      </button>
+      {error && <ErrText>একটি অপশন নির্বাচন করুন</ErrText>}
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-[#0F1B3D]/50 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
+          <div className="kc-sheet relative flex max-h-[75vh] w-full max-w-xl flex-col overflow-hidden rounded-t-[30px] bg-white shadow-[0_-20px_60px_-20px_rgba(15,27,61,0.5)] sm:rounded-[30px]">
+            <div className="mx-auto mt-2.5 h-[5px] w-11 rounded-full bg-[#E5E7EB]" />
+            <div className="flex items-center justify-between px-5 pb-2 pt-4">
+              <h3 className="text-[19px] font-extrabold text-[#0F1B3D]">{label}</h3>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[#6B7280] hover:bg-[#F3F6FB]"
+                aria-label="বন্ধ করুন"
+              >
+                <Icon name="close" className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-2 overflow-y-auto px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-1">
+              {options.map((o) => {
+                const sel = o === value;
+                return (
+                  <button
+                    key={o}
+                    type="button"
+                    onClick={() => {
+                      onSelect(name, o);
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3.5 text-left text-[16px] transition active:scale-[0.99] ${
+                      sel
+                        ? "border-[#F97316] bg-[#FFF1E6] font-extrabold text-[#EA580C]"
+                        : "border-[#E5E7EB] bg-[#F8FAFC] font-medium text-[#111827] hover:border-[#F97316]/50"
+                    }`}
+                  >
+                    {o}
+                    {sel && <Icon name="check" className="h-5 w-5 text-[#F97316]" strokeWidth={2.6} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 /* ============================================================
-   ফাইল আপলোড বক্স
+   ডকুমেন্ট আপলোড কার্ড (লম্বালম্বি)
 ============================================================ */
-const FileBox = ({ label, file, onPick, error }) => {
-  const ref = useRef(null);
+const UploadCard = ({ title, hint, icon, file, onPick, error, camera = "environment" }) => {
+  const camRef = useRef(null);
+  const galRef = useRef(null);
   const [preview, setPreview] = useState(null);
 
   useEffect(() => {
@@ -274,140 +466,261 @@ const FileBox = ({ label, file, onPick, error }) => {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
+  const handle = (e) => {
+    const f = e.target.files?.[0];
+    if (f) onPick(f);
+    e.target.value = "";
+  };
+
   return (
-    <div>
+    <div className={`mb-4 p-5 ${CARD}`}>
+      <div className="mb-4">
+        <SectionHead
+          title={title}
+          subtitle={hint}
+          icon={icon}
+          right={
+            file ? (
+              <Chip icon="check">আপলোড হয়েছে</Chip>
+            ) : error ? (
+              <Chip tone="red">আবশ্যক</Chip>
+            ) : null
+          }
+        />
+      </div>
+
       <div
-        onClick={() => ref.current?.click()}
-        className={`relative flex h-36 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed text-center transition active:scale-[0.98] ${
+        onClick={() => galRef.current?.click()}
+        className={`relative flex h-48 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[20px] border-[1.6px] border-dashed text-center transition active:scale-[0.99] ${
           error
-            ? "border-[#E29B9B] bg-[#FCEFEF]"
+            ? "border-[#FCA5A5] bg-[#FEF2F2]"
             : preview
-            ? "border-[#C9A24B] bg-[#FDF6E3]"
-            : "border-[#D9CFAF] bg-[#FAF8F3] hover:border-[#C9A24B] hover:bg-[#FDF6E3]"
+            ? "border-[#16A34A] bg-[#F8FAFC]"
+            : "border-[#CBD5E1] bg-[#F8FAFC] hover:border-[#F97316]"
         }`}
       >
-        <input
-          ref={ref}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => e.target.files?.[0] && onPick(e.target.files[0])}
-        />
         {preview ? (
           <>
-            <img src={preview} alt={label} className="absolute inset-0 h-full w-full object-cover" />
-            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gradient-to-t from-[#0A1F2E]/90 to-transparent py-2 text-[12px] font-semibold text-[#F3E2A9]">
-              <CheckIcon className="h-3.5 w-3.5" /> {label} • পরিবর্তন করুন
+            <img src={preview} alt={title} className="absolute inset-0 h-full w-full object-cover" />
+            <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-gradient-to-t from-[#0F1B3D]/85 to-transparent py-3 text-[13px] font-bold text-white">
+              <Icon name="refresh" className="h-4 w-4" /> ছবি পরিবর্তন করুন
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center gap-1.5 text-[#B07A10]">
-            <CameraSvg />
-            <p className="text-[13px] font-semibold text-[#0A1F2E]">{label}</p>
-            <p className="text-[11px] text-[#5B6770]">ট্যাপ করে আপলোড করুন</p>
+          <div className="flex flex-col items-center gap-2">
+            <span className="flex h-[58px] w-[58px] items-center justify-center rounded-full bg-[#FFF1E6] text-[#F97316]">
+              <Icon name="camera" className="h-7 w-7" />
+            </span>
+            <p className="text-[15px] font-bold text-[#0F1B3D]">ছবি তুলুন বা আপলোড করুন</p>
+            <p className="text-[12px] text-[#6B7280]">ক্যামেরা বা গ্যালারি থেকে বেছে নিন</p>
           </div>
         )}
       </div>
-      {error && <ErrText>এই ফাইলটি আবশ্যক</ErrText>}
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <button
+          type="button"
+          onClick={() => camRef.current?.click()}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] py-3 text-[14px] font-bold text-[#0F1B3D] transition hover:border-[#F97316] active:scale-95"
+        >
+          <Icon name="camera" className="h-[18px] w-[18px] text-[#F97316]" /> ক্যামেরা
+        </button>
+        <button
+          type="button"
+          onClick={() => galRef.current?.click()}
+          className="flex items-center justify-center gap-2 rounded-2xl border border-[#E5E7EB] bg-[#F8FAFC] py-3 text-[14px] font-bold text-[#0F1B3D] transition hover:border-[#F97316] active:scale-95"
+        >
+          <Icon name="image" className="h-[18px] w-[18px] text-[#F97316]" /> গ্যালারি
+        </button>
+      </div>
+
+      <input ref={camRef} type="file" accept="image/*" capture={camera} hidden onChange={handle} />
+      <input ref={galRef} type="file" accept="image/*" hidden onChange={handle} />
+
+      {error && <ErrText>এই ছবিটি আবশ্যক</ErrText>}
     </div>
   );
 };
 
 /* ============================================================
    সিগনেচার প্যাড
+   - সই করার সময় পেজ স্ক্রল হবে না (touch-action: none + touchmove block)
+   - শুধু ট্যাপ করলেও ফোঁটা পড়বে
+   - দাগ মসৃণ (quadratic curve)
 ============================================================ */
+const SIG_H = 210;
+
 const SignaturePad = ({ value, onChange, error }) => {
   const canvasRef = useRef(null);
+  const strokes = useRef([]); // [[{x,y}, ...], ...]
+  const baseImg = useRef(null); // আগে আঁকা সিগনেচার (ধাপে ফিরে এলে)
   const drawing = useRef(false);
-  const dirty = useRef(false);
+  const [empty, setEmpty] = useState(!value);
+
+  const redraw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const ratio = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth;
+
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, w, SIG_H);
+    if (baseImg.current) ctx.drawImage(baseImg.current, 0, 0, w, SIG_H);
+
+    ctx.strokeStyle = "#0F1B3D";
+    ctx.fillStyle = "#0F1B3D";
+    ctx.lineWidth = 2.8;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    strokes.current.forEach((s) => {
+      if (!s.length) return;
+      if (s.length === 1) {
+        ctx.beginPath();
+        ctx.arc(s[0].x, s[0].y, 1.7, 0, Math.PI * 2); // ফোঁটা
+        ctx.fill();
+        return;
+      }
+      ctx.beginPath();
+      ctx.moveTo(s[0].x, s[0].y);
+      for (let i = 1; i < s.length; i++) {
+        const mx = (s[i - 1].x + s[i].x) / 2;
+        const my = (s[i - 1].y + s[i].y) / 2;
+        ctx.quadraticCurveTo(s[i - 1].x, s[i - 1].y, mx, my);
+      }
+      ctx.lineTo(s[s.length - 1].x, s[s.length - 1].y);
+      ctx.stroke();
+    });
+  }, []);
+
+  const setup = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.round(canvas.clientWidth * ratio);
+    canvas.height = Math.round(SIG_H * ratio);
+    redraw();
+  }, [redraw]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const ratio = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * ratio;
-    canvas.height = 180 * ratio;
-    ctx.scale(ratio, ratio);
-    ctx.lineWidth = 2.4;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "#0A1F2E";
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, rect.width, 180);
 
-    // আগে আঁকা সিগনেচার ফিরিয়ে আনা (ধাপে ফিরে এলে)
     if (value) {
       const img = new Image();
-      img.onload = () => ctx.drawImage(img, 0, 0, rect.width, 180);
+      img.onload = () => {
+        baseImg.current = img;
+        redraw();
+      };
       img.src = value;
     }
+    setup();
+
+    // iOS/Android: সই করার সময় পেজ স্ক্রল আটকানো
+    const block = (e) => e.preventDefault();
+    canvas.addEventListener("touchstart", block, { passive: false });
+    canvas.addEventListener("touchmove", block, { passive: false });
+
+    let ro;
+    if (typeof ResizeObserver !== "undefined") {
+      let lastW = canvas.clientWidth;
+      ro = new ResizeObserver(() => {
+        if (canvas.clientWidth !== lastW) {
+          lastW = canvas.clientWidth;
+          setup();
+        }
+      });
+      ro.observe(canvas);
+    }
+
+    return () => {
+      canvas.removeEventListener("touchstart", block);
+      canvas.removeEventListener("touchmove", block);
+      ro?.disconnect();
+    };
     // eslint-disable-next-line
   }, []);
 
   const pos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    return {
+      x: Math.min(Math.max(e.clientX - rect.left, 0), rect.width),
+      y: Math.min(Math.max(e.clientY - rect.top, 0), SIG_H),
+    };
   };
 
   const start = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
     e.preventDefault();
     canvasRef.current.setPointerCapture?.(e.pointerId);
     drawing.current = true;
-    const ctx = canvasRef.current.getContext("2d");
-    const p = pos(e);
-    ctx.beginPath();
-    ctx.moveTo(p.x, p.y);
+    strokes.current.push([pos(e)]);
+    setEmpty(false);
+    redraw();
   };
 
   const move = (e) => {
     if (!drawing.current) return;
     e.preventDefault();
-    const ctx = canvasRef.current.getContext("2d");
-    const p = pos(e);
-    ctx.lineTo(p.x, p.y);
-    ctx.stroke();
-    dirty.current = true;
+    const s = strokes.current[strokes.current.length - 1];
+    s.push(pos(e));
+    redraw();
   };
 
   const end = () => {
     if (!drawing.current) return;
     drawing.current = false;
-    if (dirty.current) onChange(canvasRef.current.toDataURL("image/png"));
+    onChange(canvasRef.current.toDataURL("image/png"));
   };
 
   const clear = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const rect = canvas.getBoundingClientRect();
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, rect.width, 180);
-    dirty.current = false;
+    strokes.current = [];
+    baseImg.current = null;
+    setEmpty(true);
+    redraw();
     onChange(null);
   };
 
   return (
     <div>
-      <Label>ডিজিটাল সিগনেচার</Label>
       <div
-        className={`overflow-hidden rounded-2xl border-2 border-dashed ${
-          error ? "border-[#E29B9B]" : "border-[#D9CFAF]"
+        className={`relative overflow-hidden rounded-[20px] border-[1.6px] border-dashed bg-white ${
+          error ? "border-[#FCA5A5]" : "border-[#CBD5E1]"
         }`}
       >
         <canvas
           ref={canvasRef}
-          style={{ width: "100%", height: 180, touchAction: "none", display: "block", background: "#fff" }}
+          className="block w-full select-none"
+          style={{ height: SIG_H, touchAction: "none", overscrollBehavior: "contain", cursor: "crosshair" }}
           onPointerDown={start}
           onPointerMove={move}
           onPointerUp={end}
-          onPointerLeave={end}
           onPointerCancel={end}
+          onLostPointerCapture={end}
         />
+
+        {/* গাইড লাইন (সেভ হওয়া ছবিতে যাবে না) */}
+        <div className="pointer-events-none absolute inset-x-6 bottom-[52px] border-b border-[#E2E8F0]" />
+        <span className="pointer-events-none absolute bottom-[58px] left-6 text-[15px] text-[#CBD5E1]">✕</span>
+
+        {empty && (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-1.5 text-[#9CA3AF]">
+            <Icon name="pen" className="h-[30px] w-[30px] text-[#CBD5E1]" />
+            <span className="text-[15px] font-semibold">এখানে সই করুন</span>
+          </div>
+        )}
       </div>
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-[12px] text-[#5B6770]">উপরের বক্সে আঙুল/মাউস দিয়ে সই করুন</span>
-        <button type="button" onClick={clear} className="text-[13px] font-semibold text-[#B02F2F]">
-          মুছে ফেলুন
+
+      <div className="mt-2.5 flex items-center gap-1.5">
+        <Icon name="info" className="h-[15px] w-[15px] shrink-0 text-[#6B7280]" />
+        <span className="flex-1 text-[12.5px] text-[#6B7280]">আঙুল/মাউস দিয়ে বক্সের ভেতরে সই করুন</span>
+        <button
+          type="button"
+          onClick={clear}
+          className="flex items-center gap-1 rounded-full bg-[#FEF2F2] px-3 py-1.5 text-[13px] font-bold text-[#DC2626] transition active:scale-95"
+        >
+          <Icon name="trash" className="h-4 w-4" /> মুছুন
         </button>
       </div>
       {error && <ErrText>সিগনেচার আবশ্যক</ErrText>}
@@ -416,7 +729,7 @@ const SignaturePad = ({ value, onChange, error }) => {
 };
 
 /* ============================================================
-   কেওয়াইসি ফর্ম
+   কেওয়াইসি ফর্ম (২ পেজ)
 ============================================================ */
 const KycForm = ({ onSuccess }) => {
   const [step, setStep] = useState(1);
@@ -441,16 +754,12 @@ const KycForm = ({ onSuccess }) => {
     localStorage.setItem(DRAFT_KEY, JSON.stringify(textOnly));
   }, [formData]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+  const setField = (name, value) => {
     setFormData((p) => ({ ...p, [name]: value }));
-    if (errors[name]) setErrors((p) => ({ ...p, [name]: undefined }));
+    setErrors((p) => (p[name] ? { ...p, [name]: undefined } : p));
   };
 
-  const setFile = (name, value) => {
-    setFormData((p) => ({ ...p, [name]: value }));
-    if (errors[name]) setErrors((p) => ({ ...p, [name]: undefined }));
-  };
+  const handleChange = (e) => setField(e.target.name, e.target.value);
 
   const validate = () => {
     const err = {};
@@ -461,28 +770,31 @@ const KycForm = ({ onSuccess }) => {
     if (step === 1) {
       if (!err.nid_number && ![10, 13, 17].includes(formData.nid_number.trim().length))
         err.nid_number = "এনআইডি 10, 13 বা 17 ডিজিটের হতে হবে";
-      if (!err.mobile_number && !/^01[3-9]\d{8}$/.test(formData.mobile_number.trim()))
+      if (!err.mobile_number && !PHONE_RE.test(formData.mobile_number.trim()))
         err.mobile_number = "সঠিক 11 ডিজিটের মোবাইল নম্বর দিন";
+      if (!err.nominee_phone && !PHONE_RE.test(formData.nominee_phone.trim()))
+        err.nominee_phone = "সঠিক 11 ডিজিটের মোবাইল নম্বর দিন";
     }
-    if (step === 3 && !err.nominee_phone && !/^01[3-9]\d{8}$/.test(formData.nominee_phone.trim()))
-      err.nominee_phone = "সঠিক 11 ডিজিটের মোবাইল নম্বর দিন";
     setErrors(err);
     return Object.keys(err).length === 0;
   };
 
+  const toTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
+
   const next = () => {
-    if (!validate()) return;
+    if (!validate()) return toTop();
     setStep((s) => s + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    toTop();
   };
 
   const prev = () => {
     setStep((s) => s - 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setErrors({});
+    toTop();
   };
 
   const submit = async () => {
-    if (!validate()) return;
+    if (!validate()) return toTop();
     try {
       setLoading(true);
       setServerError("");
@@ -505,134 +817,186 @@ const KycForm = ({ onSuccess }) => {
       onSuccess?.(); // সফল হলে /loan পেজে যাবে
     } catch (err) {
       const d = err?.response?.data?.detail;
-      setServerError(
-        typeof d === "string" ? d : "জমা দিতে সমস্যা হয়েছে, আবার চেষ্টা করুন"
-      );
+      setServerError(typeof d === "string" ? d : "জমা দিতে সমস্যা হয়েছে, আবার চেষ্টা করুন");
     } finally {
       setLoading(false);
     }
   };
 
-  const progress = ((step - 1) / (STEPS.length - 1)) * 100;
+  const hasErrors = Object.values(errors).some(Boolean);
 
   return (
-    <div className="pb-28">
+    <div className="pb-32">
       {/* ধাপ নির্দেশক */}
-      <div
-        className="relative mb-4 overflow-hidden rounded-3xl border border-[#C9A24B]/40 p-5 shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)]"
-        style={{ background: NAVY_BG }}
-      >
-        <div className="relative flex justify-between">
-          <div className="absolute left-5 right-5 top-5 h-1 rounded-full bg-white/15" />
-          <div
-            className="absolute left-5 top-5 h-1 rounded-full bg-gradient-to-r from-[#E8CB7E] to-[#C9A24B] transition-all duration-500"
-            style={{ width: `calc((100% - 2.5rem) * ${progress / 100})` }}
-          />
+      <div className={`mb-4 rounded-[28px] p-5 shadow-[0_14px_30px_-10px_rgba(15,27,61,0.45)] ${NAVY_GRAD}`}>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-[18px] font-extrabold text-white">{STEPS[step - 1].sub}</h2>
+          <span className="shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-bold text-[#FFD2A8]">
+            ধাপ <span className="kc-num">{step}</span> / <span className="kc-num">{STEPS.length}</span>
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-2 gap-2.5">
           {STEPS.map((s, i) => {
             const n = i + 1;
             const done = n < step;
             const active = n === step;
+            const lit = done || active;
             return (
-              <div key={s.title} className="relative z-10 flex flex-col items-center gap-1.5">
+              <div key={s.title}>
                 <div
-                  className={`flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${
-                    done
-                      ? "bg-gradient-to-b from-[#E8CB7E] to-[#B48A34] text-[#1B1405]"
-                      : active
-                      ? "scale-110 border-2 border-[#E6C878] bg-[#0A1F2E] text-[#E6C878] ring-4 ring-[#C9A24B]/25"
-                      : "border-2 border-white/20 bg-[#0F2C3F] text-white/50"
-                  }`}
-                >
-                  {done ? <CheckIcon /> : <IconByName name={s.icon} className="h-[18px] w-[18px]" />}
+                  className={`h-[5px] rounded-full transition-all duration-500 ${lit ? "bg-[#F97316]" : "bg-white/20"}`}
+                />
+                <div className="mt-2.5 flex items-center gap-2">
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white ${
+                      done ? "bg-[#F97316]" : active ? "bg-white/20" : "bg-white/10"
+                    }`}
+                  >
+                    <Icon name={done ? "check" : s.icon} className="h-3.5 w-3.5" strokeWidth={2.4} />
+                  </span>
+                  <span className={`truncate text-[13px] font-bold ${lit ? "text-white" : "text-white/55"}`}>
+                    {s.title}
+                  </span>
                 </div>
-                <span className={`text-[12px] font-semibold ${active || done ? "text-[#F3E2A9]" : "text-white/50"}`}>
-                  {s.title}
-                </span>
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* ধাপ ১ */}
+      {hasErrors && (
+        <div className="mb-4 flex items-center gap-2.5 rounded-[18px] border border-[#FECACA] bg-[#FEF2F2] p-3.5 text-[14px] font-semibold text-[#DC2626]">
+          <Icon name="alert" className="h-5 w-5 shrink-0" />
+          লাল চিহ্নিত ঘরগুলো সঠিকভাবে পূরণ করুন
+        </div>
+      )}
+
+      {/* ===== পেজ ১: নাম, ঠিকানা, নমিনি ===== */}
       {step === 1 && (
-        <Card title="ব্যক্তিগত তথ্য" icon="user">
-          <Field label="পূর্ণ নাম" name="full_name" value={formData.full_name} onChange={handleChange} error={errors.full_name} placeholder="এনআইডি অনুযায়ী নাম" />
-          <Field label="এনআইডি নম্বর" name="nid_number" value={formData.nid_number} onChange={handleChange} error={errors.nid_number} placeholder="10 / 13 / 17 ডিজিট" inputMode="numeric" maxLength={17} />
-          <Field label="মোবাইল নম্বর" name="mobile_number" value={formData.mobile_number} onChange={handleChange} error={errors.mobile_number} placeholder="017XXXXXXXX" inputMode="numeric" maxLength={11} />
-          <SelectField label="পেশা" name="profession" value={formData.profession} onChange={handleChange} options={PROFESSIONS} error={errors.profession} />
-          <SelectField label="লোনের কারণ" name="loan_reason" value={formData.loan_reason} onChange={handleChange} options={LOAN_REASONS} error={errors.loan_reason} />
-        </Card>
+        <>
+          <Card title="ব্যক্তিগত তথ্য" subtitle="এনআইডি অনুযায়ী সঠিক তথ্য দিন" icon="user">
+            <Field icon="user" label="পূর্ণ নাম" name="full_name" value={formData.full_name} onChange={handleChange} error={errors.full_name} placeholder="এনআইডি অনুযায়ী নাম" />
+            <Field icon="badge" label="এনআইডি নম্বর" name="nid_number" value={formData.nid_number} onChange={handleChange} error={errors.nid_number} placeholder="10 / 13 / 17 ডিজিট" inputMode="numeric" maxLength={17} />
+            <Field icon="phone" label="মোবাইল নম্বর" name="mobile_number" value={formData.mobile_number} onChange={handleChange} error={errors.mobile_number} placeholder="017XXXXXXXX" inputMode="numeric" maxLength={11} />
+            <SelectField icon="briefcase" label="পেশা" name="profession" value={formData.profession} onSelect={setField} options={PROFESSIONS} error={errors.profession} />
+            <SelectField icon="wallet" label="লোনের কারণ" name="loan_reason" value={formData.loan_reason} onSelect={setField} options={LOAN_REASONS} error={errors.loan_reason} />
+          </Card>
+
+          <Card title="ঠিকানা" subtitle="বর্তমান ও স্থায়ী ঠিকানা" icon="pin">
+            <Field textarea icon="home" label="বর্তমান ঠিকানা" name="current_address" value={formData.current_address} onChange={handleChange} error={errors.current_address} placeholder="গ্রাম/মহল্লা, থানা, জেলা" />
+            <Field textarea icon="city" label="স্থায়ী ঠিকানা" name="permanent_address" value={formData.permanent_address} onChange={handleChange} error={errors.permanent_address} placeholder="গ্রাম/মহল্লা, থানা, জেলা" />
+            <button
+              type="button"
+              onClick={() => setField("permanent_address", formData.current_address)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-[#FFF1E6] px-3.5 py-2 text-[13.5px] font-bold text-[#EA580C] transition active:scale-95"
+            >
+              <Icon name="copy" className="h-[15px] w-[15px]" /> বর্তমান ঠিকানাই স্থায়ী ঠিকানা
+            </button>
+          </Card>
+
+          <Card title="নমিনি তথ্য" subtitle="জরুরি প্রয়োজনে যোগাযোগের ব্যক্তি" icon="users">
+            <Field icon="user" label="নমিনির নাম" name="nominee_name" value={formData.nominee_name} onChange={handleChange} error={errors.nominee_name} placeholder="নমিনির পূর্ণ নাম" />
+            <SelectField icon="heart" label="সম্পর্ক" name="nominee_relation" value={formData.nominee_relation} onSelect={setField} options={RELATIONS} error={errors.nominee_relation} />
+            <Field icon="phone" label="নমিনির ফোন" name="nominee_phone" value={formData.nominee_phone} onChange={handleChange} error={errors.nominee_phone} placeholder="017XXXXXXXX" inputMode="numeric" maxLength={11} />
+          </Card>
+        </>
       )}
 
-      {/* ধাপ ২ */}
+      {/* ===== পেজ ২: ডকুমেন্ট (লম্বালম্বি) + সিগনেচার ===== */}
       {step === 2 && (
-        <Card title="ঠিকানা" icon="pin">
-          <Field textarea label="বর্তমান ঠিকানা" name="current_address" value={formData.current_address} onChange={handleChange} error={errors.current_address} placeholder="গ্রাম/মহল্লা, থানা, জেলা" />
-          <Field textarea label="স্থায়ী ঠিকানা" name="permanent_address" value={formData.permanent_address} onChange={handleChange} error={errors.permanent_address} placeholder="গ্রাম/মহল্লা, থানা, জেলা" />
-          <button
-            type="button"
-            onClick={() => setFormData((p) => ({ ...p, permanent_address: p.current_address }))}
-            className="text-[14px] font-semibold text-[#8A6A1F] underline underline-offset-4"
-          >
-            বর্তমান ঠিকানাই স্থায়ী ঠিকানা
-          </button>
-        </Card>
-      )}
-
-      {/* ধাপ ৩ */}
-      {step === 3 && (
-        <Card title="নমিনি তথ্য" icon="users">
-          <Field label="নমিনির নাম" name="nominee_name" value={formData.nominee_name} onChange={handleChange} error={errors.nominee_name} placeholder="নমিনির পূর্ণ নাম" />
-          <SelectField label="সম্পর্ক" name="nominee_relation" value={formData.nominee_relation} onChange={handleChange} options={RELATIONS} error={errors.nominee_relation} />
-          <Field label="নমিনির ফোন" name="nominee_phone" value={formData.nominee_phone} onChange={handleChange} error={errors.nominee_phone} placeholder="017XXXXXXXX" inputMode="numeric" maxLength={11} />
-        </Card>
-      )}
-
-      {/* ধাপ ৪ */}
-      {step === 4 && (
-        <Card title="ডকুমেন্ট আপলোড" icon="doc">
-          <div className="grid grid-cols-2 gap-3">
-            <FileBox label="সেলফি" file={formData.selfie} onPick={(f) => setFile("selfie", f)} error={errors.selfie} />
-            <FileBox label="এনআইডি সামনে" file={formData.nid_front} onPick={(f) => setFile("nid_front", f)} error={errors.nid_front} />
-            <FileBox label="এনআইডি পেছনে" file={formData.nid_back} onPick={(f) => setFile("nid_back", f)} error={errors.nid_back} />
+        <>
+          <div className="mb-4 flex items-start gap-2.5 rounded-[18px] border border-[#BFDBFE] bg-[#EFF6FF] p-3.5 text-[13.5px] leading-relaxed text-[#1E40AF]">
+            <Icon name="bulb" className="mt-0.5 h-5 w-5 shrink-0 text-[#2563EB]" />
+            ছবি যেন পরিষ্কার ও আলোতে তোলা হয়। এনআইডির চারটি কোণা ও লেখা স্পষ্ট দেখা যেতে হবে।
           </div>
-          <SignaturePad value={formData.signature} onChange={(v) => setFile("signature", v)} error={errors.signature} />
+
+          <UploadCard
+            title="আপনার সেলফি"
+            hint="মুখ পরিষ্কার দেখা যায় এমন ছবি"
+            icon="face"
+            camera="user"
+            file={formData.selfie}
+            onPick={(f) => setField("selfie", f)}
+            error={errors.selfie}
+          />
+          <UploadCard
+            title="এনআইডি কার্ড (সামনে)"
+            hint="কার্ডের সামনের দিকের ছবি"
+            icon="card"
+            file={formData.nid_front}
+            onPick={(f) => setField("nid_front", f)}
+            error={errors.nid_front}
+          />
+          <UploadCard
+            title="এনআইডি কার্ড (পেছনে)"
+            hint="কার্ডের পেছনের দিকের ছবি"
+            icon="flip"
+            file={formData.nid_back}
+            onPick={(f) => setField("nid_back", f)}
+            error={errors.nid_back}
+          />
+
+          <div className={`mb-4 p-5 ${CARD}`}>
+            <div className="mb-4">
+              <SectionHead
+                title="ডিজিটাল সিগনেচার"
+                subtitle="আপনার স্বাভাবিক সই করুন"
+                icon="pen"
+                right={
+                  formData.signature ? (
+                    <Chip icon="check">সই হয়েছে</Chip>
+                  ) : errors.signature ? (
+                    <Chip tone="red">আবশ্যক</Chip>
+                  ) : null
+                }
+              />
+            </div>
+            <SignaturePad value={formData.signature} onChange={(v) => setField("signature", v)} error={errors.signature} />
+          </div>
+
           {serverError && (
-            <div className="flex items-start gap-3 rounded-2xl border border-[#F0C9C9] bg-[#FCEFEF] p-4 text-[15px] font-medium text-[#B02F2F]">
-              <AlertIcon />
+            <div className="mb-4 flex items-start gap-3 rounded-[18px] border border-[#FECACA] bg-[#FEF2F2] p-4 text-[15px] font-semibold text-[#DC2626]">
+              <Icon name="alert" className="h-5 w-5 shrink-0" />
               <p>{serverError}</p>
             </div>
           )}
-        </Card>
+        </>
       )}
 
       {/* নিচের বাটন বার */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[#E9E2CF] bg-[#FAF8F3]/95 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 z-30 bg-white shadow-[0_-6px_24px_rgba(15,27,61,0.1)] pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-xl gap-3 px-4 py-3">
           {step > 1 && (
             <button
               onClick={prev}
-              className="w-1/3 rounded-xl border border-[#E2DAC2] bg-white py-3.5 text-[16px] font-semibold text-[#0A1F2E] transition hover:border-[#C9A24B] active:scale-95"
+              disabled={loading}
+              className="w-1/3 rounded-[22px] border-[1.4px] border-[#E5E7EB] bg-white py-4 text-[16px] font-bold text-[#0F1B3D] transition hover:border-[#F97316] active:scale-95 disabled:opacity-60"
             >
               পেছনে
             </button>
           )}
-          {step < 4 ? (
-            <button onClick={next} className={`flex-1 rounded-xl py-3.5 text-[17px] font-semibold transition ${GOLD_BTN}`}>
-              পরবর্তী ধাপ
+          {step < STEPS.length ? (
+            <button
+              onClick={next}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-[22px] py-4 text-[17px] font-bold transition ${PRIMARY_BTN}`}
+            >
+              পরবর্তী ধাপ <Icon name="arrow" className="h-5 w-5" strokeWidth={2.2} />
             </button>
           ) : (
             <button
               onClick={submit}
               disabled={loading}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3.5 text-[17px] font-semibold transition ${GOLD_BTN}`}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-[22px] py-4 text-[17px] font-bold transition ${PRIMARY_BTN}`}
             >
               {loading ? (
-                "জমা হচ্ছে..."
+                <>
+                  <span className="h-5 w-5 animate-spin rounded-full border-[3px] border-white/40 border-t-white" />
+                  জমা হচ্ছে...
+                </>
               ) : (
                 <>
-                  <CheckIcon className="h-5 w-5" /> জমা দিন
+                  <Icon name="shield" className="h-5 w-5" /> জমা দিন
                 </>
               )}
             </button>
@@ -647,22 +1011,18 @@ const KycForm = ({ onSuccess }) => {
    বিস্তারিত (শুধু দেখার জন্য)
 ============================================================ */
 const DetailCard = ({ title, icon, children }) => (
-  <div className="mb-4 overflow-hidden rounded-3xl border border-[#E9E2CF] bg-white shadow-[0_10px_40px_-20px_rgba(10,31,46,0.25)]">
-    <div className="h-px bg-gradient-to-r from-transparent via-[#C9A24B] to-transparent" />
-    <div className="p-5">
-      <div className="mb-3 flex items-center gap-3">
-        <IconTile name={icon} />
-        <h2 className="text-[18px] font-bold text-[#0A1F2E]">{title}</h2>
-      </div>
-      {children}
+  <div className={`mb-4 p-5 ${CARD}`}>
+    <div className="mb-2.5">
+      <SectionHead title={title} icon={icon} />
     </div>
+    {children}
   </div>
 );
 
 const InfoRow = ({ label, value, num }) => (
-  <div className="flex justify-between gap-4 border-b border-[#F0EBDD] py-3 last:border-0">
-    <span className="shrink-0 text-[14px] text-[#5B6770]">{label}</span>
-    <span className={`break-words text-right text-[16px] font-bold text-[#0A1F2E] ${num ? "kc-num" : ""}`}>
+  <div className="flex justify-between gap-4 border-b border-[#F1F5F9] py-3.5 last:border-0">
+    <span className="shrink-0 text-[14px] text-[#6B7280]">{label}</span>
+    <span className={`break-words text-right text-[16px] font-bold text-[#0F1B3D] ${num ? "kc-num" : ""}`}>
       {value || "—"}
     </span>
   </div>
@@ -675,20 +1035,20 @@ const DocThumb = ({ label, src, onOpen }) => {
       type="button"
       disabled={!url}
       onClick={() => url && onOpen({ url, label })}
-      className="group relative h-32 overflow-hidden rounded-2xl border border-[#E2DAC2] bg-[#FAF8F3] transition active:scale-[0.97] disabled:opacity-60"
+      className="group relative h-[132px] overflow-hidden rounded-[20px] border border-[#E5E7EB] bg-[#F8FAFC] transition active:scale-[0.97] disabled:opacity-60"
     >
       {url ? (
         <>
           <img src={url} alt={label} className="h-full w-full object-cover transition duration-300 group-hover:scale-105" loading="lazy" />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0A1F2E]/90 to-transparent py-2 text-[12px] font-semibold text-[#F3E2A9]">
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0F1B3D]/90 to-transparent py-2.5 text-[12.5px] font-bold text-white">
             {label}
           </div>
         </>
       ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-1 text-[12px] text-[#B07A10]">
-          <CameraSvg />
+        <div className="flex h-full flex-col items-center justify-center gap-1 text-[12px] text-[#6B7280]">
+          <Icon name="image" className="h-7 w-7" />
           {label}
-          <span className="text-[11px] text-[#5B6770]">আপলোড নেই</span>
+          <span className="text-[11px] text-[#9CA3AF]">আপলোড নেই</span>
         </div>
       )}
     </button>
@@ -715,34 +1075,43 @@ const KycDetails = ({ data }) => {
 
   return (
     <div className="pb-8">
-      <DetailCard title="ব্যক্তিগত তথ্য" icon="user">
-        <div className="-my-2">
-          <InfoRow label="পূর্ণ নাম" value={data.full_name} />
-          <InfoRow label="ফোন" value={data.phone_number} num />
-          <InfoRow label="মোবাইল" value={data.mobile_number} num />
-          <InfoRow label="এনআইডি" value={data.nid_number} num />
-          <InfoRow label="পেশা" value={data.profession} />
-          <InfoRow label="লোনের কারণ" value={data.loan_reason} />
+      {/* স্ট্যাটাস কার্ড */}
+      <div className={`mb-4 flex items-center gap-3.5 rounded-[28px] p-5 shadow-[0_14px_30px_-10px_rgba(15,27,61,0.45)] ${NAVY_GRAD}`}>
+        <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full bg-white/10 text-[#4ADE80]">
+          <Icon name="shield" className="h-7 w-7" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[18px] font-extrabold text-white">কেওয়াইসি জমা হয়েছে</p>
+          {submittedAt && (
+            <p className="kc-num mt-0.5 flex items-center gap-1.5 text-[13px] font-medium text-[#FFD2A8]">
+              <Icon name="clock" className="h-3.5 w-3.5" /> {submittedAt}
+            </p>
+          )}
         </div>
+      </div>
+
+      <DetailCard title="ব্যক্তিগত তথ্য" icon="user">
+        <InfoRow label="পূর্ণ নাম" value={data.full_name} />
+        <InfoRow label="ফোন" value={data.phone_number} num />
+        <InfoRow label="মোবাইল" value={data.mobile_number} num />
+        <InfoRow label="এনআইডি" value={data.nid_number} num />
+        <InfoRow label="পেশা" value={data.profession} />
+        <InfoRow label="লোনের কারণ" value={data.loan_reason} />
       </DetailCard>
 
       <DetailCard title="ঠিকানা" icon="pin">
-        <div className="-my-2">
-          <InfoRow label="বর্তমান" value={data.current_address} />
-          <InfoRow label="স্থায়ী" value={data.permanent_address} />
-        </div>
+        <InfoRow label="বর্তমান" value={data.current_address} />
+        <InfoRow label="স্থায়ী" value={data.permanent_address} />
       </DetailCard>
 
       <DetailCard title="নমিনি" icon="users">
-        <div className="-my-2">
-          <InfoRow label="নাম" value={data.nominee_name} />
-          <InfoRow label="সম্পর্ক" value={data.nominee_relation} />
-          <InfoRow label="ফোন" value={data.nominee_phone} num />
-        </div>
+        <InfoRow label="নাম" value={data.nominee_name} />
+        <InfoRow label="সম্পর্ক" value={data.nominee_relation} />
+        <InfoRow label="ফোন" value={data.nominee_phone} num />
       </DetailCard>
 
       <DetailCard title="ডকুমেন্টস" icon="doc">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="mt-1.5 grid grid-cols-2 gap-3">
           <DocThumb label="সেলফি" src={data.selfie} onOpen={setViewer} />
           <DocThumb label="এনআইডি সামনে" src={data.nid_front} onOpen={setViewer} />
           <DocThumb label="এনআইডি পেছনে" src={data.nid_back} onOpen={setViewer} />
@@ -750,28 +1119,19 @@ const KycDetails = ({ data }) => {
         </div>
       </DetailCard>
 
-      {/* জমা দেওয়ার তারিখ — সবার নিচে */}
-      {submittedAt && (
-        <div className="flex items-center justify-center gap-2 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] px-4 py-3.5 text-[14px] font-semibold text-[#5C4512]">
-          <ClockIcon />
-          <span>জমা দেওয়ার তারিখ:</span>
-          <span className="kc-num text-[#0A1F2E]">{submittedAt}</span>
-        </div>
-      )}
-
       {/* ছবি বড় করে দেখা */}
       {viewer && (
         <div
-          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0A1F2E]/95 p-4"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0F1B3D]/95 p-4"
           onClick={() => setViewer(null)}
         >
-          <p className="mb-3 font-semibold text-[#F3E2A9]">{viewer.label}</p>
+          <p className="mb-3 text-[17px] font-bold text-white">{viewer.label}</p>
           <img
             src={viewer.url}
             alt={viewer.label}
-            className="max-h-[75vh] max-w-full rounded-2xl border border-[#C9A24B]/50 bg-white object-contain"
+            className="max-h-[75vh] max-w-full rounded-[20px] bg-white object-contain"
           />
-          <button className={`mt-5 rounded-xl px-6 py-2.5 text-[15px] font-semibold ${GOLD_BTN}`}>বন্ধ করুন</button>
+          <button className={`mt-5 rounded-[18px] px-8 py-3 text-[15px] font-bold ${PRIMARY_BTN}`}>বন্ধ করুন</button>
         </div>
       )}
     </div>
@@ -815,9 +1175,9 @@ const PersonalInfo = () => {
     return (
       <Shell title="ব্যক্তিগত তথ্য">
         <div className="animate-pulse space-y-4">
-          <div className="h-44 rounded-3xl bg-[#E9E2CF]" />
-          <div className="h-32 rounded-3xl bg-[#EFE9D8]" />
-          <div className="h-32 rounded-3xl bg-[#EFE9D8]" />
+          <div className="h-32 rounded-[28px] bg-[#E2E8F0]" />
+          <div className="h-56 rounded-[28px] bg-white" />
+          <div className="h-40 rounded-[28px] bg-white" />
         </div>
       </Shell>
     );
@@ -827,8 +1187,8 @@ const PersonalInfo = () => {
     return (
       <Shell title="ব্যক্তিগত তথ্য">
         <div className="py-16 text-center">
-          <p className="mb-4 font-medium text-[#B02F2F]">{error}</p>
-          <button onClick={fetchData} className={`rounded-xl px-6 py-2.5 font-semibold ${GOLD_BTN}`}>
+          <p className="mb-4 font-semibold text-[#DC2626]">{error}</p>
+          <button onClick={fetchData} className={`rounded-[18px] px-7 py-3 font-bold ${PRIMARY_BTN}`}>
             আবার চেষ্টা করুন
           </button>
         </div>
