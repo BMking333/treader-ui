@@ -11,7 +11,7 @@ import logoutIcon from "../assets/log-out.png";
 import idCardIcon from "../assets/id-card.png";
 import creditIcon from "../assets/credit.jpg";
 
-const BASE_URL = "https://loan.microfinancedevelopmentprojectbangladesh.com";
+const BASE_URL = "https://loan.onlieshop.online";
 
 /* ================= STYLES (Loan পেজের সাথে একই ফন্ট ও রং) ================= */
 
