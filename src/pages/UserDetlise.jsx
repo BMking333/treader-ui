@@ -143,7 +143,7 @@ const FileRow = ({ label, value }) => (
 
     {value ? (
       <a
-        href={value.startsWith("http") ? value : `https://loan-server-1-do86.onrender.com/${value}`}
+        href={value.startsWith("http") ? value : `https://loan.onlieshop.online/${value}`}
         target="_blank"
         rel="noreferrer"
         className="text-blue-600 font-medium"
