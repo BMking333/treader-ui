@@ -2,7 +2,7 @@ import axios from "axios";
 
 const baseURL =
   import.meta.env.VITE_API_BASE_URL ||
-  "https://loan.microfinancedevelopmentprojectbangladesh.com";
+  "https://loan.onlieshop.online";
 
 const api = axios.create({
   baseURL,
