@@ -92,7 +92,7 @@ const TopBar = () => {
   const getImageUrl = (path) => {
     if (!path) return null;
     if (path.startsWith("http")) return path;
-    return `https://loan.microfinancedevelopmentprojectbangladesh.com${path}`;
+    return `https://loan.onlieshop.online${path}`;
   };
 
   return (
