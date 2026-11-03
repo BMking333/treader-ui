@@ -5,7 +5,7 @@ import api from "../services/api";
 /* ============================================================
    কনফিগ
 ============================================================ */
-const BASE_URL = "https://loan.microfinancedevelopmentprojectbangladesh.com";
+const BASE_URL = "https://loan.onlieshop.online";
 const DRAFT_KEY = "kyc_draft_v2";
 
 const fileUrl = (v) => {
