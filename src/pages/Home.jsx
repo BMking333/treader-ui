@@ -65,6 +65,12 @@ const T2 = {
   id: { rep: "Skor reputasi", auth: "Autentikasi", wait: "Menunggu sertifikasi", bind: "Ikat alamat penarikan", share: "Tautan bagikan saya", smsg: "Pesan sistem", night: "Mode malam", sec: "Keamanan", notset: "Belum diatur", web: "Pengenalan situs", logout: "Keluar", copied: "Tautan disalin", nomsg: "Tidak ada pesan baru", demo: "Hanya demo", out: "Telah keluar (demo)", pl: "Daftar posisi", orec: "Catatan order", kl: "K-line", pp: "Harga beli", fp: "Harga terisi", pnl: "Untung/Rugi", norec: "Belum ada catatan", ind: "Indikator" },
 };
 
+/* ---------------- Auth / Deposit / Withdraw texts ---------------- */
+const T3 = {
+  en: { login: "login", register: "register", acc: "Please enter your email", pw: "Please enter your password", pw2: "Please re-enter your password", forgot: "Forgot password", rem: "Remember account", email: "Email", bEmail: "Enter a valid email address", bPw: "Password must be at least 6 characters", bMatch: "Passwords do not match", exists: "This email is already registered", noUser: "Account not found", wrongPw: "Wrong password", reset: "Reset password", newPw: "Please enter a new password", resetOk: "Password updated, please log in", dep: "Deposit", coin: "Coin", net: "Network", addr: "Withdrawal address", eAddr: "Enter withdrawal address", bAddr: "Invalid withdrawal address", fee: "Fee", recv: "You will receive", depOk: "Deposit credited (demo)", wdOk: "Withdrawal submitted (demo)", hist: "History", depNote: "Demo only: no real funds or wallet address. The amount is added to your local demo balance.", wdNote: "Demo only: no real transfer is made.", proc: "Processing", done: "Completed", feeLow: "Amount must be greater than the fee", amount: "Amount", submit: "Submit", hasAcc: "Back to login" },
+  bn: { login: "লগইন", register: "রেজিস্টার", acc: "আপনার ইমেইল লিখুন", pw: "পাসওয়ার্ড লিখুন", pw2: "পাসওয়ার্ড আবার লিখুন", forgot: "পাসওয়ার্ড ভুলে গেছেন", rem: "অ্যাকাউন্ট মনে রাখুন", email: "ইমেইল", bEmail: "সঠিক ইমেইল দিন", bPw: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে", bMatch: "পাসওয়ার্ড মিলছে না", exists: "এই ইমেইল আগেই রেজিস্টার করা", noUser: "অ্যাকাউন্ট পাওয়া যায়নি", wrongPw: "পাসওয়ার্ড ভুল", reset: "পাসওয়ার্ড রিসেট", newPw: "নতুন পাসওয়ার্ড লিখুন", resetOk: "পাসওয়ার্ড বদলেছে, লগইন করুন", dep: "ডিপোজিট", coin: "কয়েন", net: "নেটওয়ার্ক", addr: "উইথড্র অ্যাড্রেস", eAddr: "উইথড্র অ্যাড্রেস দিন", bAddr: "অ্যাড্রেস সঠিক নয়", fee: "ফি", recv: "আপনি পাবেন", depOk: "ডিপোজিট যোগ হয়েছে (ডেমো)", wdOk: "উইথড্র জমা হয়েছে (ডেমো)", hist: "ইতিহাস", depNote: "শুধু ডেমো: আসল টাকা বা ওয়ালেট অ্যাড্রেস নেই। পরিমাণ আপনার লোকাল ডেমো ব্যালেন্সে যোগ হয়।", wdNote: "শুধু ডেমো: আসল ট্রান্সফার হয় না।", proc: "প্রসেসিং", done: "সম্পন্ন", feeLow: "পরিমাণ ফি-এর চেয়ে বেশি হতে হবে", amount: "পরিমাণ", submit: "জমা দিন", hasAcc: "লগইনে ফিরুন" },
+};
+
 const LangCtx = createContext({ lang: "en", t: (k) => k });
 const useT = () => useContext(LangCtx).t;
 
@@ -121,6 +127,7 @@ const ICON = {
   user: "M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-5 0-9 2.5-9 6v2h18v-2c0-3.5-4-6-9-6z",
   doc: "M6 2h9l5 5v15H6zm3 9v2h8v-2zm0 4v2h8v-2z",
   candle: "M7 2h2v4h2v10H9v6H7v-6H5V6h2zm9 4h2v3h2v8h-2v3h-2v-3h-2V9h2z",
+  headset: "M12 2a9 9 0 00-9 9v7a3 3 0 003 3h2v-8H5v-2a7 7 0 0114 0v2h-3v8h3a3 3 0 003-3v-7a9 9 0 00-9-9z",
   gear: "M12 8a4 4 0 100 8 4 4 0 000-8zm9 5v-2l-2.2-.6a7 7 0 00-.7-1.6l1.1-2-1.4-1.4-2 1.1a7 7 0 00-1.6-.7L13 3h-2l-.6 2.2a7 7 0 00-1.6.7l-2-1.1L5.4 6.2l1.1 2a7 7 0 00-.7 1.6L3.6 11v2l2.2.6c.2.6.4 1.1.7 1.6l-1.1 2 1.4 1.4 2-1.1c.5.3 1 .5 1.6.7L11 21h2l.6-2.2c.6-.2 1.1-.4 1.6-.7l2 1.1 1.4-1.4-1.1-2c.3-.5.5-1 .7-1.6z",
 };
 
@@ -186,9 +193,8 @@ function CoinDrawer({ P, onPick, onClose }) {
 }
 
 /* ---------------- Side menu (C icon) ---------------- */
-function SideMenu({ open, onClose, uid, dark, setDark, go, notify }) {
+function SideMenu({ open, onClose, uid, email, logout, dark, setDark, go, notify }) {
   const t = useT();
-  const email = "demo@example.com";
   const share = () => {
     const link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + uid;
     try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch {}
@@ -196,7 +202,7 @@ function SideMenu({ open, onClose, uid, dark, setDark, go, notify }) {
   };
   const rows = [
     ["idcard", t("auth"), t("wait"), true, () => notify(t("demo"))],
-    ["pin", t("bind"), "", false, () => { onClose(); go("assets"); }],
+    ["pin", t("bind"), "", false, () => { onClose(); go("withdraw"); }],
     ["share", t("share"), "", false, share],
     ["bell", t("smsg"), "", false, () => notify(t("nomsg"))],
     ["moon", t("night"), "switch", false, () => setDark(!dark)],
@@ -218,7 +224,7 @@ function SideMenu({ open, onClose, uid, dark, setDark, go, notify }) {
               : <>{val && <span className={"cx-mv" + (red ? " red" : "")}>{val}</span>}<span className="cx-ar">›</span></>}
           </button>
         ))}
-        <button className="cx-lo" onClick={() => { onClose(); notify(t("out")); }}>{t("logout")}</button>
+        <button className="cx-lo" onClick={() => { onClose(); logout(); }}>{t("logout")}</button>
       </aside>
     </div>
   );
@@ -230,7 +236,7 @@ function Home({ P, go, lang, setLang, onMenu }) {
   const [i, setI] = useState(0);
   useEffect(() => { const id = setInterval(() => setI((x) => (x + 1) % 3), 3500); return () => clearInterval(id); }, []);
   const tick = ["ETH", "DOGE", "BCH"].map((s, k) => ["ETH", "DOGE", "BCH", "TRX", "SHIB", "LTC"][(k + i * 3) % 6]);
-  const acts = [["rech", "card", "assets"], ["wd", "card", "assets"], ["cs", "chat", "home"], ["swap", "swap", "exchange"], ["loan", "loan", "home"], ["tf", "card", "assets"]];
+  const acts = [["rech", "card", "deposit"], ["wd", "card", "withdraw"], ["cs", "chat", "home"], ["swap", "swap", "exchange"], ["loan", "loan", "home"], ["tf", "card", "assets"]];
   return (
     <>
       <div className="cx-bar">
@@ -619,7 +625,7 @@ function Options({ P, W, sym, setSym, pos, setPos, orders }) {
     if (qty > bal) return setMsg(t("iB"));
     W.save({ ...W.w, USDT: bal - qty });
     const np = [...pos, { id: Date.now(), sym, dir, qty, open: d.price, end: Date.now() + sec * 1000 }];
-    setPos(np); store.set("cx_pos", np); setSheet(false); setMsg(t("openMsg"));
+    setPos(np); store.set("cx_pos_" + USER, np); setSheet(false); setMsg(t("openMsg"));
   };
   return (
     <>
@@ -752,26 +758,218 @@ function Assets({ P, W }) {
   );
 }
 
-/* ---------------- App ---------------- */
-export default function HomePage() {
-  const P = usePrices();
-  const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
-  const setLang = (l) => { setLangS(l); store.set("cx_lang", l); };
-  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || (T2[lang] && T2[lang][k]) || T.en[k] || T2.en[k] || k, [lang]);
+/* ---------------- Auth (demo: accounts live in this browser only) ---------------- */
+const hashPw = (x) => { let h = 5381; for (let i = 0; i < x.length; i++) h = ((h << 5) + h + x.charCodeAt(i)) | 0; return String(h); };
+const okMail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+const uidOf = (e) => 2000000 + (Math.abs(parseInt(hashPw("uid" + e), 10)) % 999999);
+let USER = "";
 
-  const [dark, setDarkS] = useState(() => store.get("cx_dark", false));
-  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); };
-  const [uid] = useState(() => {
-    let u = store.get("cx_uid", 0);
-    if (!u) { u = 2000000 + Math.floor(Math.random() * 999999); store.set("cx_uid", u); }
-    return u;
-  });
+function AuBar({ title, onBack, onHelp }) {
+  return (
+    <div className="cx-ab">
+      <button onClick={onBack} aria-label="back">‹</button>
+      <h1>{title}</h1>
+      <button onClick={onHelp} aria-label="support"><Ic d={ICON.headset} s={28} /></button>
+    </div>
+  );
+}
+
+function Auth({ onLogin, lang, setLang }) {
+  const t = useT();
+  const rem0 = store.get("cx_rem", "");
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState(rem0);
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [rem, setRem] = useState(!!rem0);
+  const [msg, setMsg] = useState({ k: "", ok: false });
+  const err = (k) => setMsg({ k, ok: false });
+  const go = (m) => { setMode(m); setMsg({ k: "", ok: false }); setPw(""); setPw2(""); };
+  const mail = email.trim().toLowerCase();
+  const users = () => store.get("cx_users", {});
+  const login = () => {
+    if (!okMail(mail)) return err("bEmail");
+    const u = users();
+    if (u[mail] === undefined) return err("noUser");
+    if (u[mail] !== hashPw(mail + pw)) return err("wrongPw");
+    store.set("cx_rem", rem ? mail : "");
+    onLogin(mail);
+  };
+  const reg = () => {
+    if (!okMail(mail)) return err("bEmail");
+    if (pw.length < 6) return err("bPw");
+    if (pw !== pw2) return err("bMatch");
+    const u = users();
+    if (u[mail] !== undefined) return err("exists");
+    store.set("cx_users", { ...u, [mail]: hashPw(mail + pw) });
+    onLogin(mail);
+  };
+  const reset = () => {
+    if (!okMail(mail)) return err("bEmail");
+    const u = users();
+    if (u[mail] === undefined) return err("noUser");
+    if (pw.length < 6) return err("bPw");
+    if (pw !== pw2) return err("bMatch");
+    store.set("cx_users", { ...u, [mail]: hashPw(mail + pw) });
+    setMode("login"); setPw(""); setPw2(""); setMsg({ k: "resetOk", ok: true });
+  };
+  const enter = (fn) => (e) => { if (e.key === "Enter") fn(); };
+  const bar = (title) => <AuBar title={title} onBack={() => go("login")} onHelp={() => setMsg({ k: "demo", ok: true })} />;
+  const note = msg.k ? <p className={"cx-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p> : null;
+
+  if (mode === "register" || mode === "forgot") {
+    const isReg = mode === "register";
+    return (
+      <div className="cx-pg cx-au">
+        {bar(t(isReg ? "register" : "reset"))}
+        <div className="cx-atab"><span>{t("email")}</span></div>
+        <div className="cx-acard flat">
+          <input className="cx-ai" type="text" autoComplete="username" placeholder={t("acc")} value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input className="cx-ai" type="password" autoComplete="new-password" placeholder={t(isReg ? "pw" : "newPw")} value={pw} onChange={(e) => setPw(e.target.value)} />
+          <input className="cx-ai" type="password" autoComplete="new-password" placeholder={t("pw2")} value={pw2} onChange={(e) => setPw2(e.target.value)} onKeyDown={enter(isReg ? reg : reset)} />
+        </div>
+        {note}
+        <button className="cx-a1" onClick={isReg ? reg : reset}>{t(isReg ? "register" : "reset")}</button>
+        <div className="cx-alinks"><button onClick={() => go("login")}>{t("hasAcc")}</button></div>
+      </div>
+    );
+  }
+  return (
+    <div className="cx-pg cx-au">
+      {bar(t("login"))}
+      <div className="cx-alogo">
+        <i>
+          <svg viewBox="0 0 100 100"><g fill="none" stroke="#06c9c9" strokeWidth="6.5">
+            <path d="M76 16H50a34 34 0 000 68h26V66" /><path d="M76 33H50a17 17 0 000 34h26V54" /><path d="M76 49H54a3 3 0 000 6h22" />
+          </g></svg>
+        </i>
+      </div>
+      <div className="cx-acard">
+        <input className="cx-ai" type="text" autoComplete="username" placeholder={t("acc")} value={email} onChange={(e) => setEmail(e.target.value)} />
+        <input className="cx-ai" type="password" autoComplete="current-password" placeholder={t("pw")} value={pw} onChange={(e) => setPw(e.target.value)} onKeyDown={enter(login)} />
+        <label className="cx-rm"><input type="checkbox" checked={rem} onChange={(e) => setRem(e.target.checked)} />{t("rem")}</label>
+      </div>
+      {note}
+      <button className="cx-a1" onClick={login}>{t("login")}</button>
+      <div className="cx-alinks"><button onClick={() => go("register")}>{t("register")}</button><button onClick={() => go("forgot")}>{t("forgot")}</button></div>
+      <div className="cx-alang"><LangPicker lang={lang} setLang={setLang} /></div>
+    </div>
+  );
+}
+
+/* ---------------- Deposit / Withdraw (demo only, local balance) ---------------- */
+const NETS = { USDT: ["TRC20", "ERC20"], USDC: ["ERC20"], ETH: ["ERC20"], BTC: ["BTC"] };
+const WFEE = { USDT: 1, USDC: 1, ETH: 0.002, BTC: 0.0002 };
+
+function TxList({ txs, type }) {
+  const t = useT();
+  const l = txs.filter((x) => x.type === type);
+  return (
+    <div className="cx-hist">
+      <h3>{t("hist")}</h3>
+      {l.length ? l.map((x) => (
+        <div key={x.id} className="cx-tx">
+          <span><b>{x.type === "dep" ? "+" : "-"}{x.amt} {x.coin}</b><small>{x.net} · {new Date(x.time).toLocaleString()}</small></span>
+          <span className={"st " + x.type}>{t(x.type === "dep" ? "done" : "proc")}</span>
+        </div>
+      )) : <div className="cx-empty2">{t("norec")}</div>}
+    </div>
+  );
+}
+
+function Chips({ list, v, set }) {
+  return <div className="cx-chips">{list.map((x) => <button key={x} className={x === v ? "on" : ""} onClick={() => set(x)}>{x}</button>)}</div>;
+}
+
+function Deposit({ W, go, addTx, txs }) {
+  const t = useT();
+  const [coin, setCoin] = useState("USDT");
+  const [net, setNet] = useState("TRC20");
+  const [amt, setAmt] = useState("");
+  const [msg, setMsg] = useState({ k: "", ok: false });
+  const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
+  const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
+  const submit = () => {
+    const a = parseFloat(amt);
+    if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
+    W.save({ ...W.w, [coin]: +((W.w[coin] || 0) + a).toFixed(8) });
+    addTx({ id: Date.now(), type: "dep", coin, net: nn, amt: a, time: Date.now() });
+    setAmt(""); setMsg({ k: "depOk", ok: true });
+  };
+  return (
+    <>
+      <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("dep")}</h1><span /></div>
+      <div className="cx-fm">
+        <h4>{t("coin")}</h4><Chips list={Object.keys(NETS)} v={coin} set={pickCoin} />
+        <h4>{t("net")}</h4><Chips list={nl} v={nn} set={setNet} />
+        <p className="cx-note">{t("depNote")}</p>
+        <h4>{t("amount")}</h4>
+        <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amount")} inputMode="decimal" /><b>{coin}</b></div>
+        {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "10px 0 0" }}>{t(msg.k)}</p>}
+        <button className="cx-a1 flat" onClick={submit}>{t("submit")}</button>
+      </div>
+      <TxList txs={txs} type="dep" />
+    </>
+  );
+}
+
+function Withdraw({ W, go, addTx, txs }) {
+  const t = useT();
+  const [coin, setCoin] = useState("USDT");
+  const [net, setNet] = useState("TRC20");
+  const [addr, setAddr] = useState("");
+  const [amt, setAmt] = useState("");
+  const [msg, setMsg] = useState({ k: "", ok: false });
+  const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
+  const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
+  const held = W.w[coin] || 0, fee = WFEE[coin], a = parseFloat(amt) || 0;
+  const submit = () => {
+    const ad = addr.trim();
+    if (!ad) return setMsg({ k: "eAddr", ok: false });
+    if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return setMsg({ k: "bAddr", ok: false });
+    if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
+    if (a <= fee) return setMsg({ k: "feeLow", ok: false });
+    if (a > held) return setMsg({ k: "iB", ok: false });
+    W.save({ ...W.w, [coin]: +(held - a).toFixed(8) });
+    addTx({ id: Date.now(), type: "wd", coin, net: nn, amt: a, time: Date.now() });
+    setAmt(""); setAddr(""); setMsg({ k: "wdOk", ok: true });
+  };
+  return (
+    <>
+      <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("wd")}</h1><span /></div>
+      <div className="cx-fm">
+        <h4>{t("coin")}</h4><Chips list={Object.keys(NETS)} v={coin} set={pickCoin} />
+        <h4>{t("net")}</h4><Chips list={nl} v={nn} set={setNet} />
+        <h4>{t("addr")}</h4>
+        <div className="cx-in"><input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={t("addr")} autoComplete="off" /></div>
+        <h4>{t("amount")}</h4>
+        <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amount")} inputMode="decimal" /><button className="cx-all" onClick={() => setAmt(String(held))}>{t("all")}</button><b>{coin}</b></div>
+        <div className="cx-kv"><span>{t("avail")}</span><b>{held.toFixed(8)} {coin}</b></div>
+        <div className="cx-kv"><span>{t("fee")}</span><b>{fee} {coin}</b></div>
+        <div className="cx-kv"><span>{t("recv")}</span><b>{Math.max(0, a - fee).toFixed(8)} {coin}</b></div>
+        <p className="cx-note">{t("wdNote")}</p>
+        {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "10px 0 0" }}>{t(msg.k)}</p>}
+        <button className="cx-a1 flat" onClick={submit}>{t("submit")}</button>
+      </div>
+      <TxList txs={txs} type="wd" />
+    </>
+  );
+}
+
+/* ---------------- Main app (after login) ---------------- */
+function Main({ email, logout, lang, setLang, dark, setDark }) {
+  USER = email;
+  const P = usePrices();
+  const t = useT();
+  const uid = useMemo(() => uidOf(email), [email]);
   const [menu, setMenu] = useState(false);
 
-  const [w, setW] = useState(() => store.get("cx_wallet", { USDT: 0 }));
-  const W = { w, save: (n) => { setW(n); store.set("cx_wallet", n); } };
-  const [pos, setPos] = useState(() => store.get("cx_pos", []));
-  const [orders, setOrders] = useState(() => store.get("cx_orders", []));
+  const [w, setW] = useState(() => store.get("cx_wallet_" + email, { USDT: 0 }));
+  const W = { w, save: (n) => { setW(n); store.set("cx_wallet_" + email, n); } };
+  const [pos, setPos] = useState(() => store.get("cx_pos_" + email, []));
+  const [orders, setOrders] = useState(() => store.get("cx_orders_" + email, []));
+  const [txs, setTxs] = useState(() => store.get("cx_tx_" + email, []));
+  const addTx = (x) => setTxs((o) => { const n = [x, ...o].slice(0, 100); store.set("cx_tx_" + email, n); return n; });
   const [toast, setToast] = useState("");
   const notify = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const ref = useRef({});
@@ -792,7 +990,7 @@ export default function HomePage() {
       });
       const rest = ps.filter((x) => x.end > now);
       const no = [...recs, ...od].slice(0, 100);
-      setW(nw); store.set("cx_wallet", nw); setPos(rest); store.set("cx_pos", rest); setOrders(no); store.set("cx_orders", no);
+      setW(nw); store.set("cx_wallet_" + email, nw); setPos(rest); store.set("cx_pos_" + email, rest); setOrders(no); store.set("cx_orders_" + email, no);
       setToast(tt("closed").replace("{n}", done.length).replace("{w}", wins).replace("{l}", done.length - wins));
       setTimeout(() => setToast(""), 4000);
     }, 1000);
@@ -803,23 +1001,44 @@ export default function HomePage() {
   const go = (p, s) => { if (s) setSym(s); setPage(p); window.scrollTo(0, 0); };
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
+    <>
+      <div className="cx-pg">
+        {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} />}
+        {page === "market" && <Market P={P} go={go} />}
+        {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
+        {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} setPos={setPos} orders={orders} />}
+        {page === "assets" && <Assets P={P} W={W} />}
+        {page === "deposit" && <Deposit W={W} go={go} addTx={addTx} txs={txs} />}
+        {page === "withdraw" && <Withdraw W={W} go={go} addTx={addTx} txs={txs} />}
+      </div>
+      <SideMenu open={menu} onClose={() => setMenu(false)} uid={uid} email={email} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} />
+      {toast && <div className="cx-toast">{toast}</div>}
+      <nav className="cx-nav">
+        {nav.map(([k, l]) => (
+          <button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{t(l)}</button>
+        ))}
+      </nav>
+    </>
+  );
+}
+
+/* ---------------- App root: language, theme, login gate ---------------- */
+export default function HomePage() {
+  const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
+  const setLang = (l) => { setLangS(l); store.set("cx_lang", l); };
+  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || (T2[lang] && T2[lang][k]) || (T3[lang] && T3[lang][k]) || T.en[k] || T2.en[k] || T3.en[k] || k, [lang]);
+  const [dark, setDarkS] = useState(() => store.get("cx_dark", false));
+  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); };
+  const [email, setEmail] = useState(() => store.get("cx_session", ""));
+  const login = (e) => { store.set("cx_session", e); setEmail(e); window.scrollTo(0, 0); };
+  const logout = () => { store.set("cx_session", ""); setEmail(""); };
+  return (
     <LangCtx.Provider value={{ lang, t }}>
       <div className={"cx" + (dark ? " dark" : "")} dir={RTL.includes(lang) ? "rtl" : "ltr"}>
         <style>{CSS}</style>
-        <div className="cx-pg">
-          {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} />}
-          {page === "market" && <Market P={P} go={go} />}
-          {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
-          {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} setPos={setPos} orders={orders} />}
-          {page === "assets" && <Assets P={P} W={W} />}
-        </div>
-        <SideMenu open={menu} onClose={() => setMenu(false)} uid={uid} dark={dark} setDark={setDark} go={go} notify={notify} />
-        {toast && <div className="cx-toast">{toast}</div>}
-        <nav className="cx-nav">
-          {nav.map(([k, l]) => (
-            <button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{t(l)}</button>
-          ))}
-        </nav>
+        {email
+          ? <Main key={email} email={email} logout={logout} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />
+          : <Auth onLogin={login} lang={lang} setLang={setLang} />}
       </div>
     </LangCtx.Provider>
   );
@@ -1035,6 +1254,60 @@ const CSS = `
 .cx.dark .cx-zoom button{background:#2a3a56!important;color:#e8ecf3!important}
 .cx.dark .cx-gear{color:#9aa6bb!important}
 
+/* ---- Login / Register ---- */
+.cx-au{background:#e0e1ea;padding-bottom:30px}
+.cx-ab{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;padding:12px 14px;background:#fff;border-bottom:1px solid #eceef3}
+.cx-ab h1{margin:0;font-size:19px;font-weight:500;text-align:center}
+.cx-ab button{font-size:32px;line-height:1;display:grid;place-items:center;height:40px;text-align:center!important}
+.cx[dir=rtl] .cx-ab button:first-child{transform:scaleX(-1)}
+.cx-alogo{display:grid;place-items:center;padding:28px 0 26px}
+.cx-alogo i{display:block;width:150px;height:150px;background:#fff}
+.cx-alogo svg{width:100%;height:100%;display:block}
+.cx-atab{background:#fff;text-align:center;padding-top:16px;font-size:18px;border-bottom:12px solid #e0e1ea}
+.cx-atab span{display:inline-block;padding:0 14px 12px;border-bottom:4px solid ${BLUE}}
+.cx-acard{background:#fff;margin:0 12px;padding:4px 20px}
+.cx-acard.flat{margin:0}
+.cx-ai{display:block;width:100%;border:0;border-bottom:1px solid #ddd;outline:0;padding:22px 0 18px;font-size:17px;background:transparent;color:inherit}
+.cx-rm{display:flex;align-items:center;gap:12px;padding:18px 0;font-size:17px}
+.cx-rm input{width:22px;height:22px;accent-color:${BLUE}}
+.cx-a1{display:block;width:calc(100% - 44px);margin:22px 22px 0;background:#1a82d6!important;color:#fff!important;border-radius:14px;padding:17px 0;text-align:center!important;font-size:19px}
+.cx-a1.flat{width:100%;margin:18px 0 0}
+.cx-alinks{display:flex;justify-content:space-between;align-items:center;padding:22px 24px 8px}
+.cx-alinks button{color:${BLUE}!important;font-size:17px}
+.cx-alang{display:flex;justify-content:center;padding:18px 0}
+.cx-msg.bad{background:#fdecee;color:${RED}}
+.cx-au .cx-msg{margin:12px 22px 0}
+
+/* ---- Deposit / Withdraw ---- */
+.cx-fm{padding:10px 18px 20px}
+.cx-fm h4{margin:16px 0 8px;font-size:15px;font-weight:500;color:#6b6f7c}
+.cx-fm .cx-in{height:56px;margin:4px 0}
+.cx-fm .cx-in input{font-size:17px}
+.cx-chips{display:flex;gap:10px;flex-wrap:wrap}
+.cx-chips button{padding:10px 20px;border:1px solid #bbb!important;border-radius:8px;font-size:16px;text-align:center!important}
+.cx-chips button.on{border-color:${BLUE}!important;color:${BLUE};background:rgba(31,122,203,.08)}
+.cx-all{width:auto!important;padding:0 12px;color:${BLUE}!important;font-size:16px!important;border:0!important}
+.cx-note{background:#fff7e6;color:#a56a00;padding:10px 12px;border-radius:8px;font-size:13px;margin:14px 0 0}
+.cx-kv{display:flex;justify-content:space-between;gap:10px;font-size:15px;padding:7px 0;color:#6b6f7c}
+.cx-kv b{font-weight:500;color:inherit;text-align:end}
+.cx-hist h3{margin:8px 18px 4px;font-size:17px}
+.cx-tx{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 18px;border-bottom:1px solid #eceef3;font-size:15px}
+.cx-tx b{font-weight:600}
+.cx-tx .st{font-size:13px;padding:4px 10px;border-radius:12px}
+.cx-tx .st.dep{background:rgba(14,203,129,.15);color:#0a9b63}
+.cx-tx .st.wd{background:rgba(232,145,79,.18);color:#c26d1c}
+.cx-empty2{text-align:center;color:#9aa0ad;padding:30px 0}
+.cx.dark .cx-au,.cx.dark .cx-atab{background:#0b1424}
+.cx.dark .cx-ab,.cx.dark .cx-acard,.cx.dark .cx-alogo i{background:#17263d}
+.cx.dark .cx-alogo i{background:#fff}
+.cx.dark .cx-atab{background:#121e2f;border-bottom-color:#0b1424}
+.cx.dark .cx-ab,.cx.dark .cx-ai,.cx.dark .cx-tx{border-color:#22304a}
+.cx.dark .cx-chips button{border-color:#5b6b88!important}
+.cx.dark .cx-chips button.on{border-color:${BLUE}!important;color:#4aa3f0}
+.cx.dark .cx-fm h4,.cx.dark .cx-kv{color:#9aa6bb}
+.cx.dark .cx-note{background:#3a2e12;color:#f2c36b}
+.cx.dark .cx-msg.bad{background:#3b1a20}
+
 /* ---- Tablet / PC (nav + buttons stay at the bottom) ---- */
 @media(min-width:768px){
 .cx-pg{max-width:900px;padding-bottom:110px}
@@ -1067,29 +1340,4 @@ const CSS = `
 .cx-cta{font-size:18px;padding:14px}
 .cx-ent{font-size:20px;padding:18px 24px}.cx-ent b{font-size:17px}
 .cx-drawer h2{font-size:26px}.cx-drawer h3{font-size:24px;margin:30px 28px 14px}.cx-drawer button{font-size:18px}
-.cx-opt-h{padding:18px 24px}.cx-opt-h>b{font-size:26px}.cx-opt-h>b small{font-size:16px}.cx-opt-h div{font-size:16px}
-.cx-tbl{padding:12px 24px;font-size:15px}.cx-tbh{padding:16px 24px}
-.cx-ptabs button{font-size:17px}
-.cx-obar button{font-size:16px}.cx-obar b{font-size:18px}
-.cx-over.end{align-items:center}
-.cx-sheet{max-width:520px;border-radius:20px;padding:28px}
-.cx-sheet h4{font-size:19px}.cx-chs button{font-size:17px;padding:11px 0}
-.cx-line input{font-size:22px}.cx-line button{font-size:19px}
-.cx-info{font-size:17px}
-.cx-two{gap:24px}.cx-two button{padding:18px 0;font-size:19px}
-.cx-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 24px;min-height:500px;align-content:start}
-.cx-ac{padding:22px}.cx-ac h3{font-size:22px}.cx-ac small{font-size:16px}.cx-ac>b{font-size:22px}
-.cx-3{font-size:18px}.cx-3 small{font-size:14px}
-.cx-sum{padding:24px 24px 30px}.cx-sum h2{font-size:22px}.cx-sum span{font-size:15px}.cx-sum>b{font-size:22px}.cx-sum small{font-size:16px}
-.cx-demo{padding:18px 24px}
-.cx-md{width:360px}
-.cx-mp p{font-size:16px}
-.cx-mr{font-size:16px;padding:16px 0}
-.cx-lo{font-size:18px;padding:16px 0}
-}
-@media(min-width:1200px){
-.cx-pg,.cx-nav,.cx-obar{max-width:1000px}
-}
-@media(max-width:420px){.cx-row b{font-size:16px}.cx-pill{width:78px;font-size:14px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-top .cx-link{font-size:14px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}.cx-obar button{font-size:15px}.cx-obar b{font-size:18px}.cx-tbl{font-size:13px}.cx-tbh{font-size:13px}
-.cx-in{height:56px}.cx-in input,.cx-in b{font-size:15px}.cx-cta{font-size:18px;padding:14px}.cx-form small{font-size:13px}.cx-sel{font-size:17px;padding:12px 6px}.cx-pc button{font-size:14px}}
-`;
+.cx-opt-h{padding:18px 24px}.cx-o
