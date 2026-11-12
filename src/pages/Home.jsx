@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import img1 from "./assets/Image1.png";
-import img2 from "./assets/Image2.png";
-import img3 from "./assets/Image3.png";
+import img1 from "../assets/Image1.png";
+import img2 from "../assets/Image2.png";
+import img3 from "../assets/Image3.png";
 
 const BANNERS = [img1, img2, img3];
 
@@ -308,7 +308,7 @@ function Assets({ P, W }) {
 }
 
 /* ---------------- App ---------------- */
-export default function CexDemo() {
+export default function Home() {
   const P = usePrices();
   const [w, setW] = useState(() => store.get("cx_wallet", { USDT: 0 }));
   const W = { w, save: (n) => { setW(n); store.set("cx_wallet", n); } };
