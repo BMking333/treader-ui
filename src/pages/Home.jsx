@@ -272,10 +272,10 @@ function List({ P, go, names }) {
           <span className="cx-nm">
             <Coin s={s} size={names ? 38 : 42} />
             {names
-              ? <span><b>{s}<small>/USDT</small></b><small>24H {P[s].vol.toFixed(4)}</small></span>
+              ? <span><b>{s}<small>/USDT</small></b><small>24H {fmtV(P[s].vol)}</small></span>
               : <b>{s}<small>/USDT</small></b>}
           </span>
-          <span>{names ? <><b>{fmt(P[s].price)}</b><small>$ {P[s].price.toFixed(2)}</small></> : <b>{fmt(P[s].price)}</b>}</span>
+          <span className="cx-pr">{names ? <><b>{fmt(P[s].price)}</b><small>$ {P[s].price.toFixed(2)}</small></> : <b>{fmt(P[s].price)}</b>}</span>
           <span className="cx-pill" style={{ background: P[s].chg >= 0 ? GREEN : RED }}>{P[s].chg >= 0 ? "+" : ""}{Math.abs(P[s].chg) < 0.005 ? "0" : P[s].chg.toFixed(2)}%</span>
         </button>
       ))}
@@ -853,17 +853,21 @@ const CSS = `
 .cx-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:#e0e1ea;padding:14px 10px}
 .cx-grid button{display:flex;align-items:center;gap:14px;background:#fff;border-radius:10px;padding:16px 18px;font-size:19px}
 .cx-h{margin:0;padding:16px 14px 10px;font-size:24px}
-.cx-th,.cx-row{display:grid;grid-template-columns:1.2fr 1fr 1fr;align-items:center;gap:6px;padding:0 14px;width:100%}
-.cx-th{color:#8a8d99;font-size:18px;padding-top:12px;padding-bottom:12px;border-top:1px solid #e5e6ec}
+.cx-th,.cx-row{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1.1fr) 84px;align-items:center;gap:8px;padding:0 14px;width:100%}
+.cx-th{color:#8a8d99;font-size:14px;padding-top:12px;padding-bottom:12px;border-top:1px solid #e5e6ec}
 .cx-th span:last-child{text-align:end}
 .cx-row{padding-top:14px;padding-bottom:14px;border-top:1px solid #e5e6ec}
-.cx-row b{font-size:24px;font-weight:500;display:block}
-.cx-row .cx-nm b small{display:inline;font-size:18px}
-.cx-nm{display:flex;align-items:center;gap:12px;min-width:0}
+.cx-row b{font-size:17px;font-weight:600;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cx-row>span{min-width:0}
+.cx-nm>span{min-width:0;display:block}
+.cx-nm small,.cx-pr small{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.cx-pr{text-align:start}
+.cx-row .cx-nm b small{display:inline;font-size:12px;font-weight:400;margin:0}
+.cx-nm{display:flex;align-items:center;gap:10px;min-width:0}
 .cx-coin{border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;flex:none;object-fit:cover}
 .cx-coin.img{background:#fff;display:block}
 .cx-dn{display:flex;align-items:center;gap:10px}
-.cx-pill{justify-self:end;width:112px;text-align:center;color:#fff;padding:11px 0;border-radius:6px;font-size:19px}
+.cx-pill{justify-self:end;width:84px;text-align:center;color:#fff;padding:9px 0;border-radius:6px;font-size:15px;font-weight:600}
 .cx-top{display:grid;grid-template-columns:48px 1fr auto;align-items:center;padding:12px 14px;border-bottom:1px solid #e5e6ec;gap:6px}
 .cx-top h1{margin:0;font-size:24px;text-align:center;font-weight:500}
 .cx-top h1 small{display:inline;font-size:18px;margin-inline-start:8px}
@@ -1048,7 +1052,7 @@ const CSS = `
 .cx-h{font-size:20px;padding:16px 24px 10px}
 .cx-th,.cx-row{padding-left:24px;padding-right:24px}
 .cx-th{font-size:15px}
-.cx-row b{font-size:18px}.cx-row .cx-nm b small{font-size:14px}
+.cx-row b{font-size:17px}.cx-row .cx-nm b small{font-size:13px}.cx-th,.cx-row{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) 100px}
 .cx-pill{width:90px;font-size:15px;padding:9px 0}
 .cx-top h1{font-size:20px}.cx-top h1 small{font-size:15px}.cx-top button{font-size:30px}.cx-top .cx-link{font-size:16px}
 .cx-tabs button{font-size:17px}
@@ -1086,6 +1090,6 @@ const CSS = `
 @media(min-width:1200px){
 .cx-pg,.cx-nav,.cx-obar{max-width:1000px}
 }
-@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-top .cx-link{font-size:14px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}.cx-obar button{font-size:15px}.cx-obar b{font-size:18px}.cx-tbl{font-size:13px}.cx-tbh{font-size:13px}
+@media(max-width:420px){.cx-row b{font-size:16px}.cx-pill{width:78px;font-size:14px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-top .cx-link{font-size:14px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}.cx-obar button{font-size:15px}.cx-obar b{font-size:18px}.cx-tbl{font-size:13px}.cx-tbh{font-size:13px}
 .cx-in{height:56px}.cx-in input,.cx-in b{font-size:15px}.cx-cta{font-size:18px;padding:14px}.cx-form small{font-size:13px}.cx-sel{font-size:17px;padding:12px 6px}.cx-pc button{font-size:14px}}
 `;
