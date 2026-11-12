@@ -6,10 +6,11 @@ import img3 from "../assets/Image3.png";
 const BANNERS = [img1, img2, img3];
 
 /* CexDemo — একটাই ফাইল। ব্যবহার: <CexDemo />
-   Home · Market · Exchange · Options · Assets + Multi-language + Coin logos + Side menu + Night mode + Responsive (mobile/PC)
+   Home · Market · Exchange · Options (Candle chart) · Assets + Multi-language + Coin logos + Side menu + Night mode + Responsive
    DEMO: ব্যালেন্স browser-এর localStorage-এ, শুধু ডিজাইন প্রিভিউ। */
 
 const BLUE = "#1f7acb", GREEN = "#00c087", RED = "#d84d5a";
+const CUP = "#2ea664", CDN = "#e0202b";
 const COINS = ["BTC", "ETH", "DOGE", "BCH", "LTC", "TRX", "SHIB", "ADA", "BSV", "ICP", "XRP", "ETC"];
 const COL = { BTC: "#f7931a", ETH: "#627eea", DOGE: "#c2a633", BCH: "#8dc351", LTC: "#345d9d", TRX: "#eb0029", SHIB: "#e42d04", ADA: "#2563eb", BSV: "#eab300", ICP: "#7b3fe4", XRP: "#111", ETC: "#328332", USDT: "#26a17b", USDC: "#2775ca" };
 const FALL = { BTC: [73618.71, -0.27, 1.4e8], ETH: [2046.75, -1.04, 9e7], DOGE: [0.067128, -1.58, 1e7], BCH: [228.86, -0.97, 16285], LTC: [49.77, -2.43, 164530], TRX: [0.317486, -0.04, 1.7e7], SHIB: [0.00000434, -2.91, 6.9e9], ADA: [0.172924, -1.28, 3.3e7], BSV: [15.8364, -2.52, 177887], ICP: [2.57, 0, 2008], XRP: [1.04406, -1.48, 2.7e7], ETC: [6.6095, -1.69, 124280] };
@@ -46,22 +47,22 @@ const T = {
   id: { home: "Beranda", market: "Pasar", trade: "Trading", options: "Opsi", assets: "Aset", rech: "Isi saldo", wd: "Tarik", cs: "Layanan pelanggan", swap: "Tukar cepat", loan: "Pinjaman boost", tf: "Transfer", chg: "Ubah%", name: "Nama", lp: "Harga terakhir", nodata: "Tidak ada data", buy: "Beli", sell: "Jual", limit: "Harga limit", price: "Harga", qty: "Jumlah", avail: "Tersedia", amt: "Nilai trading", eAmt: "Masukkan nilai", eQty: "Masukkan jumlah", iU: "Saldo USDT tidak cukup", iC: "Tidak cukup", ok: "Order terisi (demo)", entrust: "Order saat ini", all: "Semua", spot: "Trading spot", pos: "Posisi", hi: "Tertinggi", lo: "Terendah", vol: "Volume 24J", bl: "Beli Long", ss: "Jual Short", time: "Waktu", mode: "Mode transaksi", oq: "Jumlah pembukaan", ot: "Waktu pembukaan", bal: "Saldo akun", yld: "Perkiraan imbal hasil", openMsg: "Posisi dibuka (demo)", badQ: "Jumlah pembukaan: 10.00 - 1000000.00", iB: "Saldo tidak cukup", ta: "Total aset", funds: "Dana", quant: "Trading kuantitatif", conv: "dikonversi", frozen: "Dibekukan", cv: "Dikonversi($)", top: "Isi saldo demo", add: "Tambah", ua: "Jumlah USDT", closed: "{n} posisi ditutup · {w} menang, {l} kalah (demo)" },
 };
 
-/* ---------------- Side-menu texts ---------------- */
+/* ---------------- Side-menu + Options extra texts ---------------- */
 const T2 = {
-  en: { rep: "Reputation score", auth: "Authentication", wait: "Awaiting certification", bind: "Bind withdrawal address", share: "My sharing link", smsg: "System message", night: "Night mode", sec: "Security", notset: "Not set", web: "Website Introduction", logout: "Log out", copied: "Sharing link copied", nomsg: "No new messages", demo: "Demo only", out: "Logged out (demo)" },
-  bn: { rep: "রেপুটেশন স্কোর", auth: "ভেরিফিকেশন", wait: "যাচাইয়ের অপেক্ষায়", bind: "উইথড্র অ্যাড্রেস যুক্ত করুন", share: "আমার শেয়ারিং লিংক", smsg: "সিস্টেম মেসেজ", night: "নাইট মোড", sec: "সিকিউরিটি", notset: "সেট করা নেই", web: "ওয়েবসাইট পরিচিতি", logout: "লগ আউট", copied: "শেয়ারিং লিংক কপি হয়েছে", nomsg: "নতুন মেসেজ নেই", demo: "শুধু ডেমো", out: "লগ আউট হয়েছে (ডেমো)" },
-  hi: { rep: "प्रतिष्ठा स्कोर", auth: "प्रमाणीकरण", wait: "प्रमाणन की प्रतीक्षा", bind: "निकासी पता जोड़ें", share: "मेरा शेयर लिंक", smsg: "सिस्टम संदेश", night: "नाइट मोड", sec: "सुरक्षा", notset: "सेट नहीं", web: "वेबसाइट परिचय", logout: "लॉग आउट", copied: "शेयर लिंक कॉपी हुआ", nomsg: "कोई नया संदेश नहीं", demo: "केवल डेमो", out: "लॉग आउट (डेमो)" },
-  ur: { rep: "ساکھ اسکور", auth: "تصدیق", wait: "تصدیق کا انتظار", bind: "نکالنے کا پتہ جوڑیں", share: "میرا شیئرنگ لنک", smsg: "سسٹم پیغام", night: "نائٹ موڈ", sec: "سیکیورٹی", notset: "سیٹ نہیں", web: "ویب سائٹ تعارف", logout: "لاگ آؤٹ", copied: "شیئرنگ لنک کاپی ہو گیا", nomsg: "کوئی نیا پیغام نہیں", demo: "صرف ڈیمو", out: "لاگ آؤٹ (ڈیمو)" },
-  ar: { rep: "نقاط السمعة", auth: "التوثيق", wait: "بانتظار التوثيق", bind: "ربط عنوان السحب", share: "رابط المشاركة", smsg: "رسالة النظام", night: "الوضع الليلي", sec: "الأمان", notset: "غير مضبوط", web: "نبذة عن الموقع", logout: "تسجيل الخروج", copied: "تم نسخ رابط المشاركة", nomsg: "لا رسائل جديدة", demo: "تجريبي فقط", out: "تم تسجيل الخروج (تجريبي)" },
-  es: { rep: "Puntuación de reputación", auth: "Autenticación", wait: "Pendiente de certificación", bind: "Vincular dirección de retiro", share: "Mi enlace para compartir", smsg: "Mensaje del sistema", night: "Modo noche", sec: "Seguridad", notset: "Sin configurar", web: "Presentación del sitio", logout: "Cerrar sesión", copied: "Enlace copiado", nomsg: "Sin mensajes nuevos", demo: "Solo demo", out: "Sesión cerrada (demo)" },
-  fr: { rep: "Score de réputation", auth: "Authentification", wait: "En attente de certification", bind: "Lier l'adresse de retrait", share: "Mon lien de partage", smsg: "Message système", night: "Mode nuit", sec: "Sécurité", notset: "Non défini", web: "Présentation du site", logout: "Déconnexion", copied: "Lien copié", nomsg: "Aucun nouveau message", demo: "Démo uniquement", out: "Déconnecté (démo)" },
-  de: { rep: "Reputationswert", auth: "Authentifizierung", wait: "Zertifizierung ausstehend", bind: "Auszahlungsadresse binden", share: "Mein Freigabelink", smsg: "Systemnachricht", night: "Nachtmodus", sec: "Sicherheit", notset: "Nicht gesetzt", web: "Webseiten-Vorstellung", logout: "Abmelden", copied: "Link kopiert", nomsg: "Keine neuen Nachrichten", demo: "Nur Demo", out: "Abgemeldet (Demo)" },
-  pt: { rep: "Pontuação de reputação", auth: "Autenticação", wait: "Aguardando certificação", bind: "Vincular endereço de saque", share: "Meu link de compartilhamento", smsg: "Mensagem do sistema", night: "Modo noturno", sec: "Segurança", notset: "Não definido", web: "Apresentação do site", logout: "Sair", copied: "Link copiado", nomsg: "Sem novas mensagens", demo: "Somente demo", out: "Sessão encerrada (demo)" },
-  ru: { rep: "Рейтинг репутации", auth: "Аутентификация", wait: "Ожидает проверки", bind: "Привязать адрес вывода", share: "Моя ссылка", smsg: "Системное сообщение", night: "Ночной режим", sec: "Безопасность", notset: "Не задано", web: "О сайте", logout: "Выйти", copied: "Ссылка скопирована", nomsg: "Нет новых сообщений", demo: "Только демо", out: "Вы вышли (демо)" },
-  tr: { rep: "İtibar puanı", auth: "Kimlik doğrulama", wait: "Onay bekleniyor", bind: "Çekim adresi bağla", share: "Paylaşım bağlantım", smsg: "Sistem mesajı", night: "Gece modu", sec: "Güvenlik", notset: "Ayarlanmadı", web: "Web sitesi tanıtımı", logout: "Çıkış yap", copied: "Bağlantı kopyalandı", nomsg: "Yeni mesaj yok", demo: "Yalnızca demo", out: "Çıkış yapıldı (demo)" },
-  zh: { rep: "信誉分", auth: "实名认证", wait: "待认证", bind: "绑定提现地址", share: "我的分享链接", smsg: "系统消息", night: "夜间模式", sec: "安全设置", notset: "未设置", web: "网站介绍", logout: "退出登录", copied: "分享链接已复制", nomsg: "暂无新消息", demo: "仅演示", out: "已退出（演示）" },
-  ja: { rep: "信用スコア", auth: "認証", wait: "認証待ち", bind: "出金アドレスを登録", share: "共有リンク", smsg: "システムメッセージ", night: "ナイトモード", sec: "セキュリティ", notset: "未設定", web: "サイト紹介", logout: "ログアウト", copied: "リンクをコピーしました", nomsg: "新着メッセージなし", demo: "デモのみ", out: "ログアウトしました（デモ）" },
-  id: { rep: "Skor reputasi", auth: "Autentikasi", wait: "Menunggu sertifikasi", bind: "Ikat alamat penarikan", share: "Tautan bagikan saya", smsg: "Pesan sistem", night: "Mode malam", sec: "Keamanan", notset: "Belum diatur", web: "Pengenalan situs", logout: "Keluar", copied: "Tautan disalin", nomsg: "Tidak ada pesan baru", demo: "Hanya demo", out: "Telah keluar (demo)" },
+  en: { rep: "Reputation score", auth: "Authentication", wait: "Awaiting certification", bind: "Bind withdrawal address", share: "My sharing link", smsg: "System message", night: "Night mode", sec: "Security", notset: "Not set", web: "Website Introduction", logout: "Log out", copied: "Sharing link copied", nomsg: "No new messages", demo: "Demo only", out: "Logged out (demo)", pl: "Position list", orec: "Order records", kl: "K-line", pp: "Purchase price", fp: "Filled price", pnl: "Profit/Loss", norec: "No records for now", ind: "Indicators" },
+  bn: { rep: "রেপুটেশন স্কোর", auth: "ভেরিফিকেশন", wait: "যাচাইয়ের অপেক্ষায়", bind: "উইথড্র অ্যাড্রেস যুক্ত করুন", share: "আমার শেয়ারিং লিংক", smsg: "সিস্টেম মেসেজ", night: "নাইট মোড", sec: "সিকিউরিটি", notset: "সেট করা নেই", web: "ওয়েবসাইট পরিচিতি", logout: "লগ আউট", copied: "শেয়ারিং লিংক কপি হয়েছে", nomsg: "নতুন মেসেজ নেই", demo: "শুধু ডেমো", out: "লগ আউট হয়েছে (ডেমো)", pl: "পজিশন তালিকা", orec: "অর্ডার রেকর্ড", kl: "কে-লাইন", pp: "ক্রয়মূল্য", fp: "ফিলড প্রাইস", pnl: "লাভ/ক্ষতি", norec: "এখনো কোনো রেকর্ড নেই", ind: "ইন্ডিকেটর" },
+  hi: { rep: "प्रतिष्ठा स्कोर", auth: "प्रमाणीकरण", wait: "प्रमाणन की प्रतीक्षा", bind: "निकासी पता जोड़ें", share: "मेरा शेयर लिंक", smsg: "सिस्टम संदेश", night: "नाइट मोड", sec: "सुरक्षा", notset: "सेट नहीं", web: "वेबसाइट परिचय", logout: "लॉग आउट", copied: "शेयर लिंक कॉपी हुआ", nomsg: "कोई नया संदेश नहीं", demo: "केवल डेमो", out: "लॉग आउट (डेमो)", pl: "पोज़िशन सूची", orec: "ऑर्डर रिकॉर्ड", kl: "के-लाइन", pp: "खरीद मूल्य", fp: "भरा गया मूल्य", pnl: "लाभ/हानि", norec: "अभी कोई रिकॉर्ड नहीं", ind: "इंडिकेटर" },
+  ur: { rep: "ساکھ اسکور", auth: "تصدیق", wait: "تصدیق کا انتظار", bind: "نکالنے کا پتہ جوڑیں", share: "میرا شیئرنگ لنک", smsg: "سسٹم پیغام", night: "نائٹ موڈ", sec: "سیکیورٹی", notset: "سیٹ نہیں", web: "ویب سائٹ تعارف", logout: "لاگ آؤٹ", copied: "شیئرنگ لنک کاپی ہو گیا", nomsg: "کوئی نیا پیغام نہیں", demo: "صرف ڈیمو", out: "لاگ آؤٹ (ڈیمو)", pl: "پوزیشن فہرست", orec: "آرڈر ریکارڈ", kl: "کے لائن", pp: "خرید قیمت", fp: "بھری گئی قیمت", pnl: "نفع/نقصان", norec: "ابھی کوئی ریکارڈ نہیں", ind: "انڈیکیٹرز" },
+  ar: { rep: "نقاط السمعة", auth: "التوثيق", wait: "بانتظار التوثيق", bind: "ربط عنوان السحب", share: "رابط المشاركة", smsg: "رسالة النظام", night: "الوضع الليلي", sec: "الأمان", notset: "غير مضبوط", web: "نبذة عن الموقع", logout: "تسجيل الخروج", copied: "تم نسخ رابط المشاركة", nomsg: "لا رسائل جديدة", demo: "تجريبي فقط", out: "تم تسجيل الخروج (تجريبي)", pl: "قائمة المراكز", orec: "سجل الأوامر", kl: "الشموع", pp: "سعر الشراء", fp: "سعر التنفيذ", pnl: "الربح/الخسارة", norec: "لا سجلات حاليا", ind: "المؤشرات" },
+  es: { rep: "Puntuación de reputación", auth: "Autenticación", wait: "Pendiente de certificación", bind: "Vincular dirección de retiro", share: "Mi enlace para compartir", smsg: "Mensaje del sistema", night: "Modo noche", sec: "Seguridad", notset: "Sin configurar", web: "Presentación del sitio", logout: "Cerrar sesión", copied: "Enlace copiado", nomsg: "Sin mensajes nuevos", demo: "Solo demo", out: "Sesión cerrada (demo)", pl: "Lista de posiciones", orec: "Registro de órdenes", kl: "Velas", pp: "Precio de compra", fp: "Precio ejecutado", pnl: "Ganancia/Pérdida", norec: "Sin registros", ind: "Indicadores" },
+  fr: { rep: "Score de réputation", auth: "Authentification", wait: "En attente de certification", bind: "Lier l'adresse de retrait", share: "Mon lien de partage", smsg: "Message système", night: "Mode nuit", sec: "Sécurité", notset: "Non défini", web: "Présentation du site", logout: "Déconnexion", copied: "Lien copié", nomsg: "Aucun nouveau message", demo: "Démo uniquement", out: "Déconnecté (démo)", pl: "Liste des positions", orec: "Historique des ordres", kl: "Bougies", pp: "Prix d'achat", fp: "Prix exécuté", pnl: "Gain/Perte", norec: "Aucun enregistrement", ind: "Indicateurs" },
+  de: { rep: "Reputationswert", auth: "Authentifizierung", wait: "Zertifizierung ausstehend", bind: "Auszahlungsadresse binden", share: "Mein Freigabelink", smsg: "Systemnachricht", night: "Nachtmodus", sec: "Sicherheit", notset: "Nicht gesetzt", web: "Webseiten-Vorstellung", logout: "Abmelden", copied: "Link kopiert", nomsg: "Keine neuen Nachrichten", demo: "Nur Demo", out: "Abgemeldet (Demo)", pl: "Positionsliste", orec: "Orderverlauf", kl: "K-Linie", pp: "Kaufpreis", fp: "Ausführungspreis", pnl: "Gewinn/Verlust", norec: "Keine Einträge", ind: "Indikatoren" },
+  pt: { rep: "Pontuação de reputação", auth: "Autenticação", wait: "Aguardando certificação", bind: "Vincular endereço de saque", share: "Meu link de compartilhamento", smsg: "Mensagem do sistema", night: "Modo noturno", sec: "Segurança", notset: "Não definido", web: "Apresentação do site", logout: "Sair", copied: "Link copiado", nomsg: "Sem novas mensagens", demo: "Somente demo", out: "Sessão encerrada (demo)", pl: "Lista de posições", orec: "Registro de ordens", kl: "Candles", pp: "Preço de compra", fp: "Preço executado", pnl: "Lucro/Perda", norec: "Sem registros", ind: "Indicadores" },
+  ru: { rep: "Рейтинг репутации", auth: "Аутентификация", wait: "Ожидает проверки", bind: "Привязать адрес вывода", share: "Моя ссылка", smsg: "Системное сообщение", night: "Ночной режим", sec: "Безопасность", notset: "Не задано", web: "О сайте", logout: "Выйти", copied: "Ссылка скопирована", nomsg: "Нет новых сообщений", demo: "Только демо", out: "Вы вышли (демо)", pl: "Список позиций", orec: "История ордеров", kl: "График", pp: "Цена покупки", fp: "Цена исполнения", pnl: "Прибыль/Убыток", norec: "Записей нет", ind: "Индикаторы" },
+  tr: { rep: "İtibar puanı", auth: "Kimlik doğrulama", wait: "Onay bekleniyor", bind: "Çekim adresi bağla", share: "Paylaşım bağlantım", smsg: "Sistem mesajı", night: "Gece modu", sec: "Güvenlik", notset: "Ayarlanmadı", web: "Web sitesi tanıtımı", logout: "Çıkış yap", copied: "Bağlantı kopyalandı", nomsg: "Yeni mesaj yok", demo: "Yalnızca demo", out: "Çıkış yapıldı (demo)", pl: "Pozisyon listesi", orec: "Emir kayıtları", kl: "Mum grafiği", pp: "Alış fiyatı", fp: "Gerçekleşen fiyat", pnl: "Kâr/Zarar", norec: "Kayıt yok", ind: "Göstergeler" },
+  zh: { rep: "信誉分", auth: "实名认证", wait: "待认证", bind: "绑定提现地址", share: "我的分享链接", smsg: "系统消息", night: "夜间模式", sec: "安全设置", notset: "未设置", web: "网站介绍", logout: "退出登录", copied: "分享链接已复制", nomsg: "暂无新消息", demo: "仅演示", out: "已退出（演示）", pl: "持仓列表", orec: "委托记录", kl: "K线", pp: "买入价", fp: "成交价", pnl: "盈亏", norec: "暂无记录", ind: "指标" },
+  ja: { rep: "信用スコア", auth: "認証", wait: "認証待ち", bind: "出金アドレスを登録", share: "共有リンク", smsg: "システムメッセージ", night: "ナイトモード", sec: "セキュリティ", notset: "未設定", web: "サイト紹介", logout: "ログアウト", copied: "リンクをコピーしました", nomsg: "新着メッセージなし", demo: "デモのみ", out: "ログアウトしました（デモ）", pl: "ポジション一覧", orec: "注文履歴", kl: "ローソク足", pp: "購入価格", fp: "約定価格", pnl: "損益", norec: "記録なし", ind: "インジケーター" },
+  id: { rep: "Skor reputasi", auth: "Autentikasi", wait: "Menunggu sertifikasi", bind: "Ikat alamat penarikan", share: "Tautan bagikan saya", smsg: "Pesan sistem", night: "Mode malam", sec: "Keamanan", notset: "Belum diatur", web: "Pengenalan situs", logout: "Keluar", copied: "Tautan disalin", nomsg: "Tidak ada pesan baru", demo: "Hanya demo", out: "Telah keluar (demo)", pl: "Daftar posisi", orec: "Catatan order", kl: "K-line", pp: "Harga beli", fp: "Harga terisi", pnl: "Untung/Rugi", norec: "Belum ada catatan", ind: "Indikator" },
 };
 
 const LangCtx = createContext({ lang: "en", t: (k) => k });
@@ -118,6 +119,9 @@ const ICON = {
   moon: "M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z",
   lock: "M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V11a1 1 0 011-1zm2 0h8V8a4 4 0 10-8 0z",
   user: "M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-5 0-9 2.5-9 6v2h18v-2c0-3.5-4-6-9-6z",
+  doc: "M6 2h9l5 5v15H6zm3 9v2h8v-2zm0 4v2h8v-2z",
+  candle: "M7 2h2v4h2v10H9v6H7v-6H5V6h2zm9 4h2v3h2v8h-2v3h-2v-3h-2V9h2z",
+  gear: "M12 8a4 4 0 100 8 4 4 0 000-8zm9 5v-2l-2.2-.6a7 7 0 00-.7-1.6l1.1-2-1.4-1.4-2 1.1a7 7 0 00-1.6-.7L13 3h-2l-.6 2.2a7 7 0 00-1.6.7l-2-1.1L5.4 6.2l1.1 2a7 7 0 00-.7 1.6L3.6 11v2l2.2.6c.2.6.4 1.1.7 1.6l-1.1 2 1.4 1.4 2-1.1c.5.3 1 .5 1.6.7L11 21h2l.6-2.2c.6-.2 1.1-.4 1.6-.7l2 1.1 1.4-1.4-1.1-2c.3-.5.5-1 .7-1.6z",
 };
 
 /* ---------------- Coin logo (CDN + letter fallback) ---------------- */
@@ -159,6 +163,24 @@ function LangPicker({ lang, setLang }) {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ---------------- Coin drawer (shared) ---------------- */
+function CoinDrawer({ P, onPick, onClose }) {
+  const t = useT();
+  return (
+    <div className="cx-over" onClick={onClose}>
+      <div className="cx-drawer" onClick={(e) => e.stopPropagation()}>
+        <h2>{t("spot")}</h2><h3>USDT</h3>
+        {COINS.map((s) => (
+          <button key={s} onClick={() => onPick(s)}>
+            <span className="cx-dn"><Coin s={s} size={30} /><b>{s}<small>/USDT</small></b></span>
+            <span style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{fmt(P[s].price)}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -340,35 +362,222 @@ function Exchange({ P, W, sym, setSym, go }) {
       </div>
       <div className="cx-ent"><span>{t("entrust")} <b style={{ color: BLUE }}>{t("buy")} ⌄</b></span><span>{t("all")}</span></div>
       <div className="cx-empty" style={{ height: 120 }} />
-      {pick && (
-        <div className="cx-over" onClick={() => setPick(false)}>
-          <div className="cx-drawer" onClick={(e) => e.stopPropagation()}>
-            <h2>{t("spot")}</h2><h3>USDT</h3>
-            {COINS.map((s) => (
-              <button key={s} onClick={() => { setSym(s); setPick(false); }}>
-                <span className="cx-dn"><Coin s={s} size={30} /><b>{s}<small>/USDT</small></b></span>
-                <span style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{fmt(P[s].price)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+      {pick && <CoinDrawer P={P} onClose={() => setPick(false)} onPick={(s) => { setSym(s); setPick(false); }} />}
     </>
   );
 }
 
+/* ---------------- Candle chart ---------------- */
+const IVS = [["1m", "1m"], ["5m", "5m"], ["15m", "15m"], ["1h", "1H"], ["4h", "4H"], ["1d", "D"]];
+const IVMS = { "1m": 6e4, "5m": 3e5, "15m": 9e5, "1h": 36e5, "4h": 144e5, "1d": 864e5 };
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function synth(price, iv, n = 200) {
+  const ms = IVMS[iv], now = Math.floor(Date.now() / ms) * ms;
+  let seed = (Math.round(price * 100) % 9973) + iv.length + 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const vol = iv === "1d" ? 0.025 : iv === "4h" ? 0.012 : iv === "1h" ? 0.006 : 0.002;
+  const arr = [];
+  let c = price;
+  for (let i = 0; i < n; i++) {
+    const o = c / (1 + (rnd() - 0.5) * vol * 2);
+    const h = Math.max(o, c) * (1 + rnd() * vol * 0.5);
+    const l = Math.min(o, c) * (1 - rnd() * vol * 0.5);
+    arr.unshift({ t: now - i * ms, o, h, l, c, v: (rnd() * 0.8 + 0.2) * 1000 });
+    c = o;
+  }
+  return arr;
+}
+const niceStep = (range, target) => {
+  const raw = range / target, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+  return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+};
+const decOf = (p) => (p >= 100 ? 2 : p >= 1 ? 4 : p >= 0.01 ? 6 : 8);
+const fmtV = (v) => (v >= 1e9 ? (v / 1e9).toFixed(2) + "B" : v >= 1e6 ? (v / 1e6).toFixed(2) + "M" : v >= 1e3 ? (v / 1e3).toFixed(2) + "K" : v.toFixed(2));
+const fmtT = (ts, iv) => {
+  const d = new Date(ts), z = (x) => String(x).padStart(2, "0");
+  return iv === "1d" ? d.getDate() + " " + MON[d.getMonth()] : z(d.getHours()) + ":" + z(d.getMinutes());
+};
+
+function Chart({ sym, price }) {
+  const t = useT();
+  const wrap = useRef(null);
+  const [w, setW] = useState(360);
+  const [iv, setIv] = useState("1d");
+  const [ivOpen, setIvOpen] = useState(false);
+  const [data, setData] = useState([]);
+  const [n, setN] = useState(60);
+  const [off, setOff] = useState(0);
+  const [hov, setHov] = useState(null);
+  const priceRef = useRef(price);
+  priceRef.current = price;
+
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth || 360));
+    ro.observe(el); setW(el.clientWidth || 360);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let stop = false;
+    setOff(0); setHov(null);
+    const load = async () => {
+      try {
+        if (sym === "BSV") throw 0;
+        const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=${iv}&limit=300`);
+        if (!r.ok) throw 0;
+        const j = await r.json();
+        if (!stop) setData(j.map((k) => ({ t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] })));
+      } catch { if (!stop) setData((o) => (o.length && o.__sym === sym + iv ? o : Object.assign(synth(priceRef.current, iv), { __sym: sym + iv }))); }
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => { stop = true; clearInterval(id); };
+  }, [sym, iv]);
+
+  const cs = useMemo(() => {
+    if (!data.length || !price) return data;
+    const a = data.slice(), l = a[a.length - 1];
+    a[a.length - 1] = { ...l, c: price, h: Math.max(l.h, price), l: Math.min(l.l, price) };
+    return a;
+  }, [data, price]);
+
+  const ma = useMemo(() => cs.map((_, i) => (i < 8 ? null : cs.slice(i - 8, i + 1).reduce((s, x) => s + x.c, 0) / 9)), [cs]);
+
+  const AX = 66, H1 = 300, GAP = 12, H2 = 100, TA = 28, H = H1 + GAP + H2 + TA;
+  const pw = Math.max(100, w - AX);
+  const end = Math.max(1, cs.length - off), start = Math.max(0, end - n);
+  const vis = cs.slice(start, end), len = vis.length;
+  const step = pw / n;
+  const x0 = pw - len * step;
+  const cx = (k) => x0 + (k + 0.5) * step;
+
+  let hi = -Infinity, lo = Infinity, vmax = 0;
+  vis.forEach((c, k) => {
+    hi = Math.max(hi, c.h); lo = Math.min(lo, c.l); vmax = Math.max(vmax, c.v);
+    const m = ma[start + k]; if (m) { hi = Math.max(hi, m); lo = Math.min(lo, m); }
+  });
+  if (!isFinite(hi) || !len) { hi = 1; lo = 0; vmax = 1; }
+  const padp = (hi - lo) * 0.06 || hi * 0.01;
+  hi += padp; lo -= padp;
+  const y = (p) => 6 + ((hi - p) / (hi - lo)) * (H1 - 12);
+  const vy = (v) => H1 + GAP + H2 - 4 - (v / (vmax || 1)) * (H2 - 14);
+  const dec = decOf(price || 1);
+  const ps = niceStep(hi - lo, 8);
+  const ticks = [];
+  for (let p = Math.ceil(lo / ps) * ps; p <= hi; p += ps) ticks.push(p);
+  const every = Math.max(1, Math.ceil(len / 5));
+  const last = vis[len - 1];
+  const cur = hov && vis[hov.k] ? vis[hov.k] : last;
+  const curIdx = hov && vis[hov.k] ? start + hov.k : start + len - 1;
+  const up = (c) => c.c >= c.o;
+  const colr = cur ? (up(cur) ? CUP : CDN) : CUP;
+  const lastCol = cs.length && up(cs[cs.length - 1]) ? CUP : CDN;
+  const maPts = vis.map((c, k) => ({ m: ma[start + k], k })).filter((a) => a.m).map((a) => `${cx(a.k)},${y(a.m)}`).join(" ");
+
+  const onMove = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - r.left, py = e.clientY - r.top;
+    if (px > pw || px < x0 || !len) return setHov(null);
+    setHov({ k: Math.max(0, Math.min(len - 1, Math.floor((px - x0) / step))), x: px, y: py });
+  };
+  const chgv = cur ? cur.c - cur.o : 0;
+  const vma = (() => { const i = curIdx; const s = cs.slice(Math.max(0, i - 19), i + 1); return s.length ? s.reduce((a, x) => a + x.v, 0) / s.length : 0; })();
+
+  return (
+    <div className="cx-chartw" ref={wrap}>
+      <div className="cx-ctool">
+        <div className="cx-ivw">
+          <button onClick={() => setIvOpen(!ivOpen)}>{(IVS.find((a) => a[0] === iv) || [])[1]}</button>
+          {ivOpen && <div className="cx-ivm">{IVS.map(([k, l]) => <button key={k} className={k === iv ? "on" : ""} onClick={() => { setIv(k); setIvOpen(false); }}>{l}</button>)}</div>}
+        </div>
+        <span className="cx-cti"><Ic d={ICON.candle} s={18} /></span>
+        <span className="cx-cti ind">∿ {t("ind")}</span>
+      </div>
+      <div className="cx-cwrap" style={{ height: H }}>
+        {cur && (
+          <div className="cx-chead" style={{ color: colr }}>
+            <div><span className="cx-gt2">{sym.toLowerCase()}usdt, {(IVS.find((a) => a[0] === iv) || [])[1]}</span>{" "}O{cur.o.toFixed(dec)} H{cur.h.toFixed(dec)} L{cur.l.toFixed(dec)} C{cur.c.toFixed(dec)} {chgv >= 0 ? "+" : ""}{chgv.toFixed(dec)} ({chgv >= 0 ? "+" : ""}{((chgv / cur.o) * 100).toFixed(2)}%)</div>
+            <div className="cx-gt2">MA (9, close, 0) <span style={{ color: "#e8914f" }}>{ma[curIdx] ? ma[curIdx].toFixed(4) : "n/a"}</span></div>
+          </div>
+        )}
+        <svg width={w} height={H} onPointerMove={onMove} onPointerLeave={() => setHov(null)} style={{ touchAction: "pan-y", display: "block" }}>
+          {ticks.map((p) => (
+            <g key={p}>
+              <line x1="0" x2={pw} y1={y(p)} y2={y(p)} className="cx-gl" />
+              <line x1={pw} x2={pw + 4} y1={y(p)} y2={y(p)} className="cx-ax" />
+              <text x={pw + 8} y={y(p) + 4} className="cx-gt" fontSize="11">{p.toFixed(dec > 2 ? dec : 2)}</text>
+            </g>
+          ))}
+          <line x1={pw} x2={pw} y1="0" y2={H - TA} className="cx-ax" />
+          <line x1="0" x2={w} y1={H1 + GAP / 2} y2={H1 + GAP / 2} className="cx-ax" />
+          {[0, 0.5, 1].map((f) => (
+            <g key={f}>
+              <line x1={pw} x2={pw + 4} y1={vy(vmax * f)} y2={vy(vmax * f)} className="cx-ax" />
+              <text x={pw + 8} y={vy(vmax * f) + 4} className="cx-gt" fontSize="11">{fmtV(vmax * f)}</text>
+            </g>
+          ))}
+          {vis.map((c, k) => k % every === 0 && (
+            <text key={"t" + k} x={cx(k)} y={H - 9} textAnchor="middle" className="cx-gt" fontSize="11">{fmtT(c.t, iv)}</text>
+          ))}
+          {vis.map((c, k) => {
+            const col = up(c) ? CUP : CDN, bw = Math.max(1, step * 0.68), top = y(Math.max(c.o, c.c)), bh = Math.max(1, Math.abs(y(c.o) - y(c.c)));
+            return (
+              <g key={c.t}>
+                <rect x={cx(k) - bw / 2} y={vy(c.v)} width={bw} height={H1 + GAP + H2 - 4 - vy(c.v)} fill={col} opacity=".28" />
+                <line x1={cx(k)} x2={cx(k)} y1={y(c.h)} y2={y(c.l)} stroke={col} strokeWidth="1" />
+                <rect x={cx(k) - bw / 2} y={top} width={bw} height={bh} fill={col} />
+              </g>
+            );
+          })}
+          {maPts && <polyline points={maPts} fill="none" stroke="#e8a46b" strokeWidth="1" />}
+          {off === 0 && price > lo && price < hi && (
+            <g>
+              <line x1="0" x2={pw} y1={y(price)} y2={y(price)} stroke={lastCol} strokeWidth="1" strokeDasharray="1 2" />
+              <rect x={pw} y={y(price) - 10} width={AX} height="20" fill={lastCol} />
+              <text x={pw + 6} y={y(price) + 4} fill="#fff" fontSize="11">{price.toFixed(dec > 2 ? dec : 2)}</text>
+            </g>
+          )}
+          {hov && (
+            <g>
+              <line x1={cx(hov.k)} x2={cx(hov.k)} y1="0" y2={H - TA} className="cx-ch" />
+              {hov.y < H1 && <>
+                <line x1="0" x2={pw} y1={hov.y} y2={hov.y} className="cx-ch" />
+                <rect x={pw} y={hov.y - 10} width={AX} height="20" fill="#4a5568" />
+                <text x={pw + 6} y={hov.y + 4} fill="#fff" fontSize="11">{(hi - ((hov.y - 6) / (H1 - 12)) * (hi - lo)).toFixed(dec > 2 ? dec : 2)}</text>
+              </>}
+              <rect x={Math.max(0, Math.min(pw - 74, cx(hov.k) - 37))} y={H - TA + 2} width="74" height="20" fill="#4a5568" />
+              <text x={Math.max(0, Math.min(pw - 74, cx(hov.k) - 37)) + 37} y={H - TA + 16} textAnchor="middle" fill="#fff" fontSize="11">{fmtT(vis[hov.k].t, iv)}</text>
+            </g>
+          )}
+          <text x="8" y={H1 + GAP + 14} className="cx-gt" fontSize="11">Volume (20) <tspan fill={colr}>{cur ? fmtV(cur.v) : ""}</tspan> <tspan fill="#e8914f">{fmtV(vma)}</tspan></text>
+        </svg>
+        <div className="cx-zoom">
+          <button onClick={() => setN((x) => Math.min(200, Math.round(x * 1.3)))}>−</button>
+          <button onClick={() => setN((x) => Math.max(10, Math.round(x / 1.3)))}>+</button>
+          <button onClick={() => setOff((o) => Math.min(Math.max(0, cs.length - 10), o + Math.max(1, Math.round(n / 4))))}>‹</button>
+          <button onClick={() => setOff((o) => Math.max(0, o - Math.max(1, Math.round(n / 4))))}>›</button>
+        </div>
+        <button className="cx-gear" onClick={() => { setOff(0); setN(60); }} aria-label="reset"><Ic d={ICON.gear} s={18} /></button>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Options (long / short) ---------------- */
-function Options({ P, W, sym, go, pos, setPos }) {
+function Options({ P, W, sym, setSym, pos, setPos, orders }) {
   const t = useT();
   const [qty, setQty] = useState(10);
   const [sec, setSec] = useState(20);
   const [sheet, setSheet] = useState(false);
   const [, tick] = useState(0);
   const [msg, setMsg] = useState("");
-  const [hist, setHist] = useState([]);
+  const [view, setView] = useState("k");
+  const [ptab, setPtab] = useState("list");
+  const [pick, setPick] = useState(false);
   const d = P[sym];
-  useEffect(() => { setHist([]); }, [sym]);
-  useEffect(() => { setHist((h) => [...h, d.price].slice(-80)); }, [d.price, sym]);
   useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
   const open = (dir) => {
     setMsg("");
@@ -379,45 +588,85 @@ function Options({ P, W, sym, go, pos, setPos }) {
     const np = [...pos, { id: Date.now(), sym, dir, qty, open: d.price, end: Date.now() + sec * 1000 }];
     setPos(np); store.set("cx_pos", np); setSheet(false); setMsg(t("openMsg"));
   };
-  const lo = Math.min(...hist), hi = Math.max(...hist), rg = hi - lo || 1;
-  const line = hist.map((p, i) => `${(i / Math.max(1, hist.length - 1)) * 330},${150 - ((p - lo) / rg) * 140}`).join(" ");
+  const dc = decOf(d.price);
   return (
     <>
       <div className="cx-top">
-        <button><Ic d={ICON.menu} s={26} /></button>
+        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
         <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}><Coin s={sym} size={28} />{sym}/USDT</h1>
-        <span className="cx-link">{t("pos")}</span>
+        <button className="cx-link" onClick={() => setView(view === "k" ? "p" : "k")}>
+          {view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={22} />
+        </button>
       </div>
-      <div className="cx-opt-h">
-        <b style={{ color: d.chg >= 0 ? GREEN : RED }}>{d.price.toFixed(6)}<small>{d.chg.toFixed(2)} %</small></b>
-        <div><span>{t("hi")}</span><i>{fmt(d.hi)}</i><span>{t("lo")}</span><i>{fmt(d.lo)}</i><span>{t("vol")}</span><i>{d.vol.toFixed(2)}</i></div>
-      </div>
-      <div className="cx-chart"><svg viewBox="0 0 330 160" width="100%"><polyline points={line} fill="none" stroke={BLUE} strokeWidth="1.6" /></svg></div>
-      {msg && <p className="cx-msg">{msg}</p>}
-      {pos.map((p) => (
-        <div key={p.id} className="cx-pos"><b style={{ display: "flex", alignItems: "center", gap: 6 }}><Coin s={p.sym} size={20} />{p.sym} {p.dir === "long" ? t("bl") : t("ss")}</b><span>{p.qty} USDT @ {fmt(p.open)}</span><span>{Math.max(0, Math.ceil((p.end - Date.now()) / 1000))}s</span></div>
-      ))}
-      <div className="cx-obar">
-        <button onClick={() => setSheet(true)}>{t("qty")} ⌄<b>{qty.toFixed(2)}</b></button>
-        <button onClick={() => setSheet(true)}>{t("time")} ⌄<b>{sec}s</b></button>
-        <button className="g" onClick={() => open("long")}>{t("bl")}</button>
-        <button className="r" onClick={() => open("short")}>{t("ss")}</button>
-      </div>
+
+      {view === "k" ? (
+        <>
+          <div className="cx-opt-h">
+            <b style={{ color: d.chg >= 0 ? GREEN : RED }}>{d.price.toFixed(6)}<small>{d.chg.toFixed(2)} %</small></b>
+            <div><span>{t("hi")}</span><i>{fmt(d.hi)}</i><span>{t("lo")}</span><i>{fmt(d.lo)}</i><span>{t("vol")}</span><i>{d.vol.toFixed(2)}</i></div>
+          </div>
+          <Chart sym={sym} price={d.price} />
+          {msg && <p className="cx-msg">{msg}</p>}
+          <div style={{ height: 110 }} />
+          <div className="cx-obar">
+            <button onClick={() => setSheet(true)}>{t("qty")} ⌄<b>{qty.toFixed(2)}</b></button>
+            <button onClick={() => setSheet(true)}>{t("time")} ⌄<b>{sec}s</b></button>
+            <button className="g" onClick={() => open("long")}>{t("bl")}</button>
+            <button className="r" onClick={() => open("short")}>{t("ss")}</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="cx-tabs two cx-ptabs">
+            <button className={ptab === "list" ? "on" : ""} onClick={() => setPtab("list")}>{t("pl")}</button>
+            <button className={ptab === "rec" ? "on" : ""} onClick={() => setPtab("rec")}>{t("orec")}</button>
+          </div>
+          <div className="cx-tbl cx-tbh"><span>{t("qty")}</span><span>{t("pp")}</span><span>{t("fp")}</span><span>{t("pnl")}</span></div>
+          {ptab === "list" && pos.map((p) => {
+            const c = P[p.sym] ? P[p.sym].price : p.open;
+            const win = p.dir === "long" ? c > p.open : c < p.open;
+            return (
+              <div key={p.id} className="cx-tbl">
+                <span><Coin s={p.sym} size={18} /> {p.qty}<small>{p.sym} · {p.dir === "long" ? t("bl") : t("ss")} · {Math.max(0, Math.ceil((p.end - Date.now()) / 1000))}s</small></span>
+                <span>{fmt(p.open)}</span>
+                <span>{fmt(c)}</span>
+                <span style={{ color: win ? CUP : CDN }}>{win ? "+" : "-"}{(win ? p.qty * YIELD : p.qty).toFixed(2)}</span>
+              </div>
+            );
+          })}
+          {ptab === "rec" && orders.map((o) => (
+            <div key={o.id} className="cx-tbl">
+              <span><Coin s={o.sym} size={18} /> {o.qty}<small>{o.sym} · {o.dir === "long" ? t("bl") : t("ss")}</small></span>
+              <span>{fmt(o.open)}</span>
+              <span>{fmt(o.close)}</span>
+              <span style={{ color: o.pnl >= 0 ? CUP : CDN }}>{o.pnl >= 0 ? "+" : ""}{o.pnl.toFixed(2)}</span>
+            </div>
+          ))}
+          {((ptab === "list" && !pos.length) || (ptab === "rec" && !orders.length)) && (
+            <div className="cx-norec">
+              <svg width="150" height="120" viewBox="0 0 150 120"><rect x="38" y="20" width="74" height="70" rx="4" fill="#eceef2" /><rect x="46" y="28" width="58" height="44" fill="#fff" /><rect x="54" y="38" width="42" height="5" fill="#e0e2e8" /><rect x="54" y="49" width="42" height="5" fill="#e0e2e8" /><rect x="54" y="60" width="42" height="5" fill="#e0e2e8" /><rect x="34" y="72" width="82" height="22" rx="3" fill="#e3e5ea" /><rect x="62" y="81" width="26" height="4" rx="2" fill="#fff" /></svg>
+              <p>{t("norec")}</p>
+            </div>
+          )}
+        </>
+      )}
+
       {sheet && (
         <div className="cx-over end" onClick={() => setSheet(false)}>
           <div className="cx-sheet" onClick={(e) => e.stopPropagation()}>
             <h4>{t("mode")}</h4><div className="cx-chs"><button className="on">USDT</button></div>
             <h4>{t("oq")}</h4>
-            <div className="cx-chs">{QTY.map((n) => <button key={n} className={qty === n ? "on" : ""} onClick={() => setQty(n)}>{n.toFixed(2)}</button>)}</div>
+            <div className="cx-chs">{QTY.map((x) => <button key={x} className={qty === x ? "on" : ""} onClick={() => setQty(x)}>{x.toFixed(2)}</button>)}</div>
             <div className="cx-line"><input value={qty} inputMode="decimal" onChange={(e) => setQty(parseFloat(e.target.value) || 0)} /><button onClick={() => setQty(Math.floor(W.w.USDT || 0))}>{t("all")}</button></div>
             <h4>{t("ot")}</h4>
-            <div className="cx-chs">{SECS.map((n) => <button key={n} className={sec === n ? "on" : ""} onClick={() => setSec(n)}>{n}s</button>)}</div>
+            <div className="cx-chs">{SECS.map((x) => <button key={x} className={sec === x ? "on" : ""} onClick={() => setSec(x)}>{x}s</button>)}</div>
             <div className="cx-info"><span>{t("bal")} : {(W.w.USDT || 0).toFixed(8)}</span><span>{t("yld")} : {YIELD * 100}%</span></div>
             <div className="cx-info"><span>{t("oq")} : 10.00 - 1000000.00</span></div>
             <div className="cx-two"><button className="g" onClick={() => open("long")}>{t("bl")}</button><button className="r" onClick={() => open("short")}>{t("ss")}</button></div>
           </div>
         </div>
       )}
+      {pick && <CoinDrawer P={P} onClose={() => setPick(false)} onPick={(s) => { setSym(s); setPick(false); }} />}
     </>
   );
 }
@@ -490,23 +739,28 @@ export default function HomePage() {
   const [w, setW] = useState(() => store.get("cx_wallet", { USDT: 0 }));
   const W = { w, save: (n) => { setW(n); store.set("cx_wallet", n); } };
   const [pos, setPos] = useState(() => store.get("cx_pos", []));
+  const [orders, setOrders] = useState(() => store.get("cx_orders", []));
   const [toast, setToast] = useState("");
   const notify = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const ref = useRef({});
-  ref.current = { P, w, pos, t };
+  ref.current = { P, w, pos, t, orders };
   useEffect(() => {
     const id = setInterval(() => {
-      const { P: pr, w: wl, pos: ps, t: tt } = ref.current, now = Date.now();
+      const { P: pr, w: wl, pos: ps, t: tt, orders: od } = ref.current, now = Date.now();
       const done = ps.filter((x) => x.end <= now);
       if (!done.length) return;
       const nw = { ...wl };
       let wins = 0;
+      const recs = [];
       done.forEach((x) => {
         const c = pr[x.sym].price;
-        if (x.dir === "long" ? c > x.open : c < x.open) { nw.USDT = (nw.USDT || 0) + x.qty * (1 + YIELD); wins++; }
+        const win = x.dir === "long" ? c > x.open : c < x.open;
+        if (win) { nw.USDT = (nw.USDT || 0) + x.qty * (1 + YIELD); wins++; }
+        recs.unshift({ id: x.id, sym: x.sym, dir: x.dir, qty: x.qty, open: x.open, close: c, pnl: win ? x.qty * YIELD : -x.qty, time: now });
       });
       const rest = ps.filter((x) => x.end > now);
-      setW(nw); store.set("cx_wallet", nw); setPos(rest); store.set("cx_pos", rest);
+      const no = [...recs, ...od].slice(0, 100);
+      setW(nw); store.set("cx_wallet", nw); setPos(rest); store.set("cx_pos", rest); setOrders(no); store.set("cx_orders", no);
       setToast(tt("closed").replace("{n}", done.length).replace("{w}", wins).replace("{l}", done.length - wins));
       setTimeout(() => setToast(""), 4000);
     }, 1000);
@@ -524,7 +778,7 @@ export default function HomePage() {
           {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} />}
           {page === "market" && <Market P={P} go={go} />}
           {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
-          {page === "options" && <Options P={P} W={W} sym={sym} go={go} pos={pos} setPos={setPos} />}
+          {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} setPos={setPos} orders={orders} />}
           {page === "assets" && <Assets P={P} W={W} />}
         </div>
         <SideMenu open={menu} onClose={() => setMenu(false)} uid={uid} dark={dark} setDark={setDark} go={go} notify={notify} />
@@ -582,7 +836,7 @@ const CSS = `
 .cx-top h1{margin:0;font-size:24px;text-align:center;font-weight:500}
 .cx-top h1 small{display:inline;font-size:18px;margin-inline-start:8px}
 .cx-top button{font-size:34px;line-height:1}
-.cx-link{font-size:19px;padding-inline-end:44px}
+.cx-top .cx-link{font-size:17px;display:flex;align-items:center;gap:8px;padding:0 4px;line-height:1.2}
 .cx-tabs{display:flex;overflow-x:auto;scrollbar-width:none;padding:6px 10px 0}
 .cx-tabs button{padding:16px 16px 12px;font-size:21px;white-space:nowrap;color:#444;border-bottom:4px solid transparent}
 .cx-tabs button.on{border-color:${BLUE};color:#000}
@@ -618,13 +872,42 @@ const CSS = `
 .cx-drawer h3{color:${BLUE};font-size:34px;margin:50px 28px 30px}
 .cx-drawer button{display:flex;justify-content:space-between;align-items:center;width:calc(100% - 56px);margin:0 28px;padding:20px 0;border-top:1px solid #ddd;font-size:22px}
 .cx-drawer button b small{display:inline;color:#666;font-weight:400}
-.cx-opt-h{display:flex;justify-content:space-between;padding:26px 14px;align-items:flex-start}
-.cx-opt-h>b{font-size:30px;font-weight:600}
-.cx-opt-h>b small{color:inherit;font-size:20px;font-weight:400;margin-top:10px}
-.cx-opt-h div{display:grid;grid-template-columns:auto auto;gap:10px 40px;font-size:19px;color:#999}
+.cx-opt-h{display:flex;justify-content:space-between;padding:18px 14px;align-items:flex-start}
+.cx-opt-h>b{font-size:28px;font-weight:600}
+.cx-opt-h>b small{color:inherit;font-size:18px;font-weight:400;margin-top:8px}
+.cx-opt-h div{display:grid;grid-template-columns:auto auto;gap:8px 30px;font-size:17px;color:#999}
 .cx-opt-h i{font-style:normal;color:#222;text-align:end}
-.cx-chart{border-top:1px solid #ccc;border-bottom:1px solid #ccc;padding:16px;direction:ltr}
-.cx-pos{display:flex;justify-content:space-between;padding:12px 14px;border-bottom:1px solid #e5e6ec;font-size:14px}
+
+/* ---- Candle chart ---- */
+.cx-chartw{direction:ltr;border-top:1px solid #dcdfe6;position:relative}
+.cx-ctool{display:flex;align-items:center;gap:6px;border-bottom:1px solid #eceef3;height:40px;padding:0 6px}
+.cx-ctool>*{display:flex;align-items:center}
+.cx-ctool button{padding:6px 14px;font-size:15px;border-inline-end:1px solid #eceef3}
+.cx-cti{padding:0 10px;font-size:15px;gap:6px;color:#333}
+.cx-ivw{position:relative}
+.cx-ivm{position:absolute;top:36px;left:0;background:#fff;border:1px solid #dcdfe6;border-radius:6px;z-index:5;box-shadow:0 6px 20px rgba(0,0,0,.15);display:flex;flex-direction:column;min-width:70px}
+.cx-ivm button{border:0;text-align:center;padding:10px 16px}
+.cx-ivm button.on{color:${BLUE};font-weight:600}
+.cx-cwrap{position:relative;width:100%}
+.cx-chead{position:absolute;top:6px;left:8px;font-size:12px;line-height:1.6;z-index:2;pointer-events:none;max-width:calc(100% - 80px)}
+.cx-gt2{color:#555}
+.cx-gl{stroke:#eef0f4;stroke-width:1}
+.cx-ax{stroke:#c9ccd4;stroke-width:1}
+.cx-gt{fill:#555}
+.cx-ch{stroke:#778;stroke-width:1;stroke-dasharray:4 4}
+.cx-zoom{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:8px;z-index:3}
+.cx-zoom button{width:30px;height:30px;border-radius:50%;background:#fff!important;box-shadow:0 1px 6px rgba(0,0,0,.25);text-align:center!important;font-size:17px;line-height:30px;color:#444!important;padding:0}
+.cx-gear{position:absolute;right:20px;bottom:5px;color:#555!important;z-index:3}
+.cx-ptabs button{font-size:19px}
+.cx-tbl{display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr;gap:6px;padding:12px 14px;border-bottom:1px solid #eceef3;font-size:15px;align-items:center}
+.cx-tbl>span:first-child{display:block;word-break:break-word}
+.cx-tbl>span:first-child .cx-coin{vertical-align:middle}
+.cx-tbl>span:first-child small{font-size:12px;margin-top:2px}
+.cx-tbl>span:not(:first-child){text-align:end}
+.cx-tbh{font-size:16px;border-bottom:1px solid #999;padding:16px 14px}
+.cx-norec{text-align:center;padding:60px 20px;color:#9aa0ad;font-size:20px}
+.cx-norec p{margin:20px 0 0}
+
 .cx-obar{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;display:grid;grid-template-columns:1fr 1fr 1.1fr 1.1fr;gap:8px;padding:10px;z-index:20;border-top:1px solid #e5e6ec}
 .cx-obar button{text-align:center!important;font-size:19px}
 .cx-obar b{display:block;font-weight:500;font-size:22px}
@@ -687,7 +970,8 @@ const CSS = `
 .cx.dark{background:#080f1c;color:#e8ecf3}
 .cx.dark .cx-pg{background:#121e2f;box-shadow:0 0 40px rgba(0,0,0,.4)}
 .cx.dark small{color:#8d98ad}
-.cx.dark .cx-th,.cx.dark .cx-row,.cx.dark .cx-top,.cx.dark .cx-pos,.cx.dark .cx-nav,.cx.dark .cx-obar,.cx.dark .cx-mr,.cx.dark .cx-mp,.cx.dark .cx-lgm button{border-color:#22304a}
+.cx.dark .cx-th,.cx.dark .cx-row,.cx.dark .cx-top,.cx.dark .cx-nav,.cx.dark .cx-obar,.cx.dark .cx-mr,.cx.dark .cx-mp,.cx.dark .cx-lgm button,.cx.dark .cx-tbl,.cx.dark .cx-ctool,.cx.dark .cx-ctool button,.cx.dark .cx-chartw{border-color:#22304a}
+.cx.dark .cx-tbh{border-bottom-color:#5b6b88}
 .cx.dark .cx-th{color:#8d98ad}
 .cx.dark .cx-grid,.cx.dark .cx-cards,.cx.dark .cx-empty{background:#0b1424}
 .cx.dark .cx-grid button,.cx.dark .cx-ac{background:#17263d}
@@ -695,7 +979,7 @@ const CSS = `
 .cx.dark .cx-nav,.cx.dark .cx-obar,.cx.dark .cx-demo{background:#121e2f}
 .cx.dark .cx-nav button{color:#e8ecf3}.cx.dark .cx-nav button.on{color:#4aa3f0}
 .cx.dark .cx-nav button.on svg{color:#4aa3f0}
-.cx.dark .cx-drawer,.cx.dark .cx-sheet,.cx.dark .cx-lgm,.cx.dark .cx-md{background:#17263d}
+.cx.dark .cx-drawer,.cx.dark .cx-sheet,.cx.dark .cx-lgm,.cx.dark .cx-md,.cx.dark .cx-ivm{background:#17263d;border-color:#22304a}
 .cx.dark .cx-tabs button{color:#aab4c6}.cx.dark .cx-tabs button.on,.cx.dark .cx-tabs.big button.on{color:#fff}
 .cx.dark .cx-tabs.big button{color:#8d98ad}
 .cx.dark .cx-in,.cx.dark .cx-in button{border-color:#3a4a66!important}
@@ -704,20 +988,22 @@ const CSS = `
 .cx.dark .cx-chs button.on{border-color:${BLUE}!important}
 .cx.dark .cx-bs{background:#0b1424}
 .cx.dark .cx-msg{background:#17304f}
-.cx.dark .cx-chart{border-color:#22304a}
 .cx.dark .cx-opt-h i,.cx.dark .cx-ac h3 i{color:#e8ecf3}
 .cx.dark .cx-drawer button{border-color:#2a3a56}
 .cx.dark .cx-sw{background:#3a4a66}.cx.dark .cx-sw.on{background:${BLUE}}
 .cx.dark .cx-row:active,.cx.dark .cx-grid button:active{background:#1d2e49}
+.cx.dark .cx-gl{stroke:#1d2b42}.cx.dark .cx-ax{stroke:#3a4a66}.cx.dark .cx-gt{fill:#9aa6bb}.cx.dark .cx-gt2{color:#9aa6bb}
+.cx.dark .cx-cti{color:#cfd6e4}
+.cx.dark .cx-zoom button{background:#2a3a56!important;color:#e8ecf3!important}
+.cx.dark .cx-gear{color:#9aa6bb!important}
 
-/* ---- Tablet / PC ---- */
+/* ---- Tablet / PC (nav + buttons stay at the bottom) ---- */
 @media(min-width:768px){
-.cx-pg{max-width:900px;padding-top:64px;padding-bottom:110px}
-.cx-nav{top:0;bottom:auto;max-width:900px;border-top:0;border-bottom:1px solid #e5e6ec;padding:6px 0}
-.cx.dark .cx-nav{border-bottom-color:#22304a}
-.cx-nav button{flex-direction:row;justify-content:center;gap:8px;font-size:16px;padding:10px 0}
-.cx-nav svg{width:22px;height:22px}
-.cx-obar{bottom:0;max-width:900px}
+.cx-pg{max-width:900px;padding-bottom:110px}
+.cx-nav{max-width:900px;padding:8px 0}
+.cx-nav button{font-size:14px;gap:3px}
+.cx-nav svg{width:24px;height:24px}
+.cx-obar{bottom:64px;max-width:900px}
 .cx-banner{aspect-ratio:21/6}
 .cx-bar{padding:12px 24px}
 .cx-lang{font-size:16px}
@@ -730,7 +1016,7 @@ const CSS = `
 .cx-th{font-size:15px}
 .cx-row b{font-size:18px}.cx-row .cx-nm b small{font-size:14px}
 .cx-pill{width:90px;font-size:15px;padding:9px 0}
-.cx-top h1{font-size:20px}.cx-top h1 small{font-size:15px}.cx-top button{font-size:30px}.cx-link{font-size:16px}
+.cx-top h1{font-size:20px}.cx-top h1 small{font-size:15px}.cx-top button{font-size:30px}.cx-top .cx-link{font-size:16px}
 .cx-tabs button{font-size:17px}
 .cx-ex{padding:20px 24px;gap:30px}
 .cx-bh,.cx-bk{font-size:14px;padding:9px 0}.cx-bh{font-size:15px}
@@ -743,9 +1029,9 @@ const CSS = `
 .cx-cta{font-size:18px;padding:14px}
 .cx-ent{font-size:20px;padding:18px 24px}.cx-ent b{font-size:17px}
 .cx-drawer h2{font-size:26px}.cx-drawer h3{font-size:24px;margin:30px 28px 14px}.cx-drawer button{font-size:18px}
-.cx-opt-h{padding:22px 24px}.cx-opt-h>b{font-size:26px}.cx-opt-h>b small{font-size:16px}.cx-opt-h div{font-size:16px}
-.cx-chart{padding:16px 24px}
-.cx-pos{padding:12px 24px;font-size:15px}
+.cx-opt-h{padding:18px 24px}.cx-opt-h>b{font-size:26px}.cx-opt-h>b small{font-size:16px}.cx-opt-h div{font-size:16px}
+.cx-tbl{padding:12px 24px;font-size:15px}.cx-tbh{padding:16px 24px}
+.cx-ptabs button{font-size:17px}
 .cx-obar button{font-size:16px}.cx-obar b{font-size:18px}
 .cx-over.end{align-items:center}
 .cx-sheet{max-width:520px;border-radius:20px;padding:28px}
@@ -762,10 +1048,9 @@ const CSS = `
 .cx-mp p{font-size:16px}
 .cx-mr{font-size:16px;padding:16px 0}
 .cx-lo{font-size:18px;padding:16px 0}
-.cx-toast{top:76px}
 }
 @media(min-width:1200px){
 .cx-pg,.cx-nav,.cx-obar{max-width:1000px}
 }
-@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}}
+@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-top .cx-link{font-size:14px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}.cx-obar button{font-size:15px}.cx-obar b{font-size:18px}.cx-tbl{font-size:13px}.cx-tbh{font-size:13px}}
 `;
