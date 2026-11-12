@@ -308,7 +308,7 @@ function Assets({ P, W }) {
 }
 
 /* ---------------- App ---------------- */
-export default function Home() {
+export default function HomePage() {
   const P = usePrices();
   const [w, setW] = useState(() => store.get("cx_wallet", { USDT: 0 }));
   const W = { w, save: (n) => { setW(n); store.set("cx_wallet", n); } };
