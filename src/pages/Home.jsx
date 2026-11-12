@@ -48,7 +48,7 @@ function usePrices() {
         const j = await r.json();
         if (stop) return;
         const n = {};
-        j.forEach((t) => { n[t.symbol.replace("USDT", "")] = { price: +t.lastPrice, chg: +t.priceChangePercent, vol: +t.quoteVolume }; });
+        j.forEach((t) => { n[t.symbol.replace("USDT", "")] = { price: +t.lastPrice, chg: +t.priceChangePercent, vol: +t.quoteVolume, hi: +t.highPrice, lo: +t.lowPrice }; });
         setD((o) => ({ ...o, ...n }));
         setLive(true);
       } catch { if (!stop) setLive(false); }
@@ -93,41 +93,153 @@ function Top({ title, back, right }) {
   );
 }
 
-/* ------------------------------ live chart ------------------------------ */
-function synth(price, n = 80) {
-  let v = price, a = [];
-  for (let i = 0; i < n; i++) { a.unshift(v); v *= 1 + (Math.random() - 0.5) * 0.004; }
-  return a;
+/* ------------------------------ live chart (candles + line) ------------------------------ */
+// [label, binance interval, group size] — 10m / 3H / 3M / 1Y Binance-এ নেই, তাই ছোট ক্যান্ডল জোড়া লাগিয়ে বানানো হয়
+const TFS = [
+  ["1m", "1m", 1], ["5m", "5m", 1], ["10m", "5m", 2], ["15m", "15m", 1], ["30m", "30m", 1],
+  ["1H", "1h", 1], ["3H", "1h", 3], ["6H", "6h", 1], ["12H", "12h", 1], ["1D", "1d", 1],
+  ["3D", "3d", 1], ["1W", "1w", 1], ["1M", "1M", 1], ["3M", "1M", 3], ["1Y", "1M", 12],
+];
+const SHOW = 60;
+const UPC = "#19d38b", DNC = "#ff5470";
+
+function group(rows, k) {
+  if (k === 1) return rows;
+  const out = [];
+  for (let i = rows.length; i > 0; i -= k) {
+    const g = rows.slice(Math.max(0, i - k), i);
+    out.unshift({ t: g[0].t, o: g[0].o, h: Math.max(...g.map((x) => x.h)), l: Math.min(...g.map((x) => x.l)), c: g[g.length - 1].c, v: g.reduce((a, x) => a + x.v, 0) });
+  }
+  return out;
 }
+function synth(price, n) {
+  const out = [];
+  let c = price;
+  for (let i = 0; i < n; i++) {
+    const o = c * (1 + (Math.random() - 0.5) * 0.01);
+    out.unshift({ t: Date.now() - i * 60000, o, h: Math.max(o, c) * (1 + Math.random() * 0.004), l: Math.min(o, c) * (1 - Math.random() * 0.004), c, v: Math.random() * 100 });
+    c = o;
+  }
+  return out;
+}
+
 function Chart({ sym, price }) {
-  const [pts, setPts] = useState([]);
+  const [tf, setTf] = useState("15m");
+  const [type, setType] = useState("candle");
+  const [rows, setRows] = useState([]);
+  const [sel, setSel] = useState(null);
+  const [demo, setDemo] = useState(false);
+
   useEffect(() => {
     let stop = false;
-    setPts([]);
-    (async () => {
+    const [, base, k] = TFS.find((x) => x[0] === tf);
+    setRows([]); setSel(null);
+    const load = async (first) => {
       try {
-        const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=1m&limit=80`);
+        const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=${base}&limit=${Math.min(1000, SHOW * k + k)}`);
+        if (!r.ok) throw 0;
         const j = await r.json();
-        if (!stop) setPts(j.map((k) => +k[4]));
-      } catch { if (!stop) setPts(synth(price)); }
-    })();
-    return () => { stop = true; };
-  }, [sym]); // eslint-disable-line
-  useEffect(() => { setPts((p) => (p.length ? [...p.slice(-79), price] : p)); }, [price]);
-  if (pts.length < 2) return <div className="x-chart x-skel" />;
-  const min = Math.min(...pts), max = Math.max(...pts), up = pts[pts.length - 1] >= pts[0];
-  const xy = pts.map((y, i) => [(i / (pts.length - 1)) * 100, 38 - ((y - min) / (max - min || 1)) * 34]);
-  const line = xy.map(([x, y]) => `${x},${y}`).join(" ");
-  const col = up ? "#19d38b" : "#ff5470";
+        if (stop) return;
+        setRows(group(j.map((x) => ({ t: x[0], o: +x[1], h: +x[2], l: +x[3], c: +x[4], v: +x[5] })), k).slice(-SHOW));
+        setDemo(false);
+      } catch { if (first && !stop) { setRows(synth(price, SHOW)); setDemo(true); } }
+    };
+    load(true);
+    const id = setInterval(() => load(false), 30000);
+    return () => { stop = true; clearInterval(id); };
+  }, [sym, tf]); // eslint-disable-line
+
+  useEffect(() => {
+    setRows((r) => {
+      if (!r.length) return r;
+      const a = r.slice(), l = { ...a[a.length - 1] };
+      l.c = price; l.h = Math.max(l.h, price); l.l = Math.min(l.l, price);
+      a[a.length - 1] = l;
+      return a;
+    });
+  }, [price]);
+
+  const W = 360, H = 250, PW = 298, CH = 190, VB = 246, VH = 42;
+  const ready = rows.length > 1;
+  const c = rows.length ? rows[sel ?? rows.length - 1] : null;
+  const tl = (t) => {
+    const d = new Date(t);
+    return ["1D", "3D", "1W", "1M", "3M", "1Y"].includes(tf)
+      ? d.toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" })
+      : d.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  };
+
+  let svg = <div className="x-skel" />;
+  if (ready) {
+    const hi = Math.max(...rows.map((r) => r.h)), lo = Math.min(...rows.map((r) => r.l)), rng = hi - lo || 1;
+    const y = (p) => 8 + (1 - (p - lo) / rng) * (CH - 16);
+    const cw = PW / rows.length, bw = Math.max(1.5, cw * 0.62), x = (i) => i * cw + cw / 2;
+    const mv = Math.max(...rows.map((r) => r.v)) || 1;
+    const last = rows[rows.length - 1], lc = last.c >= last.o ? UPC : DNC;
+    const line = rows.map((r, i) => `${x(i)},${y(r.c)}`).join(" ");
+    const pick = (e) => {
+      const b = e.currentTarget.ownerSVGElement.getBoundingClientRect();
+      const px = ((e.clientX - b.left) / b.width) * W;
+      setSel(Math.max(0, Math.min(rows.length - 1, Math.floor(px / cw))));
+    };
+    svg = (
+      <svg className="x-cv" viewBox={`0 0 ${W} ${H}`} style={{ touchAction: "pan-y" }}>
+        <defs>
+          <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={lc} stopOpacity=".3" /><stop offset="1" stopColor={lc} stopOpacity="0" /></linearGradient>
+        </defs>
+        {[0, 1, 2, 3].map((i) => {
+          const p = lo + (rng * i) / 3;
+          return (<g key={i}><line x1="0" x2={PW} y1={y(p)} y2={y(p)} className="x-gl" /><text x={PW + 4} y={y(p) + 3} className="x-ax">{fmt(p)}</text></g>);
+        })}
+        {type === "line" ? (
+          <>
+            <polygon points={`0,${CH} ${line} ${PW},${CH}`} fill="url(#cg)" />
+            <polyline points={line} fill="none" stroke={lc} strokeWidth="1.6" strokeLinejoin="round" />
+          </>
+        ) : rows.map((r, i) => {
+          const col = r.c >= r.o ? UPC : DNC;
+          return (
+            <g key={i}>
+              <line x1={x(i)} x2={x(i)} y1={y(r.h)} y2={y(r.l)} stroke={col} strokeWidth="1" />
+              <rect x={x(i) - bw / 2} y={Math.min(y(r.o), y(r.c))} width={bw} height={Math.max(1, Math.abs(y(r.o) - y(r.c)))} fill={col} />
+            </g>
+          );
+        })}
+        {rows.map((r, i) => (
+          <rect key={"v" + i} x={x(i) - bw / 2} y={VB - (r.v / mv) * VH} width={bw} height={(r.v / mv) * VH} fill={r.c >= r.o ? UPC : DNC} opacity=".35" />
+        ))}
+        <line x1="0" x2={PW} y1={y(last.c)} y2={y(last.c)} stroke={lc} strokeDasharray="2 2" strokeWidth=".8" />
+        <rect x={PW} y={y(last.c) - 7} width={W - PW} height="14" rx="3" fill={lc} />
+        <text x={PW + 3} y={y(last.c) + 3} className="x-tag">{fmt(last.c)}</text>
+        {sel !== null && (
+          <g>
+            <line x1={x(sel)} x2={x(sel)} y1="0" y2={VB} className="x-cr" />
+            <line x1="0" x2={PW} y1={y(rows[sel].c)} y2={y(rows[sel].c)} className="x-cr" />
+          </g>
+        )}
+        <rect x="0" y="0" width={PW} height={H} fill="transparent" onPointerDown={pick} onPointerMove={pick} onPointerLeave={() => setSel(null)} />
+      </svg>
+    );
+  }
+
   return (
-    <svg className="x-chart" viewBox="0 0 100 40" preserveAspectRatio="none">
-      <defs>
-        <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor={col} stopOpacity=".35" /><stop offset="1" stopColor={col} stopOpacity="0" /></linearGradient>
-      </defs>
-      <polygon points={`0,40 ${line} 100,40`} fill="url(#cg)" />
-      <polyline points={line} fill="none" stroke={col} strokeWidth="1.5" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-      <circle cx={xy[xy.length - 1][0]} cy={xy[xy.length - 1][1]} r="1.6" fill={col} />
-    </svg>
+    <div className="x-cwrap">
+      {c && (
+        <div className="x-ohlc">
+          <span className="x-ot">{tl(c.t)}{demo ? " · demo" : ""}</span>
+          <span>O<b>{fmt(c.o)}</b></span><span>H<b>{fmt(c.h)}</b></span><span>L<b>{fmt(c.l)}</b></span>
+          <span>C<b className={c.c >= c.o ? "up" : "dn"}>{fmt(c.c)}</b></span>
+        </div>
+      )}
+      {svg}
+      <div className="x-ctl">
+        <div className="x-tf">{TFS.map(([l]) => <button key={l} className={l === tf ? "on" : ""} onClick={() => setTf(l)}>{l}</button>)}</div>
+        <div className="x-ct">
+          <button className={type === "candle" ? "on" : ""} onClick={() => setType("candle")}>Candle</button>
+          <button className={type === "line" ? "on" : ""} onClick={() => setType("line")}>Line</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -348,7 +460,7 @@ function Trade({ P, W, user, sym, setSym, go, openAuth }) {
           <Chg v={d.chg} />
         </div>
         <Chart sym={sym} price={d.price} />
-        <div className="x-kv3"><span>24h vol<b>{vol(d.vol)}</b></span><span>You hold<b>{held.toFixed(6)}</b></span><span>USDT<b>{usdt.toFixed(2)}</b></span></div>
+        <div className="x-kv3"><span>24h high<b>{d.hi ? fmt(d.hi) : "—"}</b></span><span>24h low<b>{d.lo ? fmt(d.lo) : "—"}</b></span><span>24h vol<b>{vol(d.vol)}</b></span></div>
       </div>
       <div className="x-split">
         <div className="x-card x-pad">
@@ -359,6 +471,7 @@ function Trade({ P, W, user, sym, setSym, go, openAuth }) {
           <label className="x-lab">{side === "buy" ? "Spend (USDT)" : `Amount (${sym})`}</label>
           <input className="x-in" inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} placeholder="0.00" />
           <div className="x-pcts">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
+          <div className="x-kv"><span>Available</span><b>{side === "buy" ? `${usdt.toFixed(2)} USDT` : `${held.toFixed(6)} ${sym}`}</b></div>
           <div className="x-kv"><span>Receive ≈</span><b>{amt > 0 ? (side === "buy" ? `${est.toFixed(6)} ${sym}` : `${est.toFixed(2)} USDT`) : "—"}</b></div>
           <div className="x-kv"><span>Fee</span><b>{FEE * 100}%</b></div>
           <Msg m={m} />
@@ -558,7 +671,8 @@ const CSS = `
 .x-hero{position:relative;overflow:hidden;padding:22px 20px 20px;border-radius:24px;background:linear-gradient(145deg,#12304a 0%,#0c2036 45%,#0a3a38 100%);border:1px solid rgba(62,230,184,.18)}
 .x-orb{position:absolute;right:-50px;top:-60px;width:210px;height:210px;border-radius:50%;background:radial-gradient(circle at 35% 35%,rgba(74,168,255,.45),transparent 65%)}
 .x-orb.two{right:auto;left:-70px;top:auto;bottom:-90px;background:radial-gradient(circle at 60% 40%,rgba(62,230,184,.3),transparent 65%)}
-.x-hero>*{position:relative}
+.x-hero>:not(.x-orb){position:relative}
+.x-orb{pointer-events:none}
 .x-hero-t{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:rgba(255,255,255,.65)}
 .x-hero-t button{color:inherit;display:grid;place-items:center}
 .x-hero-n{font-size:38px;font-weight:700;letter-spacing:.3px;margin:8px 0 18px;font-variant-numeric:tabular-nums}
@@ -615,8 +729,24 @@ const CSS = `
 .x-chips button.on{color:#03251d;background:var(--ac);border-color:var(--ac)}
 .x-pr{display:flex;justify-content:space-between;align-items:flex-start}
 .x-big{font-size:30px;font-variant-numeric:tabular-nums;display:block}
-.x-chart{width:100%;height:150px;display:block}
-.x-skel{border-radius:12px;background:linear-gradient(90deg,var(--card2),#1b2640,var(--card2));background-size:200% 100%;animation:xs 1.4s infinite}
+.x-cwrap{display:flex;flex-direction:column;gap:8px}
+.x-cv{width:100%;height:auto;display:block;user-select:none;-webkit-user-select:none}
+.x-gl{stroke:#1e283b;stroke-width:.6}
+.x-ax{fill:#7d889c;font-size:8.5px}
+.x-tag{fill:#04140e;font-size:8.5px;font-weight:700}
+.x-cr{stroke:#7d889c;stroke-width:.6;stroke-dasharray:2 2}
+.x-ohlc{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11.5px;color:var(--mut);min-height:34px;align-items:center}
+.x-ohlc b{margin-left:4px;color:var(--tx);font-variant-numeric:tabular-nums}
+.x-ohlc b.up{color:var(--up)}.x-ohlc b.dn{color:var(--dn)}
+.x-ot{width:100%}
+.x-ctl{display:flex;gap:8px;align-items:center;justify-content:space-between}
+.x-tf{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+.x-tf::-webkit-scrollbar{display:none}
+.x-tf button,.x-ct button{padding:6px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--mut);white-space:nowrap}
+.x-tf button.on{background:var(--card2);color:var(--ac);box-shadow:inset 0 0 0 1px var(--line)}
+.x-ct{display:flex;flex:none;background:var(--bg);border-radius:9px;padding:2px}
+.x-ct button.on{background:var(--card2);color:var(--tx)}
+.x-skel{height:250px;border-radius:12px;background:linear-gradient(90deg,var(--card2),#1b2640,var(--card2));background-size:200% 100%;animation:xs 1.4s infinite}
 @keyframes xs{to{background-position:-200% 0}}
 .x-kv3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11.5px;color:var(--mut)}
 .x-kv3 b{display:block;color:var(--tx);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
