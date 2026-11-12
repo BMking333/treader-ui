@@ -6,7 +6,7 @@ import img3 from "../assets/Image3.png";
 const BANNERS = [img1, img2, img3];
 
 /* CexDemo — একটাই ফাইল। ব্যবহার: <CexDemo />
-   Home · Market · Exchange · Options · Assets + Multi-language + Coin logos
+   Home · Market · Exchange · Options · Assets + Multi-language + Coin logos + Side menu + Night mode + Responsive (mobile/PC)
    DEMO: ব্যালেন্স browser-এর localStorage-এ, শুধু ডিজাইন প্রিভিউ। */
 
 const BLUE = "#1f7acb", GREEN = "#00c087", RED = "#d84d5a";
@@ -45,6 +45,25 @@ const T = {
   ja: { home: "ホーム", market: "マーケット", trade: "取引", options: "オプション", assets: "資産", rech: "入金", wd: "出金", cs: "カスタマーサービス", swap: "フラッシュスワップ", loan: "ブーストローン", tf: "振替", chg: "変動%", name: "名称", lp: "最新価格", nodata: "データなし", buy: "買い", sell: "売り", limit: "指値", price: "価格", qty: "数量", avail: "利用可能", amt: "取引額", eAmt: "取引額を入力", eQty: "数量を入力", iU: "USDT残高不足", iC: "不足", ok: "注文約定（デモ）", entrust: "現在の注文", all: "すべて", spot: "現物取引", pos: "ポジション", hi: "高値", lo: "安値", vol: "24H出来高", bl: "買いロング", ss: "売りショート", time: "時間", mode: "取引モード", oq: "建玉数量", ot: "建玉時間", bal: "口座残高", yld: "想定利回り", openMsg: "ポジションを開きました（デモ）", badQ: "建玉数量：10.00 - 1000000.00", iB: "残高不足", ta: "総資産", funds: "資金", quant: "クオンツ取引", conv: "換算", frozen: "凍結", cv: "換算($)", top: "デモチャージ", add: "追加", ua: "USDT数量", closed: "{n}件決済 · 勝ち{w}、負け{l}（デモ）" },
   id: { home: "Beranda", market: "Pasar", trade: "Trading", options: "Opsi", assets: "Aset", rech: "Isi saldo", wd: "Tarik", cs: "Layanan pelanggan", swap: "Tukar cepat", loan: "Pinjaman boost", tf: "Transfer", chg: "Ubah%", name: "Nama", lp: "Harga terakhir", nodata: "Tidak ada data", buy: "Beli", sell: "Jual", limit: "Harga limit", price: "Harga", qty: "Jumlah", avail: "Tersedia", amt: "Nilai trading", eAmt: "Masukkan nilai", eQty: "Masukkan jumlah", iU: "Saldo USDT tidak cukup", iC: "Tidak cukup", ok: "Order terisi (demo)", entrust: "Order saat ini", all: "Semua", spot: "Trading spot", pos: "Posisi", hi: "Tertinggi", lo: "Terendah", vol: "Volume 24J", bl: "Beli Long", ss: "Jual Short", time: "Waktu", mode: "Mode transaksi", oq: "Jumlah pembukaan", ot: "Waktu pembukaan", bal: "Saldo akun", yld: "Perkiraan imbal hasil", openMsg: "Posisi dibuka (demo)", badQ: "Jumlah pembukaan: 10.00 - 1000000.00", iB: "Saldo tidak cukup", ta: "Total aset", funds: "Dana", quant: "Trading kuantitatif", conv: "dikonversi", frozen: "Dibekukan", cv: "Dikonversi($)", top: "Isi saldo demo", add: "Tambah", ua: "Jumlah USDT", closed: "{n} posisi ditutup · {w} menang, {l} kalah (demo)" },
 };
+
+/* ---------------- Side-menu texts ---------------- */
+const T2 = {
+  en: { rep: "Reputation score", auth: "Authentication", wait: "Awaiting certification", bind: "Bind withdrawal address", share: "My sharing link", smsg: "System message", night: "Night mode", sec: "Security", notset: "Not set", web: "Website Introduction", logout: "Log out", copied: "Sharing link copied", nomsg: "No new messages", demo: "Demo only", out: "Logged out (demo)" },
+  bn: { rep: "রেপুটেশন স্কোর", auth: "ভেরিফিকেশন", wait: "যাচাইয়ের অপেক্ষায়", bind: "উইথড্র অ্যাড্রেস যুক্ত করুন", share: "আমার শেয়ারিং লিংক", smsg: "সিস্টেম মেসেজ", night: "নাইট মোড", sec: "সিকিউরিটি", notset: "সেট করা নেই", web: "ওয়েবসাইট পরিচিতি", logout: "লগ আউট", copied: "শেয়ারিং লিংক কপি হয়েছে", nomsg: "নতুন মেসেজ নেই", demo: "শুধু ডেমো", out: "লগ আউট হয়েছে (ডেমো)" },
+  hi: { rep: "प्रतिष्ठा स्कोर", auth: "प्रमाणीकरण", wait: "प्रमाणन की प्रतीक्षा", bind: "निकासी पता जोड़ें", share: "मेरा शेयर लिंक", smsg: "सिस्टम संदेश", night: "नाइट मोड", sec: "सुरक्षा", notset: "सेट नहीं", web: "वेबसाइट परिचय", logout: "लॉग आउट", copied: "शेयर लिंक कॉपी हुआ", nomsg: "कोई नया संदेश नहीं", demo: "केवल डेमो", out: "लॉग आउट (डेमो)" },
+  ur: { rep: "ساکھ اسکور", auth: "تصدیق", wait: "تصدیق کا انتظار", bind: "نکالنے کا پتہ جوڑیں", share: "میرا شیئرنگ لنک", smsg: "سسٹم پیغام", night: "نائٹ موڈ", sec: "سیکیورٹی", notset: "سیٹ نہیں", web: "ویب سائٹ تعارف", logout: "لاگ آؤٹ", copied: "شیئرنگ لنک کاپی ہو گیا", nomsg: "کوئی نیا پیغام نہیں", demo: "صرف ڈیمو", out: "لاگ آؤٹ (ڈیمو)" },
+  ar: { rep: "نقاط السمعة", auth: "التوثيق", wait: "بانتظار التوثيق", bind: "ربط عنوان السحب", share: "رابط المشاركة", smsg: "رسالة النظام", night: "الوضع الليلي", sec: "الأمان", notset: "غير مضبوط", web: "نبذة عن الموقع", logout: "تسجيل الخروج", copied: "تم نسخ رابط المشاركة", nomsg: "لا رسائل جديدة", demo: "تجريبي فقط", out: "تم تسجيل الخروج (تجريبي)" },
+  es: { rep: "Puntuación de reputación", auth: "Autenticación", wait: "Pendiente de certificación", bind: "Vincular dirección de retiro", share: "Mi enlace para compartir", smsg: "Mensaje del sistema", night: "Modo noche", sec: "Seguridad", notset: "Sin configurar", web: "Presentación del sitio", logout: "Cerrar sesión", copied: "Enlace copiado", nomsg: "Sin mensajes nuevos", demo: "Solo demo", out: "Sesión cerrada (demo)" },
+  fr: { rep: "Score de réputation", auth: "Authentification", wait: "En attente de certification", bind: "Lier l'adresse de retrait", share: "Mon lien de partage", smsg: "Message système", night: "Mode nuit", sec: "Sécurité", notset: "Non défini", web: "Présentation du site", logout: "Déconnexion", copied: "Lien copié", nomsg: "Aucun nouveau message", demo: "Démo uniquement", out: "Déconnecté (démo)" },
+  de: { rep: "Reputationswert", auth: "Authentifizierung", wait: "Zertifizierung ausstehend", bind: "Auszahlungsadresse binden", share: "Mein Freigabelink", smsg: "Systemnachricht", night: "Nachtmodus", sec: "Sicherheit", notset: "Nicht gesetzt", web: "Webseiten-Vorstellung", logout: "Abmelden", copied: "Link kopiert", nomsg: "Keine neuen Nachrichten", demo: "Nur Demo", out: "Abgemeldet (Demo)" },
+  pt: { rep: "Pontuação de reputação", auth: "Autenticação", wait: "Aguardando certificação", bind: "Vincular endereço de saque", share: "Meu link de compartilhamento", smsg: "Mensagem do sistema", night: "Modo noturno", sec: "Segurança", notset: "Não definido", web: "Apresentação do site", logout: "Sair", copied: "Link copiado", nomsg: "Sem novas mensagens", demo: "Somente demo", out: "Sessão encerrada (demo)" },
+  ru: { rep: "Рейтинг репутации", auth: "Аутентификация", wait: "Ожидает проверки", bind: "Привязать адрес вывода", share: "Моя ссылка", smsg: "Системное сообщение", night: "Ночной режим", sec: "Безопасность", notset: "Не задано", web: "О сайте", logout: "Выйти", copied: "Ссылка скопирована", nomsg: "Нет новых сообщений", demo: "Только демо", out: "Вы вышли (демо)" },
+  tr: { rep: "İtibar puanı", auth: "Kimlik doğrulama", wait: "Onay bekleniyor", bind: "Çekim adresi bağla", share: "Paylaşım bağlantım", smsg: "Sistem mesajı", night: "Gece modu", sec: "Güvenlik", notset: "Ayarlanmadı", web: "Web sitesi tanıtımı", logout: "Çıkış yap", copied: "Bağlantı kopyalandı", nomsg: "Yeni mesaj yok", demo: "Yalnızca demo", out: "Çıkış yapıldı (demo)" },
+  zh: { rep: "信誉分", auth: "实名认证", wait: "待认证", bind: "绑定提现地址", share: "我的分享链接", smsg: "系统消息", night: "夜间模式", sec: "安全设置", notset: "未设置", web: "网站介绍", logout: "退出登录", copied: "分享链接已复制", nomsg: "暂无新消息", demo: "仅演示", out: "已退出（演示）" },
+  ja: { rep: "信用スコア", auth: "認証", wait: "認証待ち", bind: "出金アドレスを登録", share: "共有リンク", smsg: "システムメッセージ", night: "ナイトモード", sec: "セキュリティ", notset: "未設定", web: "サイト紹介", logout: "ログアウト", copied: "リンクをコピーしました", nomsg: "新着メッセージなし", demo: "デモのみ", out: "ログアウトしました（デモ）" },
+  id: { rep: "Skor reputasi", auth: "Autentikasi", wait: "Menunggu sertifikasi", bind: "Ikat alamat penarikan", share: "Tautan bagikan saya", smsg: "Pesan sistem", night: "Mode malam", sec: "Keamanan", notset: "Belum diatur", web: "Pengenalan situs", logout: "Keluar", copied: "Tautan disalin", nomsg: "Tidak ada pesan baru", demo: "Hanya demo", out: "Telah keluar (demo)" },
+};
+
 const LangCtx = createContext({ lang: "en", t: (k) => k });
 const useT = () => useContext(LangCtx).t;
 
@@ -92,9 +111,16 @@ const ICON = {
   loan: "M12 22l-7-8h4V3h6v11h4z",
   eye: "M12 5C6 5 2 12 2 12s4 7 10 7 10-7 10-7-4-7-10-7zm0 3a4 4 0 110 8 4 4 0 010-8z",
   menu: "M3 6h2v2H3zm4 0h14v2H7zM3 11h2v2H3zm4 0h14v2H7zM3 16h2v2H3zm4 0h14v2H7z",
+  idcard: "M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1zm3 3v4h5V8zm7 0v2h5V8zm0 4v2h5v-2zM6 14v2h5v-2z",
+  pin: "M12 2a7 7 0 00-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 00-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z",
+  share: "M18 16a3 3 0 00-2.2 1l-7-3.6a3 3 0 000-2.8l7-3.6A3 3 0 1015 6l-7 3.6a3 3 0 100 4.8l7 3.6a3 3 0 103-2z",
+  bell: "M12 22a2 2 0 002-2h-4a2 2 0 002 2zm6-6V11a6 6 0 10-12 0v5l-2 2v1h16v-1z",
+  moon: "M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z",
+  lock: "M6 10V8a6 6 0 1112 0v2h1a1 1 0 011 1v10a1 1 0 01-1 1H5a1 1 0 01-1-1V11a1 1 0 011-1zm2 0h8V8a4 4 0 10-8 0z",
+  user: "M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-5 0-9 2.5-9 6v2h18v-2c0-3.5-4-6-9-6z",
 };
 
-/* ---------------- Coin logo (2 CDN + letter fallback) ---------------- */
+/* ---------------- Coin logo (CDN + letter fallback) ---------------- */
 const logoSrc = (s) => {
   const l = s.toLowerCase();
   return [
@@ -137,8 +163,47 @@ function LangPicker({ lang, setLang }) {
   );
 }
 
+/* ---------------- Side menu (C icon) ---------------- */
+function SideMenu({ open, onClose, uid, dark, setDark, go, notify }) {
+  const t = useT();
+  const email = "demo@example.com";
+  const share = () => {
+    const link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + uid;
+    try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch {}
+    notify(t("copied"));
+  };
+  const rows = [
+    ["idcard", t("auth"), t("wait"), true, () => notify(t("demo"))],
+    ["pin", t("bind"), "", false, () => { onClose(); go("assets"); }],
+    ["share", t("share"), "", false, share],
+    ["bell", t("smsg"), "", false, () => notify(t("nomsg"))],
+    ["moon", t("night"), "switch", false, () => setDark(!dark)],
+    ["lock", t("sec"), t("notset"), true, () => notify(t("demo"))],
+    ["user", t("web"), "", false, () => notify(t("demo"))],
+  ];
+  return (
+    <div className={"cx-mo" + (open ? " open" : "")} onClick={onClose}>
+      <aside className="cx-md" onClick={(e) => e.stopPropagation()}>
+        <div className="cx-mp">
+          <p>{email}</p><p>UID:{uid}</p><p>VIP:1</p><p>{t("rep")} : 100</p>
+        </div>
+        {rows.map(([ic, label, val, red, fn]) => (
+          <button key={ic} className="cx-mr" onClick={fn}>
+            <span className="cx-mi"><Ic d={ICON[ic]} s={28} /></span>
+            <span className="cx-ml">{label}</span>
+            {val === "switch"
+              ? <span className={"cx-sw" + (dark ? " on" : "")}><i /></span>
+              : <>{val && <span className={"cx-mv" + (red ? " red" : "")}>{val}</span>}<span className="cx-ar">›</span></>}
+          </button>
+        ))}
+        <button className="cx-lo" onClick={() => { onClose(); notify(t("out")); }}>{t("logout")}</button>
+      </aside>
+    </div>
+  );
+}
+
 /* ---------------- Home ---------------- */
-function Home({ P, go, lang, setLang }) {
+function Home({ P, go, lang, setLang, onMenu }) {
   const t = useT();
   const [i, setI] = useState(0);
   useEffect(() => { const id = setInterval(() => setI((x) => (x + 1) % 3), 3500); return () => clearInterval(id); }, []);
@@ -146,9 +211,12 @@ function Home({ P, go, lang, setLang }) {
   const acts = [["rech", "card", "assets"], ["wd", "card", "assets"], ["cs", "chat", "home"], ["swap", "swap", "exchange"], ["loan", "loan", "home"], ["tf", "card", "assets"]];
   return (
     <>
-      <div className="cx-bar"><span className="cx-logo">C</span><LangPicker lang={lang} setLang={setLang} /></div>
+      <div className="cx-bar">
+        <button className="cx-logo" onClick={onMenu} aria-label="menu">C</button>
+        <LangPicker lang={lang} setLang={setLang} />
+      </div>
       <div className="cx-banner">
-        <div className="cx-slides" style={{ transform: `translateX(${lang && RTL.includes(lang) ? "" : "-"}${i * 100}%)` }}>
+        <div className="cx-slides" style={{ transform: `translateX(-${i * 100}%)` }}>
           {BANNERS.map((b, k) => <img key={k} src={b} alt="" draggable="false" />)}
         </div>
         <div className="cx-dots">{BANNERS.map((_, d) => <i key={d} className={d === i ? "on" : ""} onClick={() => setI(d)} />)}</div>
@@ -408,12 +476,22 @@ export default function HomePage() {
   const P = usePrices();
   const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
   const setLang = (l) => { setLangS(l); store.set("cx_lang", l); };
-  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || T.en[k] || k, [lang]);
+  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || (T2[lang] && T2[lang][k]) || T.en[k] || T2.en[k] || k, [lang]);
+
+  const [dark, setDarkS] = useState(() => store.get("cx_dark", false));
+  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); };
+  const [uid] = useState(() => {
+    let u = store.get("cx_uid", 0);
+    if (!u) { u = 2000000 + Math.floor(Math.random() * 999999); store.set("cx_uid", u); }
+    return u;
+  });
+  const [menu, setMenu] = useState(false);
 
   const [w, setW] = useState(() => store.get("cx_wallet", { USDT: 0 }));
   const W = { w, save: (n) => { setW(n); store.set("cx_wallet", n); } };
   const [pos, setPos] = useState(() => store.get("cx_pos", []));
   const [toast, setToast] = useState("");
+  const notify = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
   const ref = useRef({});
   ref.current = { P, w, pos, t };
   useEffect(() => {
@@ -440,15 +518,16 @@ export default function HomePage() {
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
     <LangCtx.Provider value={{ lang, t }}>
-      <div className="cx" dir={RTL.includes(lang) ? "rtl" : "ltr"}>
+      <div className={"cx" + (dark ? " dark" : "")} dir={RTL.includes(lang) ? "rtl" : "ltr"}>
         <style>{CSS}</style>
         <div className="cx-pg">
-          {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} />}
+          {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} />}
           {page === "market" && <Market P={P} go={go} />}
           {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
           {page === "options" && <Options P={P} W={W} sym={sym} go={go} pos={pos} setPos={setPos} />}
           {page === "assets" && <Assets P={P} W={W} />}
         </div>
+        <SideMenu open={menu} onClose={() => setMenu(false)} uid={uid} dark={dark} setDark={setDark} go={go} notify={notify} />
         {toast && <div className="cx-toast">{toast}</div>}
         <nav className="cx-nav">
           {nav.map(([k, l]) => (
@@ -467,7 +546,7 @@ const CSS = `
 .cx small{color:#8a8d99;font-size:13px;display:block}
 .cx-pg{width:100%;max-width:520px;background:#fff;min-height:100vh;padding-bottom:90px;box-shadow:0 0 40px rgba(0,0,0,.08)}
 .cx-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;position:relative;z-index:40}
-.cx-logo{width:40px;height:40px;border-radius:12px;border:4px solid #17c3c9;color:#17c3c9;display:grid;place-items:center;font-weight:900}
+.cx-logo{width:40px;height:40px;border-radius:12px;border:4px solid #17c3c9!important;color:#17c3c9!important;display:grid;place-items:center;font-weight:900;text-align:center!important;font-size:18px}
 .cx-lang{font-size:17px;display:flex;align-items:center;gap:10px}
 .cx-fl{font-size:22px;line-height:1}
 .cx-lgw{position:relative}
@@ -521,12 +600,12 @@ const CSS = `
 .cx-bs button.sell{background:${RED}}
 .cx-sel{font-size:21px;padding:18px 14px}
 .cx-in{display:flex;align-items:center;border:1px solid #ccd;margin:10px 0 6px;padding:8px;gap:8px;height:68px}
-.cx-in input{flex:1;min-width:0;border:0;border-bottom:1px solid #999;outline:0;font-size:18px;padding:6px 2px;background:transparent}
-.cx-in button{width:40px;height:44px;border:1px solid #ccd;border-radius:4px;text-align:center!important;font-size:22px}
+.cx-in input{flex:1;min-width:0;border:0;border-bottom:1px solid #999;outline:0;font-size:18px;padding:6px 2px;background:transparent;color:inherit}
+.cx-in button{width:40px;height:44px;border:1px solid #ccd!important;border-radius:4px;text-align:center!important;font-size:22px}
 .cx-in b{font-weight:500;font-size:19px}
 .cx-form small{margin:4px 0 8px;font-size:16px}
 .cx-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.cx-pc button{border:1px solid #555;padding:10px 0;text-align:center!important;font-size:17px}
+.cx-pc button{border:1px solid #555!important;padding:10px 0;text-align:center!important;font-size:17px}
 .cx-cta{width:100%;color:#fff!important;padding:18px;margin-top:22px;text-align:center!important;font-size:22px;border-radius:4px}
 .cx-msg{margin:8px 10px;padding:10px;background:#eef6ff;color:${BLUE};border-radius:6px;font-size:14px}
 .cx-form .cx-msg{margin:10px 0 0}
@@ -554,11 +633,11 @@ const CSS = `
 .cx-sheet{width:100%;max-width:520px;background:#fff;border-radius:26px 26px 0 0;padding:34px 26px 26px}
 .cx-sheet h4{margin:20px 0 18px;font-weight:400;font-size:25px}
 .cx-chs{display:flex;gap:14px;flex-wrap:wrap}
-.cx-chs button{border:1px solid #888;padding:14px 0;min-width:78px;flex:1;text-align:center!important;font-size:21px}
-.cx-chs button.on{border-color:${BLUE};box-shadow:inset -22px -22px 0 -18px ${BLUE}}
+.cx-chs button{border:1px solid #888!important;padding:14px 0;min-width:78px;flex:1;text-align:center!important;font-size:21px}
+.cx-chs button.on{border-color:${BLUE}!important;box-shadow:inset -22px -22px 0 -18px ${BLUE}}
 .cx-line{display:flex;align-items:center;gap:10px;margin:22px 0}
-.cx-line input{flex:1;font-size:26px;border:0;border-bottom:1px solid #888;outline:0;padding:10px 4px;min-width:0;background:transparent}
-.cx-line button{color:${BLUE};font-size:23px;padding:0 16px}
+.cx-line input{flex:1;font-size:26px;border:0;border-bottom:1px solid #888;outline:0;padding:10px 4px;min-width:0;background:transparent;color:inherit}
+.cx-line button{color:${BLUE}!important;font-size:23px;padding:0 16px}
 .cx-info{display:flex;justify-content:space-between;color:${GREEN};font-size:22px;margin:18px 0;gap:8px;flex-wrap:wrap}
 .cx-two{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:30px}
 .cx-two button{padding:26px 0;text-align:center!important;font-size:24px;border-radius:12px}
@@ -580,8 +659,113 @@ const CSS = `
 .cx-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:19px;color:#111;text-align:center}
 .cx-nav svg{color:#5f7a96}
 .cx-nav button.on{color:${BLUE}}.cx-nav button.on svg{color:${BLUE}}
-.cx-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:80;background:#14323f;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:92%}
+.cx-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:90;background:#14323f;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:92%}
 .cx button:focus-visible,.cx input:focus-visible{outline:2px solid ${BLUE};outline-offset:2px}
 .cx-row:active,.cx-grid button:active{background:#f3f4f8}
-@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-lgm button{font-size:17px}}
+
+/* ---- Side menu ---- */
+.cx-mo{position:fixed;inset:0;z-index:70;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s}
+.cx-mo.open{background:rgba(0,0,0,.55);pointer-events:auto}
+.cx-md{position:absolute;top:0;bottom:0;inset-inline-start:0;width:80%;max-width:380px;background:#fff;transform:translateX(-100%);transition:transform .3s ease;overflow-y:auto;padding:22px 22px 30px}
+.cx[dir=rtl] .cx-md{transform:translateX(100%)}
+.cx-mo.open .cx-md,.cx[dir=rtl] .cx-mo.open .cx-md{transform:none}
+.cx-mp{padding:8px 0 18px;border-bottom:1px solid #e5e6ec}
+.cx-mp p{margin:0;font-size:19px;line-height:2;word-break:break-all}
+.cx-mr{display:flex;align-items:center;gap:14px;width:100%;padding:20px 0;border-bottom:1px solid #e5e6ec;font-size:19px}
+.cx-mi{color:${BLUE};display:flex;flex:none}
+.cx-ml{flex:1;min-width:0}
+.cx-mv{font-size:inherit;text-align:end;max-width:42%}
+.cx-mv.red{color:${RED}}
+.cx-ar{color:#8a8d99;font-size:26px;line-height:1}
+.cx[dir=rtl] .cx-ar{transform:scaleX(-1)}
+.cx-sw{width:60px;height:32px;border-radius:16px;background:#e3e4ea;position:relative;flex:none;transition:background .2s}
+.cx-sw i{position:absolute;top:3px;inset-inline-start:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);transition:inset-inline-start .2s}
+.cx-sw.on{background:${BLUE}}.cx-sw.on i{inset-inline-start:31px}
+.cx-lo{display:block;width:100%;margin-top:30px;padding:20px 0;background:#1a82d6!important;color:#fff!important;border-radius:16px;text-align:center!important;font-size:21px}
+
+/* ---- Night mode ---- */
+.cx.dark{background:#080f1c;color:#e8ecf3}
+.cx.dark .cx-pg{background:#121e2f;box-shadow:0 0 40px rgba(0,0,0,.4)}
+.cx.dark small{color:#8d98ad}
+.cx.dark .cx-th,.cx.dark .cx-row,.cx.dark .cx-top,.cx.dark .cx-pos,.cx.dark .cx-nav,.cx.dark .cx-obar,.cx.dark .cx-mr,.cx.dark .cx-mp,.cx.dark .cx-lgm button{border-color:#22304a}
+.cx.dark .cx-th{color:#8d98ad}
+.cx.dark .cx-grid,.cx.dark .cx-cards,.cx.dark .cx-empty{background:#0b1424}
+.cx.dark .cx-grid button,.cx.dark .cx-ac{background:#17263d}
+.cx.dark .cx-ent{border-top-color:#0b1424}
+.cx.dark .cx-nav,.cx.dark .cx-obar,.cx.dark .cx-demo{background:#121e2f}
+.cx.dark .cx-nav button{color:#e8ecf3}.cx.dark .cx-nav button.on{color:#4aa3f0}
+.cx.dark .cx-nav button.on svg{color:#4aa3f0}
+.cx.dark .cx-drawer,.cx.dark .cx-sheet,.cx.dark .cx-lgm,.cx.dark .cx-md{background:#17263d}
+.cx.dark .cx-tabs button{color:#aab4c6}.cx.dark .cx-tabs button.on,.cx.dark .cx-tabs.big button.on{color:#fff}
+.cx.dark .cx-tabs.big button{color:#8d98ad}
+.cx.dark .cx-in,.cx.dark .cx-in button{border-color:#3a4a66!important}
+.cx.dark .cx-in input,.cx.dark .cx-line input{border-bottom-color:#5b6b88}
+.cx.dark .cx-pc button,.cx.dark .cx-chs button{border-color:#5b6b88!important}
+.cx.dark .cx-chs button.on{border-color:${BLUE}!important}
+.cx.dark .cx-bs{background:#0b1424}
+.cx.dark .cx-msg{background:#17304f}
+.cx.dark .cx-chart{border-color:#22304a}
+.cx.dark .cx-opt-h i,.cx.dark .cx-ac h3 i{color:#e8ecf3}
+.cx.dark .cx-drawer button{border-color:#2a3a56}
+.cx.dark .cx-sw{background:#3a4a66}.cx.dark .cx-sw.on{background:${BLUE}}
+.cx.dark .cx-row:active,.cx.dark .cx-grid button:active{background:#1d2e49}
+
+/* ---- Tablet / PC ---- */
+@media(min-width:768px){
+.cx-pg{max-width:900px;padding-top:64px;padding-bottom:110px}
+.cx-nav{top:0;bottom:auto;max-width:900px;border-top:0;border-bottom:1px solid #e5e6ec;padding:6px 0}
+.cx.dark .cx-nav{border-bottom-color:#22304a}
+.cx-nav button{flex-direction:row;justify-content:center;gap:8px;font-size:16px;padding:10px 0}
+.cx-nav svg{width:22px;height:22px}
+.cx-obar{bottom:0;max-width:900px}
+.cx-banner{aspect-ratio:21/6}
+.cx-bar{padding:12px 24px}
+.cx-lang{font-size:16px}
+.cx-lgm button{font-size:16px;padding:12px 14px}
+.cx-tick b{font-size:24px}.cx-tick span,.cx-tick em{font-size:15px}
+.cx-grid{grid-template-columns:repeat(3,1fr);gap:12px;padding:16px}
+.cx-grid button{font-size:16px;padding:18px}
+.cx-h{font-size:20px;padding:16px 24px 10px}
+.cx-th,.cx-row{padding-left:24px;padding-right:24px}
+.cx-th{font-size:15px}
+.cx-row b{font-size:18px}.cx-row .cx-nm b small{font-size:14px}
+.cx-pill{width:90px;font-size:15px;padding:9px 0}
+.cx-top h1{font-size:20px}.cx-top h1 small{font-size:15px}.cx-top button{font-size:30px}.cx-link{font-size:16px}
+.cx-tabs button{font-size:17px}
+.cx-ex{padding:20px 24px;gap:30px}
+.cx-bh,.cx-bk{font-size:14px;padding:9px 0}.cx-bh{font-size:15px}
+.cx-mid{font-size:22px}
+.cx-bs button{font-size:17px;padding:13px}
+.cx-sel{font-size:17px}
+.cx-in{height:58px}.cx-in input,.cx-in b{font-size:16px}
+.cx-form small{font-size:14px}
+.cx-pc button{font-size:15px}
+.cx-cta{font-size:18px;padding:14px}
+.cx-ent{font-size:20px;padding:18px 24px}.cx-ent b{font-size:17px}
+.cx-drawer h2{font-size:26px}.cx-drawer h3{font-size:24px;margin:30px 28px 14px}.cx-drawer button{font-size:18px}
+.cx-opt-h{padding:22px 24px}.cx-opt-h>b{font-size:26px}.cx-opt-h>b small{font-size:16px}.cx-opt-h div{font-size:16px}
+.cx-chart{padding:16px 24px}
+.cx-pos{padding:12px 24px;font-size:15px}
+.cx-obar button{font-size:16px}.cx-obar b{font-size:18px}
+.cx-over.end{align-items:center}
+.cx-sheet{max-width:520px;border-radius:20px;padding:28px}
+.cx-sheet h4{font-size:19px}.cx-chs button{font-size:17px;padding:11px 0}
+.cx-line input{font-size:22px}.cx-line button{font-size:19px}
+.cx-info{font-size:17px}
+.cx-two{gap:24px}.cx-two button{padding:18px 0;font-size:19px}
+.cx-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:20px 24px;min-height:500px;align-content:start}
+.cx-ac{padding:22px}.cx-ac h3{font-size:22px}.cx-ac small{font-size:16px}.cx-ac>b{font-size:22px}
+.cx-3{font-size:18px}.cx-3 small{font-size:14px}
+.cx-sum{padding:24px 24px 30px}.cx-sum h2{font-size:22px}.cx-sum span{font-size:15px}.cx-sum>b{font-size:22px}.cx-sum small{font-size:16px}
+.cx-demo{padding:18px 24px}
+.cx-md{width:360px}
+.cx-mp p{font-size:16px}
+.cx-mr{font-size:16px;padding:16px 0}
+.cx-lo{font-size:18px;padding:16px 0}
+.cx-toast{top:76px}
+}
+@media(min-width:1200px){
+.cx-pg,.cx-nav,.cx-obar{max-width:1000px}
+}
+@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}}
 `;
