@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import img1 from "./assets/Image1.png";
+import img2 from "./assets/Image2.png";
+import img3 from "./assets/Image3.png";
+
+const BANNERS = [img1, img2, img3];
 
 /* CexDemo — একটাই ফাইল। ব্যবহার: import CexDemo from "./CexDemo"; <CexDemo />
    Home · Market · Exchange (order book + buy/sell) · Options (long/short) · Assets (4 tab)
@@ -70,8 +75,12 @@ function Home({ P, go }) {
   return (
     <>
       <div className="cx-bar"><span className="cx-logo">C</span><span className="cx-lang">English 🇺🇸</span></div>
-      <div className="cx-banner"><div><b>ENTERING</b><h2>THE DIGITAL AGE</h2><p>The long lost mainstream currency<br />market has finally arrived</p></div>
-        <div className="cx-dots">{[0, 1, 2].map((d) => <i key={d} className={d === i ? "on" : ""} />)}</div></div>
+      <div className="cx-banner">
+        <div className="cx-slides" style={{ transform: `translateX(-${i * 100}%)` }}>
+          {BANNERS.map((b, k) => <img key={k} src={b} alt="" draggable="false" />)}
+        </div>
+        <div className="cx-dots">{BANNERS.map((_, d) => <i key={d} className={d === i ? "on" : ""} onClick={() => setI(d)} />)}</div>
+      </div>
       <div className="cx-tick">
         {tick.map((s) => (
           <button key={s} onClick={() => go("exchange", s)}>
@@ -194,34 +203,17 @@ function Exchange({ P, W, sym, setSym, go }) {
 }
 
 /* ---------------- Options (long / short) ---------------- */
-function Options({ P, W, sym, go }) {
+function Options({ P, W, sym, go, pos, setPos }) {
   const [qty, setQty] = useState(10);
   const [sec, setSec] = useState(20);
   const [sheet, setSheet] = useState(false);
-  const [pos, setPos] = useState(() => store.get("cx_pos", []));
+  const [, tick] = useState(0);
   const [msg, setMsg] = useState("");
   const [hist, setHist] = useState([]);
   const d = P[sym];
-  useEffect(() => { setHist((h) => [...h, d.price].slice(-80)); }, [d.price]);
-  useEffect(() => {
-    const id = setInterval(() => {
-      const now = Date.now();
-      setPos((ps) => {
-        const done = ps.filter((p) => p.end <= now);
-        if (!done.length) return ps;
-        const nw = { ...W.w };
-        done.forEach((p) => {
-          const win = p.dir === "long" ? P[p.sym].price > p.open : P[p.sym].price < p.open;
-          if (win) nw.USDT = (nw.USDT || 0) + p.qty * (1 + YIELD);
-        });
-        W.save(nw);
-        const rest = ps.filter((p) => p.end > now);
-        store.set("cx_pos", rest);
-        return rest;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [P]); // eslint-disable-line
+  useEffect(() => { setHist([]); }, [sym]);
+  useEffect(() => { setHist((h) => [...h, d.price].slice(-80)); }, [d.price, sym]);
+  useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
   const open = (dir) => {
     setMsg("");
     const bal = W.w.USDT || 0;
@@ -320,6 +312,28 @@ export default function CexDemo() {
   const P = usePrices();
   const [w, setW] = useState(() => store.get("cx_wallet", { USDT: 0 }));
   const W = { w, save: (n) => { setW(n); store.set("cx_wallet", n); } };
+  const [pos, setPos] = useState(() => store.get("cx_pos", []));
+  const [toast, setToast] = useState("");
+  const ref = useRef({});
+  ref.current = { P, w, pos };
+  useEffect(() => {
+    const id = setInterval(() => {
+      const { P: pr, w: wl, pos: ps } = ref.current, now = Date.now();
+      const done = ps.filter((x) => x.end <= now);
+      if (!done.length) return;
+      const nw = { ...wl };
+      let wins = 0;
+      done.forEach((x) => {
+        const c = pr[x.sym].price;
+        if (x.dir === "long" ? c > x.open : c < x.open) { nw.USDT = (nw.USDT || 0) + x.qty * (1 + YIELD); wins++; }
+      });
+      const rest = ps.filter((x) => x.end > now);
+      setW(nw); store.set("cx_wallet", nw); setPos(rest); store.set("cx_pos", rest);
+      setToast(`${done.length} position(s) closed · ${wins} win, ${done.length - wins} loss (demo)`);
+      setTimeout(() => setToast(""), 4000);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
   const [page, setPage] = useState("home");
   const [sym, setSym] = useState("BTC");
   const go = (p, s) => { if (s) setSym(s); setPage(p); window.scrollTo(0, 0); };
@@ -331,9 +345,10 @@ export default function CexDemo() {
         {page === "home" && <Home P={P} go={go} />}
         {page === "market" && <Market P={P} go={go} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
-        {page === "options" && <Options P={P} W={W} sym={sym} go={go} />}
+        {page === "options" && <Options P={P} W={W} sym={sym} go={go} pos={pos} setPos={setPos} />}
         {page === "assets" && <Assets P={P} W={W} />}
       </div>
+      {toast && <div className="cx-toast">{toast}</div>}
       <nav className="cx-nav">
         {nav.map(([k, l]) => (
           <button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{l}</button>
@@ -352,12 +367,14 @@ const CSS = `
 .cx-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px}
 .cx-logo{width:40px;height:40px;border-radius:12px;border:4px solid #17c3c9;color:#17c3c9;display:grid;place-items:center;font-weight:900}
 .cx-lang{font-size:17px}
-.cx-banner{position:relative;height:200px;background:linear-gradient(120deg,#14323f,#0f2230 60%,#13262e);color:#fff;padding:36px 22px}
+.cx-banner{position:relative;overflow:hidden;background:#0f2230;aspect-ratio:15/6}
+.cx-slides{display:flex;height:100%;transition:transform .6s ease}
+.cx-slides img{flex:none;width:100%;height:100%;object-fit:cover;user-select:none}
 .cx-banner b{color:#f5a623;font-size:34px;font-weight:700;letter-spacing:1px}
 .cx-banner h2{margin:0;font-size:34px;line-height:1.1;letter-spacing:.5px}
 .cx-banner p{margin:10px 0 0;font-size:13px;color:#aab}
 .cx-dots{position:absolute;bottom:14px;left:50%;display:flex;gap:10px;transform:translateX(-50%)}
-.cx-dots i{width:10px;height:10px;border-radius:50%;background:#7a8a92}.cx-dots i.on{background:#fff}
+.cx-dots i{width:10px;height:10px;border-radius:50%;background:#7a8a92;cursor:pointer}.cx-dots i.on{background:#fff}
 .cx-tick{display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:22px 0}
 .cx-tick button{text-align:center}
 .cx-tick span{display:block;font-size:17px}
@@ -453,9 +470,13 @@ const CSS = `
 .cx-sum span{font-size:18px}
 .cx-sum>b{font-size:26px}.cx-sum small{font-size:20px}
 .cx-demo{background:#fff;padding:18px 24px}
-.cx-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;display:flex;z-index:30;border-top:1px solid #e5e6ec;padding:12px 0 8px}
+.cx-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;background:#fff;display:flex;z-index:30;border-top:1px solid #e5e6ec;padding:10px 0 calc(8px + env(safe-area-inset-bottom))}
 .cx-nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:19px;color:#111;text-align:center}
 .cx-nav svg{color:#5f7a96}
 .cx-nav button.on{color:${BLUE}}.cx-nav button.on svg{color:${BLUE}}
+.cx-toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:80;background:#14323f;color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:92%}
+.cx-pg{box-shadow:0 0 40px rgba(0,0,0,.08)}
+.cx button:focus-visible,.cx input:focus-visible{outline:2px solid ${BLUE};outline-offset:2px}
+.cx-row:active,.cx-grid button:active{background:#f3f4f8}
 @media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}}
 `;
