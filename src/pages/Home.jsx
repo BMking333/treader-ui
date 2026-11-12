@@ -10,7 +10,7 @@ const BANNERS = [img1, img2, img3];
    DEMO: ব্যালেন্স browser-এর localStorage-এ, শুধু ডিজাইন প্রিভিউ। */
 
 const BLUE = "#1f7acb", GREEN = "#00c087", RED = "#d84d5a";
-const CUP = "#2ea664", CDN = "#e0202b";
+const CUP = "#0ecb81", CDN = "#f6465d";
 const COINS = ["BTC", "ETH", "DOGE", "BCH", "LTC", "TRX", "SHIB", "ADA", "BSV", "ICP", "XRP", "ETC"];
 const COL = { BTC: "#f7931a", ETH: "#627eea", DOGE: "#c2a633", BCH: "#8dc351", LTC: "#345d9d", TRX: "#eb0029", SHIB: "#e42d04", ADA: "#2563eb", BSV: "#eab300", ICP: "#7b3fe4", XRP: "#111", ETC: "#328332", USDT: "#26a17b", USDC: "#2775ca" };
 const FALL = { BTC: [73618.71, -0.27, 1.4e8], ETH: [2046.75, -1.04, 9e7], DOGE: [0.067128, -1.58, 1e7], BCH: [228.86, -0.97, 16285], LTC: [49.77, -2.43, 164530], TRX: [0.317486, -0.04, 1.7e7], SHIB: [0.00000434, -2.91, 6.9e9], ADA: [0.172924, -1.28, 3.3e7], BSV: [15.8364, -2.52, 177887], ICP: [2.57, 0, 2008], XRP: [1.04406, -1.48, 2.7e7], ETC: [6.6095, -1.69, 124280] };
@@ -348,7 +348,10 @@ function Exchange({ P, W, sym, setSym, go }) {
           {book.b.map((r, i) => <R key={"b" + i} r={r} c={GREEN} />)}
         </div>
         <div className="cx-form">
-          <div className="cx-bs"><button className={side === "buy" ? "buy" : ""} onClick={() => setSide("buy")}>{t("buy")}</button><button className={side === "sell" ? "sell" : ""} onClick={() => setSide("sell")}>{t("sell")}</button></div>
+          <div className="cx-bs">
+            <button className={"bb" + (side === "buy" ? " on" : "")} onClick={() => setSide("buy")}>{t("buy")}</button>
+            <button className={"sb" + (side === "sell" ? " on" : "")} onClick={() => setSide("sell")}>{t("sell")}</button>
+          </div>
           <div className="cx-sel">{t("limit")} ⌄</div>
           <div className="cx-in"><input value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("price")} inputMode="decimal" /><button onClick={() => setPrice(fmt(px * 1.001))}>+</button><button onClick={() => setPrice(fmt(px * 0.999))}>−</button></div>
           <small>≈ {fmt(px)}</small>
@@ -406,7 +409,7 @@ function Chart({ sym, price }) {
   const [iv, setIv] = useState("1d");
   const [ivOpen, setIvOpen] = useState(false);
   const [data, setData] = useState([]);
-  const [n, setN] = useState(60);
+  const [n, setN] = useState(40);
   const [off, setOff] = useState(0);
   const [hov, setHov] = useState(null);
   const priceRef = useRef(price);
@@ -446,7 +449,7 @@ function Chart({ sym, price }) {
 
   const ma = useMemo(() => cs.map((_, i) => (i < 8 ? null : cs.slice(i - 8, i + 1).reduce((s, x) => s + x.c, 0) / 9)), [cs]);
 
-  const AX = 66, H1 = 300, GAP = 12, H2 = 100, TA = 28, H = H1 + GAP + H2 + TA;
+  const AX = 66, H1 = 340, GAP = 12, H2 = 90, TA = 28, H = H1 + GAP + H2 + TA;
   const pw = Math.max(100, w - AX);
   const end = Math.max(1, cs.length - off), start = Math.max(0, end - n);
   const vis = cs.slice(start, end), len = vis.length;
@@ -477,12 +480,40 @@ function Chart({ sym, price }) {
   const lastCol = cs.length && up(cs[cs.length - 1]) ? CUP : CDN;
   const maPts = vis.map((c, k) => ({ m: ma[start + k], k })).filter((a) => a.m).map((a) => `${cx(a.k)},${y(a.m)}`).join(" ");
 
-  const onMove = (e) => {
+  /* ---- Touch: pinch zoom, drag pan, tap crosshair, wheel zoom ---- */
+  const ptr = useRef(new Map()), gs = useRef({}), offR = useRef(0), nR = useRef(40);
+  offR.current = off; nR.current = n;
+  const maxOff = Math.max(0, cs.length - 10);
+  const hover = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     const px = e.clientX - r.left, py = e.clientY - r.top;
     if (px > pw || px < x0 || !len) return setHov(null);
     setHov({ k: Math.max(0, Math.min(len - 1, Math.floor((px - x0) / step))), x: px, y: py });
   };
+  const dist = () => { const a = [...ptr.current.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1; };
+  const onDown = (e) => {
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    ptr.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptr.current.size === 2) { gs.current = { d: dist(), n: nR.current }; setHov(null); }
+    else gs.current = { x: e.clientX, off: offR.current, mv: false };
+    hover(e);
+  };
+  const onMv = (e) => {
+    if (ptr.current.has(e.pointerId)) ptr.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptr.current.size >= 2) { setN(Math.max(10, Math.min(200, Math.round(gs.current.n * gs.current.d / dist())))); return; }
+    if (ptr.current.size === 1) {
+      const dx = e.clientX - gs.current.x;
+      if (gs.current.mv || Math.abs(dx) > 6) { gs.current.mv = true; setHov(null); setOff(Math.max(0, Math.min(maxOff, gs.current.off + Math.round(dx / step)))); return; }
+    }
+    hover(e);
+  };
+  const onUp = (e) => {
+    ptr.current.delete(e.pointerId);
+    const r = [...ptr.current.values()][0];
+    if (r) gs.current = { x: r.x, off: offR.current, mv: true };
+  };
+  const onWheel = (e) => setN((x) => Math.max(10, Math.min(200, Math.round(x * (e.deltaY > 0 ? 1.1 : 0.9)))));
+
   const chgv = cur ? cur.c - cur.o : 0;
   const vma = (() => { const i = curIdx; const s = cs.slice(Math.max(0, i - 19), i + 1); return s.length ? s.reduce((a, x) => a + x.v, 0) / s.length : 0; })();
 
@@ -503,7 +534,9 @@ function Chart({ sym, price }) {
             <div className="cx-gt2">MA (9, close, 0) <span style={{ color: "#e8914f" }}>{ma[curIdx] ? ma[curIdx].toFixed(4) : "n/a"}</span></div>
           </div>
         )}
-        <svg width={w} height={H} onPointerMove={onMove} onPointerLeave={() => setHov(null)} style={{ touchAction: "pan-y", display: "block" }}>
+        <svg width={w} height={H} onPointerDown={onDown} onPointerMove={onMv} onPointerUp={onUp} onPointerCancel={onUp}
+          onPointerLeave={(e) => { if (e.pointerType === "mouse") setHov(null); }} onWheel={onWheel}
+          style={{ touchAction: "none", display: "block" }}>
           {ticks.map((p) => (
             <g key={p}>
               <line x1="0" x2={pw} y1={y(p)} y2={y(p)} className="cx-gl" />
@@ -523,11 +556,11 @@ function Chart({ sym, price }) {
             <text key={"t" + k} x={cx(k)} y={H - 9} textAnchor="middle" className="cx-gt" fontSize="11">{fmtT(c.t, iv)}</text>
           ))}
           {vis.map((c, k) => {
-            const col = up(c) ? CUP : CDN, bw = Math.max(1, step * 0.68), top = y(Math.max(c.o, c.c)), bh = Math.max(1, Math.abs(y(c.o) - y(c.c)));
+            const col = up(c) ? CUP : CDN, bw = Math.max(3, step * 0.78), top = y(Math.max(c.o, c.c)), bh = Math.max(1.5, Math.abs(y(c.o) - y(c.c)));
             return (
               <g key={c.t}>
-                <rect x={cx(k) - bw / 2} y={vy(c.v)} width={bw} height={H1 + GAP + H2 - 4 - vy(c.v)} fill={col} opacity=".28" />
-                <line x1={cx(k)} x2={cx(k)} y1={y(c.h)} y2={y(c.l)} stroke={col} strokeWidth="1" />
+                <rect x={cx(k) - bw / 2} y={vy(c.v)} width={bw} height={H1 + GAP + H2 - 4 - vy(c.v)} fill={col} opacity=".4" />
+                <line x1={cx(k)} x2={cx(k)} y1={y(c.h)} y2={y(c.l)} stroke={col} strokeWidth="1.6" />
                 <rect x={cx(k) - bw / 2} y={top} width={bw} height={bh} fill={col} />
               </g>
             );
@@ -540,7 +573,7 @@ function Chart({ sym, price }) {
               <text x={pw + 6} y={y(price) + 4} fill="#fff" fontSize="11">{price.toFixed(dec > 2 ? dec : 2)}</text>
             </g>
           )}
-          {hov && (
+          {hov && vis[hov.k] && (
             <g>
               <line x1={cx(hov.k)} x2={cx(hov.k)} y1="0" y2={H - TA} className="cx-ch" />
               {hov.y < H1 && <>
@@ -560,7 +593,7 @@ function Chart({ sym, price }) {
           <button onClick={() => setOff((o) => Math.min(Math.max(0, cs.length - 10), o + Math.max(1, Math.round(n / 4))))}>‹</button>
           <button onClick={() => setOff((o) => Math.max(0, o - Math.max(1, Math.round(n / 4))))}>›</button>
         </div>
-        <button className="cx-gear" onClick={() => { setOff(0); setN(60); }} aria-label="reset"><Ic d={ICON.gear} s={18} /></button>
+        <button className="cx-gear" onClick={() => { setOff(0); setN(40); }} aria-label="reset"><Ic d={ICON.gear} s={18} /></button>
       </div>
     </div>
   );
@@ -588,7 +621,6 @@ function Options({ P, W, sym, setSym, pos, setPos, orders }) {
     const np = [...pos, { id: Date.now(), sym, dir, qty, open: d.price, end: Date.now() + sec * 1000 }];
     setPos(np); store.set("cx_pos", np); setSheet(false); setMsg(t("openMsg"));
   };
-  const dc = decOf(d.price);
   return (
     <>
       <div className="cx-top">
@@ -794,11 +826,11 @@ export default function HomePage() {
 }
 
 const CSS = `
-.cx{min-height:100vh;background:#e0e1ea;color:#111;font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center}
+.cx{min-height:100vh;background:#e0e1ea;color:#111;font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center;overflow-x:hidden}
 .cx *{box-sizing:border-box}
 .cx button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:start}
 .cx small{color:#8a8d99;font-size:13px;display:block}
-.cx-pg{width:100%;max-width:520px;background:#fff;min-height:100vh;padding-bottom:90px;box-shadow:0 0 40px rgba(0,0,0,.08)}
+.cx-pg{width:100%;min-width:0;max-width:520px;background:#fff;min-height:100vh;padding-bottom:90px;box-shadow:0 0 40px rgba(0,0,0,.08);overflow-x:hidden}
 .cx-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;position:relative;z-index:40}
 .cx-logo{width:40px;height:40px;border-radius:12px;border:4px solid #17c3c9!important;color:#17c3c9!important;display:grid;place-items:center;font-weight:900;text-align:center!important;font-size:18px}
 .cx-lang{font-size:17px;display:flex;align-items:center;gap:10px}
@@ -843,15 +875,17 @@ const CSS = `
 .cx-tabs.two{padding-inline-start:0}.cx-tabs.two button{flex:1;text-align:center}
 .cx-tabs.big button{flex:1;color:#777;text-align:center}.cx-tabs.big button.on{color:#000}
 .cx-empty{padding:40px;text-align:center;color:#8a8d99;background:#e0e1ea}
-.cx-ex{display:grid;grid-template-columns:1fr 1.1fr;gap:14px;padding:14px 10px}
+.cx-ex{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:12px;padding:14px 10px}
 .cx-bh,.cx-bk{display:flex;justify-content:space-between;gap:6px;font-size:16px;padding:12px 0}
 .cx-bh{color:#8a8d99;font-size:18px}
 .cx-bk b{font-weight:400}
 .cx-mid{font-size:28px;font-weight:700;padding:16px 0}
-.cx-bs{display:grid;grid-template-columns:1fr 1fr;background:#e0e1ea}
-.cx-bs button{text-align:center;padding:16px;color:#fff;font-size:21px}
-.cx-bs button.buy{background:${GREEN};clip-path:polygon(0 0,100% 0,88% 100%,0 100%)}
-.cx-bs button.sell{background:${RED}}
+.cx-bs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cx-bs button{text-align:center;padding:14px 4px;font-size:18px;font-weight:600;border-radius:6px;border:2px solid transparent!important}
+.cx-bs .bb{background:rgba(0,192,135,.15);color:#00c087;border-color:#00c087!important}
+.cx-bs .sb{background:rgba(216,77,90,.15);color:#ff6b78;border-color:#d84d5a!important}
+.cx-bs .bb.on{background:#00c087;color:#fff}
+.cx-bs .sb.on{background:#d84d5a;color:#fff}
 .cx-sel{font-size:21px;padding:18px 14px}
 .cx-in{display:flex;align-items:center;border:1px solid #ccd;margin:10px 0 6px;padding:8px;gap:8px;height:68px}
 .cx-in input{flex:1;min-width:0;border:0;border-bottom:1px solid #999;outline:0;font-size:18px;padding:6px 2px;background:transparent;color:inherit}
@@ -913,6 +947,7 @@ const CSS = `
 .cx-obar b{display:block;font-weight:500;font-size:22px}
 .cx-obar .g,.cx-two .g{background:${GREEN};color:#fff;border-radius:12px}
 .cx-obar .r,.cx-two .r{background:${RED};color:#fff;border-radius:12px}
+.cx-obar button.g,.cx-obar button.r{font-weight:700;color:#fff!important;box-shadow:0 2px 8px rgba(0,0,0,.3)}
 .cx-sheet{width:100%;max-width:520px;background:#fff;border-radius:26px 26px 0 0;padding:34px 26px 26px}
 .cx-sheet h4{margin:20px 0 18px;font-weight:400;font-size:25px}
 .cx-chs{display:flex;gap:14px;flex-wrap:wrap}
@@ -986,7 +1021,6 @@ const CSS = `
 .cx.dark .cx-in input,.cx.dark .cx-line input{border-bottom-color:#5b6b88}
 .cx.dark .cx-pc button,.cx.dark .cx-chs button{border-color:#5b6b88!important}
 .cx.dark .cx-chs button.on{border-color:${BLUE}!important}
-.cx.dark .cx-bs{background:#0b1424}
 .cx.dark .cx-msg{background:#17304f}
 .cx.dark .cx-opt-h i,.cx.dark .cx-ac h3 i{color:#e8ecf3}
 .cx.dark .cx-drawer button{border-color:#2a3a56}
@@ -1052,5 +1086,6 @@ const CSS = `
 @media(min-width:1200px){
 .cx-pg,.cx-nav,.cx-obar{max-width:1000px}
 }
-@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-top .cx-link{font-size:14px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}.cx-obar button{font-size:15px}.cx-obar b{font-size:18px}.cx-tbl{font-size:13px}.cx-tbh{font-size:13px}}
+@media(max-width:420px){.cx-row b{font-size:19px}.cx-pill{width:90px;font-size:16px}.cx-th,.cx-nav button,.cx-tabs button{font-size:15px}.cx-bk,.cx-bh{font-size:13px}.cx-mid{font-size:22px}.cx-sheet h4{font-size:19px}.cx-chs button,.cx-info{font-size:16px}.cx-3{font-size:17px}.cx-ac h3{font-size:22px}.cx-grid button{font-size:15px;padding:14px 10px}.cx-tick b{font-size:21px}.cx-top h1{font-size:19px}.cx-top .cx-link{font-size:14px}.cx-lgm button{font-size:17px}.cx-mp p,.cx-mr{font-size:16px}.cx-lo{font-size:18px}.cx-obar button{font-size:15px}.cx-obar b{font-size:18px}.cx-tbl{font-size:13px}.cx-tbh{font-size:13px}
+.cx-in{height:56px}.cx-in input,.cx-in b{font-size:15px}.cx-cta{font-size:18px;padding:14px}.cx-form small{font-size:13px}.cx-sel{font-size:17px;padding:12px 6px}.cx-pc button{font-size:14px}}
 `;
