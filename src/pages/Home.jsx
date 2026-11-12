@@ -1340,4 +1340,21 @@ const CSS = `
 .cx-cta{font-size:18px;padding:14px}
 .cx-ent{font-size:20px;padding:18px 24px}.cx-ent b{font-size:17px}
 .cx-drawer h2{font-size:26px}.cx-drawer h3{font-size:24px;margin:30px 28px 14px}.cx-drawer button{font-size:18px}
-.cx-opt-h{padding:18px 24px}.cx-o
+.cx-opt-h{padding:18px 24px}.cx-opt-h>b{font-size:24px}.cx-opt-h div{font-size:14px}
+.cx-obar button{font-size:16px}.cx-obar b{font-size:18px}
+.cx-sheet{max-width:640px;padding:28px 28px 24px}
+.cx-sheet h4{font-size:20px}
+.cx-chs button{font-size:17px}
+.cx-line input{font-size:22px}.cx-line button{font-size:19px}
+.cx-info{font-size:17px}
+.cx-two button{font-size:20px;padding:20px 0}
+.cx-cards{padding:16px 24px}
+.cx-ac h3{font-size:22px}.cx-ac small{font-size:16px}.cx-ac>b{font-size:22px}
+.cx-3{font-size:19px}.cx-3 small{font-size:15px}
+.cx-sum h2{font-size:22px}.cx-sum>b{font-size:22px}.cx-sum small{font-size:16px}
+.cx-mp p,.cx-mr{font-size:17px}
+.cx-a1{font-size:17px}
+.cx-tbl{font-size:14px}
+.cx-norec{font-size:18px}
+}
+`;
