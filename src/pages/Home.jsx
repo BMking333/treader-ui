@@ -7,7 +7,10 @@ const BANNERS = [img1, img2, img3];
 
 /* CexDemo — একটাই ফাইল। ব্যবহার: <CexDemo />
    Home · Market · Exchange · Options (Candle chart) · Assets + Multi-language + Coin logos + Side menu + Night mode + Responsive
-   DEMO: ব্যালেন্স browser-এর localStorage-এ, শুধু ডিজাইন প্রিভিউ। */
+   এখন FastAPI backend-এর সাথে যুক্ত: auth, wallet, spot, options, deposit/withdraw, market সব API থেকে আসে। */
+
+/* ====== BACKEND URL (এখানে বদলান) ====== */
+const API = "https://tread-d84x.onrender.com";
 
 const BLUE = "#1f7acb", GREEN = "#00c087", RED = "#d84d5a";
 const CUP = "#0ecb81", CDN = "#f6465d";
@@ -65,10 +68,12 @@ const T2 = {
   id: { rep: "Skor reputasi", auth: "Autentikasi", wait: "Menunggu sertifikasi", bind: "Ikat alamat penarikan", share: "Tautan bagikan saya", smsg: "Pesan sistem", night: "Mode malam", sec: "Keamanan", notset: "Belum diatur", web: "Pengenalan situs", logout: "Keluar", copied: "Tautan disalin", nomsg: "Tidak ada pesan baru", demo: "Hanya demo", out: "Telah keluar (demo)", pl: "Daftar posisi", orec: "Catatan order", kl: "K-line", pp: "Harga beli", fp: "Harga terisi", pnl: "Untung/Rugi", norec: "Belum ada catatan", ind: "Indikator" },
 };
 
-/* ---------------- Auth / Deposit / Withdraw texts ---------------- */
+/* ---------------- Auth / Deposit / Withdraw / API error texts ---------------- */
 const T3 = {
-  en: { login: "login", register: "register", acc: "Please enter your email", pw: "Please enter your password", pw2: "Please re-enter your password", forgot: "Forgot password", rem: "Remember account", email: "Email", bEmail: "Enter a valid email address", bPw: "Password must be at least 6 characters", bMatch: "Passwords do not match", exists: "This email is already registered", noUser: "Account not found", wrongPw: "Wrong password", reset: "Reset password", newPw: "Please enter a new password", resetOk: "Password updated, please log in", dep: "Deposit", coin: "Coin", net: "Network", addr: "Withdrawal address", eAddr: "Enter withdrawal address", bAddr: "Invalid withdrawal address", fee: "Fee", recv: "You will receive", depOk: "Deposit credited (demo)", wdOk: "Withdrawal submitted (demo)", hist: "History", depNote: "Demo only: no real funds or wallet address. The amount is added to your local demo balance.", wdNote: "Demo only: no real transfer is made.", proc: "Processing", done: "Completed", feeLow: "Amount must be greater than the fee", amount: "Amount", submit: "Submit", hasAcc: "Back to login" },
-  bn: { login: "লগইন", register: "রেজিস্টার", acc: "আপনার ইমেইল লিখুন", pw: "পাসওয়ার্ড লিখুন", pw2: "পাসওয়ার্ড আবার লিখুন", forgot: "পাসওয়ার্ড ভুলে গেছেন", rem: "অ্যাকাউন্ট মনে রাখুন", email: "ইমেইল", bEmail: "সঠিক ইমেইল দিন", bPw: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে", bMatch: "পাসওয়ার্ড মিলছে না", exists: "এই ইমেইল আগেই রেজিস্টার করা", noUser: "অ্যাকাউন্ট পাওয়া যায়নি", wrongPw: "পাসওয়ার্ড ভুল", reset: "পাসওয়ার্ড রিসেট", newPw: "নতুন পাসওয়ার্ড লিখুন", resetOk: "পাসওয়ার্ড বদলেছে, লগইন করুন", dep: "ডিপোজিট", coin: "কয়েন", net: "নেটওয়ার্ক", addr: "উইথড্র অ্যাড্রেস", eAddr: "উইথড্র অ্যাড্রেস দিন", bAddr: "অ্যাড্রেস সঠিক নয়", fee: "ফি", recv: "আপনি পাবেন", depOk: "ডিপোজিট যোগ হয়েছে (ডেমো)", wdOk: "উইথড্র জমা হয়েছে (ডেমো)", hist: "ইতিহাস", depNote: "শুধু ডেমো: আসল টাকা বা ওয়ালেট অ্যাড্রেস নেই। পরিমাণ আপনার লোকাল ডেমো ব্যালেন্সে যোগ হয়।", wdNote: "শুধু ডেমো: আসল ট্রান্সফার হয় না।", proc: "প্রসেসিং", done: "সম্পন্ন", feeLow: "পরিমাণ ফি-এর চেয়ে বেশি হতে হবে", amount: "পরিমাণ", submit: "জমা দিন", hasAcc: "লগইনে ফিরুন" },
+  en: { login: "login", register: "register", acc: "Please enter your email", pw: "Please enter your password", pw2: "Please re-enter your password", forgot: "Forgot password", rem: "Remember account", email: "Email", bEmail: "Enter a valid email address", bPw: "Password must be at least 6 characters", bMatch: "Passwords do not match", exists: "This email is already registered", noUser: "Account not found", wrongPw: "Wrong password", reset: "Reset password", newPw: "Please enter a new password", resetOk: "Password updated, please log in", dep: "Deposit", coin: "Coin", net: "Network", addr: "Withdrawal address", eAddr: "Enter withdrawal address", bAddr: "Invalid withdrawal address", fee: "Fee", recv: "You will receive", depOk: "Deposit credited (demo)", wdOk: "Withdrawal submitted (demo)", hist: "History", depNote: "Demo only: no real funds or wallet address. The amount is added to your demo balance.", wdNote: "Demo only: no real transfer is made.", proc: "Processing", done: "Completed", feeLow: "Amount must be greater than the fee", amount: "Amount", submit: "Submit", hasAcc: "Back to login",
+    neterr: "Network error. Server may be waking up, try again", err: "Request failed", unauthorized: "Session expired, please log in", badSym: "Invalid coin", badSide: "Invalid side", badDir: "Invalid direction", badSec: "Invalid time", badCoin: "Invalid coin/network", badInterval: "Invalid interval", forbidden: "Not allowed", wait2: "Please wait..." },
+  bn: { login: "লগইন", register: "রেজিস্টার", acc: "আপনার ইমেইল লিখুন", pw: "পাসওয়ার্ড লিখুন", pw2: "পাসওয়ার্ড আবার লিখুন", forgot: "পাসওয়ার্ড ভুলে গেছেন", rem: "অ্যাকাউন্ট মনে রাখুন", email: "ইমেইল", bEmail: "সঠিক ইমেইল দিন", bPw: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে", bMatch: "পাসওয়ার্ড মিলছে না", exists: "এই ইমেইল আগেই রেজিস্টার করা", noUser: "অ্যাকাউন্ট পাওয়া যায়নি", wrongPw: "পাসওয়ার্ড ভুল", reset: "পাসওয়ার্ড রিসেট", newPw: "নতুন পাসওয়ার্ড লিখুন", resetOk: "পাসওয়ার্ড বদলেছে, লগইন করুন", dep: "ডিপোজিট", coin: "কয়েন", net: "নেটওয়ার্ক", addr: "উইথড্র অ্যাড্রেস", eAddr: "উইথড্র অ্যাড্রেস দিন", bAddr: "অ্যাড্রেস সঠিক নয়", fee: "ফি", recv: "আপনি পাবেন", depOk: "ডিপোজিট যোগ হয়েছে (ডেমো)", wdOk: "উইথড্র জমা হয়েছে (ডেমো)", hist: "ইতিহাস", depNote: "শুধু ডেমো: আসল টাকা বা ওয়ালেট অ্যাড্রেস নেই। পরিমাণ আপনার ডেমো ব্যালেন্সে যোগ হয়।", wdNote: "শুধু ডেমো: আসল ট্রান্সফার হয় না।", proc: "প্রসেসিং", done: "সম্পন্ন", feeLow: "পরিমাণ ফি-এর চেয়ে বেশি হতে হবে", amount: "পরিমাণ", submit: "জমা দিন", hasAcc: "লগইনে ফিরুন",
+    neterr: "নেটওয়ার্ক সমস্যা। সার্ভার জেগে উঠছে হতে পারে, আবার চেষ্টা করুন", err: "অনুরোধ ব্যর্থ হয়েছে", unauthorized: "সেশন শেষ, আবার লগইন করুন", badSym: "কয়েন সঠিক নয়", badSide: "সাইড সঠিক নয়", badDir: "ডিরেকশন সঠিক নয়", badSec: "সময় সঠিক নয়", badCoin: "কয়েন/নেটওয়ার্ক সঠিক নয়", badInterval: "ইন্টারভাল সঠিক নয়", forbidden: "অনুমতি নেই", wait2: "অপেক্ষা করুন..." },
 };
 
 const LangCtx = createContext({ lang: "en", t: (k) => k });
@@ -80,20 +85,36 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
 
+/* ---------------- API helper ---------------- */
+let TOKEN = store.get("cx_token", "");
+let ON401 = () => {};
+async function api(path, opt = {}) {
+  const headers = { "Content-Type": "application/json" };
+  if (TOKEN) headers.Authorization = "Bearer " + TOKEN;
+  let r;
+  try {
+    r = await fetch(API + path, { method: opt.method || "GET", headers, body: opt.body ? JSON.stringify(opt.body) : undefined });
+  } catch { throw new Error("neterr"); }
+  let j = null;
+  try { j = await r.json(); } catch {}
+  if (!r.ok) {
+    const d = j && j.detail;
+    const code = typeof d === "string" ? d : "err";
+    if (r.status === 401 && code === "unauthorized") ON401();
+    throw new Error(code);
+  }
+  return j;
+}
+
 function usePrices() {
   const [P, setP] = useState(() => Object.fromEntries(Object.entries(FALL).map(([k, v]) => [k, { price: v[0], chg: v[1], vol: v[2], hi: v[0] * 1.01, lo: v[0] * 0.99 }])));
   useEffect(() => {
     let stop = false;
     const load = async () => {
       try {
-        const syms = JSON.stringify(COINS.filter((c) => c !== "BSV").map((s) => s + "USDT"));
-        const r = await fetch("https://api.binance.com/api/v3/ticker/24hr?symbols=" + encodeURIComponent(syms));
-        if (!r.ok) throw 0;
-        const j = await r.json();
-        if (stop) return;
-        const n = {};
-        j.forEach((t) => { n[t.symbol.replace("USDT", "")] = { price: +t.lastPrice, chg: +t.priceChangePercent, vol: +t.volume, hi: +t.highPrice, lo: +t.lowPrice }; });
-        setP((o) => ({ ...o, ...n }));
+        const j = await api("/market/tickers");
+        if (stop || !j) return;
+        setP((o) => ({ ...o, ...j }));
       } catch {}
     };
     load();
@@ -193,10 +214,10 @@ function CoinDrawer({ P, onPick, onClose }) {
 }
 
 /* ---------------- Side menu (C icon) ---------------- */
-function SideMenu({ open, onClose, uid, email, logout, dark, setDark, go, notify }) {
+function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify }) {
   const t = useT();
   const share = () => {
-    const link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + uid;
+    const link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + me.uid;
     try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch {}
     notify(t("copied"));
   };
@@ -213,7 +234,7 @@ function SideMenu({ open, onClose, uid, email, logout, dark, setDark, go, notify
     <div className={"cx-mo" + (open ? " open" : "")} onClick={onClose}>
       <aside className="cx-md" onClick={(e) => e.stopPropagation()}>
         <div className="cx-mp">
-          <p>{email}</p><p>UID:{uid}</p><p>VIP:1</p><p>{t("rep")} : 100</p>
+          <p>{me.email}</p><p>UID:{me.uid}</p><p>VIP:{me.vip}</p><p>{t("rep")} : {me.reputation}</p>
         </div>
         {rows.map(([ic, label, val, red, fn]) => (
           <button key={ic} className="cx-mr" onClick={fn}>
@@ -304,7 +325,7 @@ function Market({ P, go }) {
   );
 }
 
-/* ---------------- Exchange ---------------- */
+/* ---------------- Exchange (spot) → POST /spot/order ---------------- */
 function Exchange({ P, W, sym, setSym, go }) {
   const t = useT();
   const [side, setSide] = useState("buy");
@@ -312,6 +333,7 @@ function Exchange({ P, W, sym, setSym, go }) {
   const [q, setQ] = useState("");
   const [amt, setAmt] = useState("");
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   const [pick, setPick] = useState(false);
   const d = P[sym];
   const book = useMemo(() => {
@@ -322,21 +344,27 @@ function Exchange({ P, W, sym, setSym, go }) {
   const px = parseFloat(price) || d.price;
   const est = side === "buy" ? (parseFloat(amt) || 0) / px : (parseFloat(q) || 0);
   const pct = (p) => { if (side === "buy") setAmt(String(+(usdt * p).toFixed(2))); else setQ(String(+(held * p).toFixed(8))); };
-  const submit = () => {
+  const submit = async () => {
+    if (busy) return;
     setMsg("");
-    const nw = { ...W.w };
-    if (side === "buy") {
-      const a = parseFloat(amt) || 0;
-      if (a <= 0) return setMsg(t("eAmt"));
-      if (a > usdt) return setMsg(t("iU"));
-      nw.USDT = usdt - a; nw[sym] = held + a / px;
-    } else {
-      const n = parseFloat(q) || 0;
-      if (n <= 0) return setMsg(t("eQty"));
-      if (n > held) return setMsg(t("iC") + " " + sym);
-      nw[sym] = held - n; nw.USDT = usdt + n * px;
-    }
-    W.save(nw); setAmt(""); setQ(""); setMsg(t("ok"));
+    try {
+      if (side === "buy") {
+        const a = parseFloat(amt) || 0;
+        if (a <= 0) return setMsg(t("eAmt"));
+        if (a > usdt) return setMsg(t("iU"));
+        setBusy(true);
+        await api("/spot/order", { method: "POST", body: { sym, side: "buy", amount: a } });
+      } else {
+        const n = parseFloat(q) || 0;
+        if (n <= 0) return setMsg(t("eQty"));
+        if (n > held) return setMsg(t("iC") + " " + sym);
+        setBusy(true);
+        await api("/spot/order", { method: "POST", body: { sym, side: "sell", qty: n } });
+      }
+      await W.reload();
+      setAmt(""); setQ(""); setMsg(t("ok"));
+    } catch (e) { setMsg(t(e.message)); }
+    setBusy(false);
   };
   const R = ({ r, c }) => (<div className="cx-bk"><b style={{ color: c }}>{r[0].toFixed(6)}</b><span>{r[1].toFixed(6)}</span></div>);
   return (
@@ -366,7 +394,7 @@ function Exchange({ P, W, sym, setSym, go }) {
           <div className="cx-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
           <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amt")} inputMode="decimal" /><b>USDT</b></div>
           {msg && <p className="cx-msg">{msg}</p>}
-          <button className="cx-cta" style={{ background: side === "buy" ? GREEN : RED }} onClick={submit}>{side === "buy" ? t("buy") : t("sell")} {sym}</button>
+          <button className="cx-cta" style={{ background: side === "buy" ? GREEN : RED, opacity: busy ? 0.6 : 1 }} onClick={submit}>{busy ? t("wait2") : (side === "buy" ? t("buy") : t("sell")) + " " + sym}</button>
         </div>
       </div>
       <div className="cx-ent"><span>{t("entrust")} <b style={{ color: BLUE }}>{t("buy")} ⌄</b></span><span>{t("all")}</span></div>
@@ -435,10 +463,9 @@ function Chart({ sym, price }) {
     const load = async () => {
       try {
         if (sym === "BSV") throw 0;
-        const r = await fetch(`https://api.binance.com/api/v3/klines?symbol=${sym}USDT&interval=${iv}&limit=300`);
-        if (!r.ok) throw 0;
-        const j = await r.json();
-        if (!stop) setData(j.map((k) => ({ t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] })));
+        const j = await api(`/market/klines?sym=${sym}&interval=${iv}&limit=300`);
+        if (!j || !j.length) throw 0;
+        if (!stop) setData(j);
       } catch { if (!stop) setData((o) => (o.length && o.__sym === sym + iv ? o : Object.assign(synth(priceRef.current, iv), { __sym: sym + iv }))); }
     };
     load();
@@ -605,27 +632,33 @@ function Chart({ sym, price }) {
   );
 }
 
-/* ---------------- Options (long / short) ---------------- */
-function Options({ P, W, sym, setSym, pos, setPos, orders }) {
+/* ---------------- Options (long / short) → POST /options/open ---------------- */
+function Options({ P, W, sym, setSym, pos, orders }) {
   const t = useT();
   const [qty, setQty] = useState(10);
   const [sec, setSec] = useState(20);
   const [sheet, setSheet] = useState(false);
   const [, tick] = useState(0);
   const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
   const [view, setView] = useState("k");
   const [ptab, setPtab] = useState("list");
   const [pick, setPick] = useState(false);
   const d = P[sym];
   useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
-  const open = (dir) => {
+  const open = async (dir) => {
+    if (busy) return;
     setMsg("");
     const bal = W.w.USDT || 0;
     if (qty < 10 || qty > 1000000) return setMsg(t("badQ"));
     if (qty > bal) return setMsg(t("iB"));
-    W.save({ ...W.w, USDT: bal - qty });
-    const np = [...pos, { id: Date.now(), sym, dir, qty, open: d.price, end: Date.now() + sec * 1000 }];
-    setPos(np); store.set("cx_pos_" + USER, np); setSheet(false); setMsg(t("openMsg"));
+    setBusy(true);
+    try {
+      await api("/options/open", { method: "POST", body: { sym, direction: dir, qty, sec } });
+      await W.reload();
+      setSheet(false); setMsg(t("openMsg"));
+    } catch (e) { setMsg(t(e.message)); }
+    setBusy(false);
   };
   return (
     <>
@@ -649,8 +682,8 @@ function Options({ P, W, sym, setSym, pos, setPos, orders }) {
           <div className="cx-obar">
             <button onClick={() => setSheet(true)}>{t("qty")} ⌄<b>{qty.toFixed(2)}</b></button>
             <button onClick={() => setSheet(true)}>{t("time")} ⌄<b>{sec}s</b></button>
-            <button className="g" onClick={() => open("long")}>{t("bl")}</button>
-            <button className="r" onClick={() => open("short")}>{t("ss")}</button>
+            <button className="g" style={{ opacity: busy ? 0.6 : 1 }} onClick={() => open("long")}>{t("bl")}</button>
+            <button className="r" style={{ opacity: busy ? 0.6 : 1 }} onClick={() => open("short")}>{t("ss")}</button>
           </div>
         </>
       ) : (
@@ -700,6 +733,7 @@ function Options({ P, W, sym, setSym, pos, setPos, orders }) {
             <div className="cx-chs">{SECS.map((x) => <button key={x} className={sec === x ? "on" : ""} onClick={() => setSec(x)}>{x}s</button>)}</div>
             <div className="cx-info"><span>{t("bal")} : {(W.w.USDT || 0).toFixed(8)}</span><span>{t("yld")} : {YIELD * 100}%</span></div>
             <div className="cx-info"><span>{t("oq")} : 10.00 - 1000000.00</span></div>
+            {msg && <p className="cx-msg" style={{ margin: "0 0 10px" }}>{msg}</p>}
             <div className="cx-two"><button className="g" onClick={() => open("long")}>{t("bl")}</button><button className="r" onClick={() => open("short")}>{t("ss")}</button></div>
           </div>
         </div>
@@ -709,18 +743,29 @@ function Options({ P, W, sym, setSym, pos, setPos, orders }) {
   );
 }
 
-/* ---------------- Assets ---------------- */
+/* ---------------- Assets → POST /wallet/demo-topup ---------------- */
 function Assets({ P, W }) {
   const t = useT();
   const [tab, setTab] = useState("assets");
   const [hide, setHide] = useState(false);
   const [add, setAdd] = useState("");
+  const [msg, setMsg] = useState("");
   const val = (s, q) => (s === "USDT" || s === "USDC" ? q : q * (P[s]?.price || 0));
   const total = Object.entries(W.w).reduce((x, [s, q]) => x + val(s, q), 0);
   const sub = tab === "assets" ? null : tab;
   const tabs = [["assets", t("assets")], ["funds", t("funds")], ["options", t("options")], ["quant", t("quant")]];
   const sec = [["ta", total], ["funds", total], ["options", 0], ["quant", 0]];
   const title = (k) => (k === "ta" ? t("ta") : t(k));
+  const topup = async () => {
+    const a = parseFloat(add);
+    if (!(a > 0)) return;
+    setMsg("");
+    try {
+      await api("/wallet/demo-topup", { method: "POST", body: { amount: a } });
+      await W.reload();
+      setAdd("");
+    } catch (e) { setMsg(t(e.message)); }
+  };
   return (
     <>
       <div className="cx-tabs big">{tabs.map(([k, l]) => <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}</div>
@@ -740,17 +785,19 @@ function Assets({ P, W }) {
           <div className="cx-cards gray">
             {ASSET_COINS.map((s) => {
               const q = sub === "funds" ? W.w[s] || 0 : 0;
+              const fz = sub === "funds" ? W.fz[s] || 0 : 0;
               return (
                 <div key={s} className="cx-ac wide">
                   <h3><span className="cx-dn"><Coin s={s} size={30} />{s}</span> <i>›</i></h3>
-                  <div className="cx-3"><span><small>{t("avail")}</small>{q.toFixed(8)}</span><span><small>{t("frozen")}</small>0.00000000</span><span><small>{t("cv")}</small>$ {val(s, q).toFixed(2)}</span></div>
+                  <div className="cx-3"><span><small>{t("avail")}</small>{q.toFixed(8)}</span><span><small>{t("frozen")}</small>{fz.toFixed(8)}</span><span><small>{t("cv")}</small>$ {val(s, q).toFixed(2)}</span></div>
                 </div>
               );
             })}
           </div>
           {sub === "funds" && (
             <div className="cx-demo"><b>{t("top")}</b><div className="cx-line"><input placeholder={t("ua")} value={add} inputMode="decimal" onChange={(e) => setAdd(e.target.value)} />
-              <button onClick={() => { const a = parseFloat(add); if (a > 0) { W.save({ ...W.w, USDT: (W.w.USDT || 0) + a }); setAdd(""); } }}>{t("add")}</button></div></div>
+              <button onClick={topup}>{t("add")}</button></div>
+              {msg && <p className="cx-msg bad" style={{ margin: "6px 0 0" }}>{msg}</p>}</div>
           )}
         </>
       )}
@@ -758,12 +805,7 @@ function Assets({ P, W }) {
   );
 }
 
-/* ---------------- Auth (demo: accounts live in this browser only) ---------------- */
-const hashPw = (x) => { let h = 5381; for (let i = 0; i < x.length; i++) h = ((h << 5) + h + x.charCodeAt(i)) | 0; return String(h); };
-const okMail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
-const uidOf = (e) => 2000000 + (Math.abs(parseInt(hashPw("uid" + e), 10)) % 999999);
-let USER = "";
-
+/* ---------------- Auth → /auth/login, /auth/register, /auth/forgot ---------------- */
 function AuBar({ title, onBack, onHelp }) {
   return (
     <div className="cx-ab">
@@ -782,37 +824,29 @@ function Auth({ onLogin, lang, setLang }) {
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [rem, setRem] = useState(!!rem0);
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", ok: false });
-  const err = (k) => setMsg({ k, ok: false });
   const go = (m) => { setMode(m); setMsg({ k: "", ok: false }); setPw(""); setPw2(""); };
   const mail = email.trim().toLowerCase();
-  const users = () => store.get("cx_users", {});
-  const login = () => {
-    if (!okMail(mail)) return err("bEmail");
-    const u = users();
-    if (u[mail] === undefined) return err("noUser");
-    if (u[mail] !== hashPw(mail + pw)) return err("wrongPw");
+  const run = async (fn) => {
+    if (busy) return;
+    setBusy(true); setMsg({ k: "wait2", ok: true });
+    try { await fn(); } catch (e) { setMsg({ k: e.message, ok: false }); }
+    setBusy(false);
+  };
+  const login = () => run(async () => {
+    const r = await api("/auth/login", { method: "POST", body: { email: mail, password: pw } });
     store.set("cx_rem", rem ? mail : "");
-    onLogin(mail);
-  };
-  const reg = () => {
-    if (!okMail(mail)) return err("bEmail");
-    if (pw.length < 6) return err("bPw");
-    if (pw !== pw2) return err("bMatch");
-    const u = users();
-    if (u[mail] !== undefined) return err("exists");
-    store.set("cx_users", { ...u, [mail]: hashPw(mail + pw) });
-    onLogin(mail);
-  };
-  const reset = () => {
-    if (!okMail(mail)) return err("bEmail");
-    const u = users();
-    if (u[mail] === undefined) return err("noUser");
-    if (pw.length < 6) return err("bPw");
-    if (pw !== pw2) return err("bMatch");
-    store.set("cx_users", { ...u, [mail]: hashPw(mail + pw) });
+    onLogin(r);
+  });
+  const reg = () => run(async () => {
+    const r = await api("/auth/register", { method: "POST", body: { email: mail, password: pw, password2: pw2 } });
+    onLogin(r);
+  });
+  const reset = () => run(async () => {
+    await api("/auth/forgot", { method: "POST", body: { email: mail, password: pw, password2: pw2 } });
     setMode("login"); setPw(""); setPw2(""); setMsg({ k: "resetOk", ok: true });
-  };
+  });
   const enter = (fn) => (e) => { if (e.key === "Enter") fn(); };
   const bar = (title) => <AuBar title={title} onBack={() => go("login")} onHelp={() => setMsg({ k: "demo", ok: true })} />;
   const note = msg.k ? <p className={"cx-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p> : null;
@@ -829,7 +863,7 @@ function Auth({ onLogin, lang, setLang }) {
           <input className="cx-ai" type="password" autoComplete="new-password" placeholder={t("pw2")} value={pw2} onChange={(e) => setPw2(e.target.value)} onKeyDown={enter(isReg ? reg : reset)} />
         </div>
         {note}
-        <button className="cx-a1" onClick={isReg ? reg : reset}>{t(isReg ? "register" : "reset")}</button>
+        <button className="cx-a1" style={{ opacity: busy ? 0.6 : 1 }} onClick={isReg ? reg : reset}>{t(isReg ? "register" : "reset")}</button>
         <div className="cx-alinks"><button onClick={() => go("login")}>{t("hasAcc")}</button></div>
       </div>
     );
@@ -850,14 +884,14 @@ function Auth({ onLogin, lang, setLang }) {
         <label className="cx-rm"><input type="checkbox" checked={rem} onChange={(e) => setRem(e.target.checked)} />{t("rem")}</label>
       </div>
       {note}
-      <button className="cx-a1" onClick={login}>{t("login")}</button>
+      <button className="cx-a1" style={{ opacity: busy ? 0.6 : 1 }} onClick={login}>{t("login")}</button>
       <div className="cx-alinks"><button onClick={() => go("register")}>{t("register")}</button><button onClick={() => go("forgot")}>{t("forgot")}</button></div>
       <div className="cx-alang"><LangPicker lang={lang} setLang={setLang} /></div>
     </div>
   );
 }
 
-/* ---------------- Deposit / Withdraw (demo only, local balance) ---------------- */
+/* ---------------- Deposit / Withdraw → /deposit, /withdraw ---------------- */
 const NETS = { USDT: ["TRC20", "ERC20"], USDC: ["ERC20"], ETH: ["ERC20"], BTC: ["BTC"] };
 const WFEE = { USDT: 1, USDC: 1, ETH: 0.002, BTC: 0.0002 };
 
@@ -881,20 +915,26 @@ function Chips({ list, v, set }) {
   return <div className="cx-chips">{list.map((x) => <button key={x} className={x === v ? "on" : ""} onClick={() => set(x)}>{x}</button>)}</div>;
 }
 
-function Deposit({ W, go, addTx, txs }) {
+function Deposit({ W, go, txs }) {
   const t = useT();
   const [coin, setCoin] = useState("USDT");
   const [net, setNet] = useState("TRC20");
   const [amt, setAmt] = useState("");
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", ok: false });
   const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
   const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
-  const submit = () => {
+  const submit = async () => {
+    if (busy) return;
     const a = parseFloat(amt);
     if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
-    W.save({ ...W.w, [coin]: +((W.w[coin] || 0) + a).toFixed(8) });
-    addTx({ id: Date.now(), type: "dep", coin, net: nn, amt: a, time: Date.now() });
-    setAmt(""); setMsg({ k: "depOk", ok: true });
+    setBusy(true);
+    try {
+      await api("/deposit", { method: "POST", body: { coin, net: nn, amount: a } });
+      await W.reload();
+      setAmt(""); setMsg({ k: "depOk", ok: true });
+    } catch (e) { setMsg({ k: e.message, ok: false }); }
+    setBusy(false);
   };
   return (
     <>
@@ -906,33 +946,39 @@ function Deposit({ W, go, addTx, txs }) {
         <h4>{t("amount")}</h4>
         <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amount")} inputMode="decimal" /><b>{coin}</b></div>
         {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "10px 0 0" }}>{t(msg.k)}</p>}
-        <button className="cx-a1 flat" onClick={submit}>{t("submit")}</button>
+        <button className="cx-a1 flat" style={{ opacity: busy ? 0.6 : 1 }} onClick={submit}>{t("submit")}</button>
       </div>
       <TxList txs={txs} type="dep" />
     </>
   );
 }
 
-function Withdraw({ W, go, addTx, txs }) {
+function Withdraw({ W, go, txs }) {
   const t = useT();
   const [coin, setCoin] = useState("USDT");
   const [net, setNet] = useState("TRC20");
   const [addr, setAddr] = useState("");
   const [amt, setAmt] = useState("");
+  const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", ok: false });
   const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
   const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
   const held = W.w[coin] || 0, fee = WFEE[coin], a = parseFloat(amt) || 0;
-  const submit = () => {
+  const submit = async () => {
+    if (busy) return;
     const ad = addr.trim();
     if (!ad) return setMsg({ k: "eAddr", ok: false });
     if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return setMsg({ k: "bAddr", ok: false });
     if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
     if (a <= fee) return setMsg({ k: "feeLow", ok: false });
     if (a > held) return setMsg({ k: "iB", ok: false });
-    W.save({ ...W.w, [coin]: +(held - a).toFixed(8) });
-    addTx({ id: Date.now(), type: "wd", coin, net: nn, amt: a, time: Date.now() });
-    setAmt(""); setAddr(""); setMsg({ k: "wdOk", ok: true });
+    setBusy(true);
+    try {
+      await api("/withdraw", { method: "POST", body: { coin, net: nn, address: ad, amount: a } });
+      await W.reload();
+      setAmt(""); setAddr(""); setMsg({ k: "wdOk", ok: true });
+    } catch (e) { setMsg({ k: e.message, ok: false }); }
+    setBusy(false);
   };
   return (
     <>
@@ -949,55 +995,82 @@ function Withdraw({ W, go, addTx, txs }) {
         <div className="cx-kv"><span>{t("recv")}</span><b>{Math.max(0, a - fee).toFixed(8)} {coin}</b></div>
         <p className="cx-note">{t("wdNote")}</p>
         {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "10px 0 0" }}>{t(msg.k)}</p>}
-        <button className="cx-a1 flat" onClick={submit}>{t("submit")}</button>
+        <button className="cx-a1 flat" style={{ opacity: busy ? 0.6 : 1 }} onClick={submit}>{t("submit")}</button>
       </div>
       <TxList txs={txs} type="wd" />
     </>
   );
 }
 
-/* ---------------- Main app (after login) ---------------- */
-function Main({ email, logout, lang, setLang, dark, setDark }) {
-  USER = email;
+/* ---------------- Main app (after login): সব ডেটা API থেকে ---------------- */
+function Main({ me0, logout, lang, setLang, dark, setDark }) {
   const P = usePrices();
   const t = useT();
-  const uid = useMemo(() => uidOf(email), [email]);
+  const [me, setMe] = useState(me0);
   const [menu, setMenu] = useState(false);
-
-  const [w, setW] = useState(() => store.get("cx_wallet_" + email, { USDT: 0 }));
-  const W = { w, save: (n) => { setW(n); store.set("cx_wallet_" + email, n); } };
-  const [pos, setPos] = useState(() => store.get("cx_pos_" + email, []));
-  const [orders, setOrders] = useState(() => store.get("cx_orders_" + email, []));
-  const [txs, setTxs] = useState(() => store.get("cx_tx_" + email, []));
-  const addTx = (x) => setTxs((o) => { const n = [x, ...o].slice(0, 100); store.set("cx_tx_" + email, n); return n; });
+  const [w, setW] = useState({ USDT: 0 });
+  const [fz, setFz] = useState({});
+  const [pos, setPos] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [txs, setTxs] = useState([]);
   const [toast, setToast] = useState("");
-  const notify = (m) => { setToast(m); setTimeout(() => setToast(""), 3000); };
-  const ref = useRef({});
-  ref.current = { P, w, pos, t, orders };
-  useEffect(() => {
-    const id = setInterval(() => {
-      const { P: pr, w: wl, pos: ps, t: tt, orders: od } = ref.current, now = Date.now();
-      const done = ps.filter((x) => x.end <= now);
-      if (!done.length) return;
-      const nw = { ...wl };
-      let wins = 0;
-      const recs = [];
-      done.forEach((x) => {
-        const c = pr[x.sym].price;
-        const win = x.dir === "long" ? c > x.open : c < x.open;
-        if (win) { nw.USDT = (nw.USDT || 0) + x.qty * (1 + YIELD); wins++; }
-        recs.unshift({ id: x.id, sym: x.sym, dir: x.dir, qty: x.qty, open: x.open, close: c, pnl: win ? x.qty * YIELD : -x.qty, time: now });
-      });
-      const rest = ps.filter((x) => x.end > now);
-      const no = [...recs, ...od].slice(0, 100);
-      setW(nw); store.set("cx_wallet_" + email, nw); setPos(rest); store.set("cx_pos_" + email, rest); setOrders(no); store.set("cx_orders_" + email, no);
-      setToast(tt("closed").replace("{n}", done.length).replace("{w}", wins).replace("{l}", done.length - wins));
-      setTimeout(() => setToast(""), 4000);
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
+  const notify = (m, ms = 3000) => { setToast(m); setTimeout(() => setToast(""), ms); };
   const [page, setPage] = useState("home");
   const [sym, setSym] = useState("BTC");
+  const ref = useRef({});
+  ref.current = { t, pos, page };
+  const prevOpen = useRef(null);
+
+  const loadMe = async () => { try { const j = await api("/auth/me"); setMe(j); } catch {} };
+  const loadWallet = async () => {
+    try {
+      const j = await api("/wallet");
+      const a = {}, f = {};
+      Object.entries(j.wallet).forEach(([c, v]) => { a[c] = v.available; f[c] = v.frozen; });
+      setW(a); setFz(f);
+    } catch {}
+  };
+  const loadPos = async () => {
+    try {
+      const [o, r] = await Promise.all([api("/options/positions"), api("/options/records")]);
+      const np = o.map((x) => ({ id: x.id, sym: x.sym, dir: x.direction, qty: x.qty, open: x.open_price, end: Date.parse(x.end_at) }));
+      const no = r.map((x) => ({ id: x.id, sym: x.sym, dir: x.direction, qty: x.qty, open: x.open_price, close: x.close_price, pnl: x.pnl || 0 }));
+      if (prevOpen.current) {
+        const ids = new Set(np.map((x) => x.id));
+        const gone = [...prevOpen.current].filter((i) => !ids.has(i));
+        const cl = no.filter((x) => gone.includes(x.id));
+        if (cl.length) {
+          const wins = cl.filter((x) => x.pnl > 0).length;
+          notify(ref.current.t("closed").replace("{n}", cl.length).replace("{w}", wins).replace("{l}", cl.length - wins), 4000);
+          loadWallet();
+        }
+      }
+      prevOpen.current = new Set(np.map((x) => x.id));
+      setPos(np); setOrders(no);
+    } catch {}
+  };
+  const loadTx = async () => {
+    try {
+      const [d, x] = await Promise.all([api("/deposit/history"), api("/withdraw/history")]);
+      const m = (a) => a.map((y) => ({ id: y.type + y.id, type: y.type, coin: y.coin, net: y.net, amt: y.amount, time: y.created_at }));
+      setTxs([...m(d), ...m(x)].sort((a, b) => Date.parse(b.time) - Date.parse(a.time)));
+    } catch {}
+  };
+  const reload = () => Promise.all([loadWallet(), loadPos(), loadTx()]);
+  const W = { w, fz, reload };
+
+  useEffect(() => {
+    loadMe(); reload();
+    let c = 0;
+    const id = setInterval(() => {
+      c++;
+      const { pos: ps, page: pg } = ref.current;
+      if (ps.length || pg === "options") loadPos();
+      if (c % 3 === 0) loadWallet();
+    }, 2000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line
+
   const go = (p, s) => { if (s) setSym(s); setPage(p); window.scrollTo(0, 0); };
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
@@ -1006,12 +1079,12 @@ function Main({ email, logout, lang, setLang, dark, setDark }) {
         {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} />}
         {page === "market" && <Market P={P} go={go} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
-        {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} setPos={setPos} orders={orders} />}
+        {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} orders={orders} />}
         {page === "assets" && <Assets P={P} W={W} />}
-        {page === "deposit" && <Deposit W={W} go={go} addTx={addTx} txs={txs} />}
-        {page === "withdraw" && <Withdraw W={W} go={go} addTx={addTx} txs={txs} />}
+        {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
+        {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
       </div>
-      <SideMenu open={menu} onClose={() => setMenu(false)} uid={uid} email={email} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} />
+      <SideMenu open={menu} onClose={() => setMenu(false)} me={me} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} />
       {toast && <div className="cx-toast">{toast}</div>}
       <nav className="cx-nav">
         {nav.map(([k, l]) => (
@@ -1025,19 +1098,30 @@ function Main({ email, logout, lang, setLang, dark, setDark }) {
 /* ---------------- App root: language, theme, login gate ---------------- */
 export default function HomePage() {
   const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
-  const setLang = (l) => { setLangS(l); store.set("cx_lang", l); };
-  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || (T2[lang] && T2[lang][k]) || (T3[lang] && T3[lang][k]) || T.en[k] || T2.en[k] || T3.en[k] || k, [lang]);
   const [dark, setDarkS] = useState(() => store.get("cx_dark", false));
-  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); };
-  const [email, setEmail] = useState(() => store.get("cx_session", ""));
-  const login = (e) => { store.set("cx_session", e); setEmail(e); window.scrollTo(0, 0); };
-  const logout = () => { store.set("cx_session", ""); setEmail(""); };
+  const [sess, setSess] = useState(() => ({ token: store.get("cx_token", ""), email: store.get("cx_session", ""), uid: store.get("cx_uid", 0) }));
+  const syncSetting = (body) => { if (TOKEN) api("/user/settings", { method: "PATCH", body }).catch(() => {}); };
+  const setLang = (l) => { setLangS(l); store.set("cx_lang", l); syncSetting({ lang: l }); };
+  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); syncSetting({ dark: v }); };
+  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || (T2[lang] && T2[lang][k]) || (T3[lang] && T3[lang][k]) || T.en[k] || T2.en[k] || T3.en[k] || k, [lang]);
+  const login = (r) => {
+    TOKEN = r.access_token;
+    store.set("cx_token", r.access_token); store.set("cx_session", r.email); store.set("cx_uid", r.uid);
+    setSess({ token: r.access_token, email: r.email, uid: r.uid });
+    window.scrollTo(0, 0);
+  };
+  const logout = () => {
+    TOKEN = "";
+    store.set("cx_token", ""); store.set("cx_session", ""); store.set("cx_uid", 0);
+    setSess({ token: "", email: "", uid: 0 });
+  };
+  ON401 = logout;
   return (
     <LangCtx.Provider value={{ lang, t }}>
       <div className={"cx" + (dark ? " dark" : "")} dir={RTL.includes(lang) ? "rtl" : "ltr"}>
         <style>{CSS}</style>
-        {email
-          ? <Main key={email} email={email} logout={logout} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />
+        {sess.token
+          ? <Main key={sess.email} me0={{ email: sess.email, uid: sess.uid, vip: 1, reputation: 100 }} logout={logout} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />
           : <Auth onLogin={login} lang={lang} setLang={setLang} />}
       </div>
     </LangCtx.Provider>
