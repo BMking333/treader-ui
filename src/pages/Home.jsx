@@ -71,9 +71,11 @@ export const T2 = {
 /* ---------------- Auth / Deposit / Withdraw / API error texts ---------------- */
 export const T3 = {
   en: { login: "login", register: "register", acc: "Please enter your email", pw: "Please enter your password", pw2: "Please re-enter your password", forgot: "Forgot password", rem: "Remember account", email: "Email", bEmail: "Enter a valid email address", bPw: "Password must be at least 6 characters", bMatch: "Passwords do not match", exists: "This email is already registered", noUser: "Account not found", wrongPw: "Wrong password", reset: "Reset password", newPw: "Please enter a new password", resetOk: "Password updated, please log in", dep: "Deposit", coin: "Coin", net: "Network", addr: "Withdrawal address", eAddr: "Enter withdrawal address", bAddr: "Invalid withdrawal address", fee: "Fee", recv: "You will receive", depOk: "Deposit submitted", wdOk: "Withdrawal submitted", hist: "History", proc: "Processing", done: "Completed", feeLow: "Amount must be greater than the fee", amount: "Amount", submit: "Submit", hasAcc: "Back to login", topup: "Demo top-up (+1000 USDT)", topOk: "Demo balance added", needLogin: "Please log in first",
-    neterr: "Network error. Server may be waking up, try again", err: "Request failed", unauthorized: "Session expired, please log in", badSym: "Invalid coin", badSide: "Invalid side", badDir: "Invalid direction", badSec: "Invalid time", badCoin: "Invalid coin/network", badInterval: "Invalid interval", forbidden: "Not allowed", wait2: "Please wait..." },
+    neterr: "Network error. Server may be waking up, try again", err: "Request failed", unauthorized: "Session expired, please log in", badSym: "Invalid coin", badSide: "Invalid side", badDir: "Invalid direction", badSec: "Invalid time", badCoin: "Invalid coin/network", badInterval: "Invalid interval", forbidden: "Not allowed", wait2: "Please wait...",
+    welcome: "Welcome back", welcomeSub: "Sign in to continue trading", createAcc: "Create your account", createSub: "Register in less than a minute", resetSub: "Set a new password for your account", pwLbl: "Password", pw2Lbl: "Confirm password", noAcc: "Don't have an account?", guest: "Continue as guest", csHelp: "Need help? Contact customer service", strWeak: "Weak", strMid: "Medium", strStrong: "Strong", haveAcc: "Already have an account?", backLogin: "Back to login" },
   bn: { login: "লগইন", register: "রেজিস্টার", acc: "আপনার ইমেইল লিখুন", pw: "পাসওয়ার্ড লিখুন", pw2: "পাসওয়ার্ড আবার লিখুন", forgot: "পাসওয়ার্ড ভুলে গেছেন", rem: "অ্যাকাউন্ট মনে রাখুন", email: "ইমেইল", bEmail: "সঠিক ইমেইল দিন", bPw: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে", bMatch: "পাসওয়ার্ড মিলছে না", exists: "এই ইমেইল আগেই রেজিস্টার করা", noUser: "অ্যাকাউন্ট পাওয়া যায়নি", wrongPw: "পাসওয়ার্ড ভুল", reset: "পাসওয়ার্ড রিসেট", newPw: "নতুন পাসওয়ার্ড লিখুন", resetOk: "পাসওয়ার্ড বদলেছে, লগইন করুন", dep: "ডিপোজিট", coin: "কয়েন", net: "নেটওয়ার্ক", addr: "উইথড্র অ্যাড্রেস", eAddr: "উইথড্র অ্যাড্রেস দিন", bAddr: "অ্যাড্রেস সঠিক নয়", fee: "ফি", recv: "আপনি পাবেন", depOk: "ডিপোজিট জমা হয়েছে", wdOk: "উইথড্র জমা হয়েছে", hist: "ইতিহাস", proc: "প্রসেসিং", done: "সম্পন্ন", feeLow: "পরিমাণ ফি-এর চেয়ে বেশি হতে হবে", amount: "পরিমাণ", submit: "জমা দিন", hasAcc: "লগইনে ফিরুন", topup: "ডেমো টপ-আপ (+1000 USDT)", topOk: "ডেমো ব্যালেন্স যোগ হয়েছে", needLogin: "আগে লগইন করুন",
-    neterr: "নেটওয়ার্ক সমস্যা। সার্ভার জেগে উঠছে হতে পারে, আবার চেষ্টা করুন", err: "অনুরোধ ব্যর্থ হয়েছে", unauthorized: "সেশন শেষ, আবার লগইন করুন", badSym: "কয়েন সঠিক নয়", badSide: "সাইড সঠিক নয়", badDir: "ডিরেকশন সঠিক নয়", badSec: "সময় সঠিক নয়", badCoin: "কয়েন/নেটওয়ার্ক সঠিক নয়", badInterval: "ইন্টারভাল সঠিক নয়", forbidden: "অনুমতি নেই", wait2: "অপেক্ষা করুন..." },
+    neterr: "নেটওয়ার্ক সমস্যা। সার্ভার জেগে উঠছে হতে পারে, আবার চেষ্টা করুন", err: "অনুরোধ ব্যর্থ হয়েছে", unauthorized: "সেশন শেষ, আবার লগইন করুন", badSym: "কয়েন সঠিক নয়", badSide: "সাইড সঠিক নয়", badDir: "ডিরেকশন সঠিক নয়", badSec: "সময় সঠিক নয়", badCoin: "কয়েন/নেটওয়ার্ক সঠিক নয়", badInterval: "ইন্টারভাল সঠিক নয়", forbidden: "অনুমতি নেই", wait2: "অপেক্ষা করুন...",
+    welcome: "স্বাগতম", welcomeSub: "ট্রেডিং চালিয়ে যেতে লগইন করুন", createAcc: "অ্যাকাউন্ট খুলুন", createSub: "এক মিনিটেরও কমে রেজিস্টার করুন", resetSub: "আপনার অ্যাকাউন্টের নতুন পাসওয়ার্ড দিন", pwLbl: "পাসওয়ার্ড", pw2Lbl: "পাসওয়ার্ড নিশ্চিত করুন", noAcc: "অ্যাকাউন্ট নেই?", guest: "গেস্ট হিসেবে চালিয়ে যান", csHelp: "সাহায্য লাগবে? কাস্টমার সার্ভিসে যোগাযোগ করুন", strWeak: "দুর্বল", strMid: "মাঝারি", strStrong: "শক্তিশালী", haveAcc: "আগেই অ্যাকাউন্ট আছে?", backLogin: "লগইনে ফিরুন" },
 };
 
 export const LangCtx = createContext({ lang: "en", t: (k) => k });
@@ -191,6 +193,23 @@ export function LangPicker({ lang, setLang }) {
   );
 }
 
+/* ---------------- Customer service (Telegram) ---------------- */
+export const CS_LINKS = ["https://t.me/Michaelgwebb", "https://t.me/Michaelgwebb"];
+export function CSheet({ open, onClose }) {
+  const t = useT();
+  if (!open) return null;
+  return (
+    <div className="cx-over end" style={{ zIndex: 100 }} onClick={onClose}>
+      <div className="cx-csh" onClick={(e) => e.stopPropagation()}>
+        <div className="cx-csh-h"><b>{t("cs")}</b><button onClick={onClose} aria-label="close">✕</button></div>
+        {CS_LINKS.map((u, i) => (
+          <a key={i} className="cx-csh-r" href={u} target="_blank" rel="noopener noreferrer"><span>{t("cs")}-{i + 1}</span><i>›</i></a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ====================== HOME ====================== */
 const BANNERS = [img1, img2, img3];
 
@@ -215,13 +234,13 @@ export function List({ P, go, names }) {
 
 export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askLogin }) {
   const t = useT();
-  const [i, setI] = useState(0), [k, setK] = useState(0);
+  const [i, setI] = useState(0), [k, setK] = useState(0), [cs, setCs] = useState(false);
   useEffect(() => { const id = setInterval(() => setI((x) => (x + 1) % BANNERS.length), 3500); return () => clearInterval(id); }, []);
   useEffect(() => { const id = setInterval(() => setK((x) => (x + 3) % COINS.length), 4000); return () => clearInterval(id); }, []);
   const tick = [0, 1, 2].map((n) => COINS[(k + n) % COINS.length]);
   const grid = [
     [ICON.card, "rech", () => go("deposit")], [ICON.card, "wd", () => go("withdraw")],
-    [ICON.chat, "cs", () => notify(t("soon"))], [ICON.swap, "swap", () => go("exchange")],
+    [ICON.chat, "cs", () => setCs(true)], [ICON.swap, "swap", () => go("exchange")],
     [ICON.loan, "loan", () => notify(t("soon"))], [ICON.card, "tf", () => go("assets")],
   ];
   return (
@@ -249,6 +268,7 @@ export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askL
       </div>
       <h3 className="cx-h">{t("chg")}</h3>
       <List P={P} go={go} />
+      <CSheet open={cs} onClose={() => setCs(false)} />
     </>
   );
 }
