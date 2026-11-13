@@ -1,115 +1,49 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-
-/* ================= PAGES ================= */
-import Home from "./pages/Home";
-import Register from "./pages/Register";
+import React, { useMemo, useState } from "react";
+import { LangCtx, T, T2, T3, RTL, CSS, store, api, getToken, setToken, setOn401 } from "./lib/cex";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 
-import Profile from "./pages/profile";
-import ChangePassword from "./pages/ChangePassword";
-import Terms from "./pages/Terms";
-import PersonalInfo from "./pages/PersonalInfo";
-import BankInfo from "./pages/BankInfo";
-import Support from "./pages/Support";
-import Loan from "./pages/Loan";
-import Withdrew from "./pages/withdrew";
-import TransactionHistory from "./pages/TransactionHistory";
-import PaymentInfo from "./pages/PaymentInfo";
+/* App root: language, theme, login gate.
+   ব্যবহার: main.jsx-এ <App /> রেন্ডার করুন (আগের HomePage এর জায়গায়) */
+export default function App() {
+  const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
+  const [dark, setDarkS] = useState(() => store.get("cx_dark", false));
+  const [sess, setSess] = useState(() => ({ token: store.get("cx_token", ""), email: store.get("cx_session", ""), uid: store.get("cx_uid", 0) }));
+  const [auth, setAuth] = useState({ page: "login", flash: "" }); // login | register | forgot
+  const goAuth = (page, flash = "") => setAuth({ page, flash });
 
-/* ================= AUTH ================= */
-const getToken = () => localStorage.getItem("access");
+  const syncSetting = (body) => { if (getToken()) api("/user/settings", { method: "PATCH", body }).catch(() => {}); };
+  const setLang = (l) => { setLangS(l); store.set("cx_lang", l); syncSetting({ lang: l }); };
+  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); syncSetting({ dark: v }); };
+  const t = useMemo(() => (k) => (T[lang] && T[lang][k]) || (T2[lang] && T2[lang][k]) || (T3[lang] && T3[lang][k]) || T.en[k] || T2.en[k] || T3.en[k] || k, [lang]);
 
-/* ================= ADMIN / STAFF IMPERSONATE =================
- * URL: /#impersonate=TOKEN
- * router চালুর আগেই token save করে /dashboard-এ নিয়ে যায়।
- * তাই আগের কোনো user token থাকলেও নতুনটা দিয়ে ওভাররাইট হয়।
- */
-(() => {
-  const match = window.location.hash.match(/impersonate=([^&]+)/);
-  if (!match) return;
+  const login = (r) => {
+    setToken(r.access_token);
+    store.set("cx_token", r.access_token); store.set("cx_session", r.email); store.set("cx_uid", r.uid);
+    setSess({ token: r.access_token, email: r.email, uid: r.uid });
+    window.scrollTo(0, 0);
+  };
+  const logout = () => {
+    setToken("");
+    store.set("cx_token", ""); store.set("cx_session", ""); store.set("cx_uid", 0);
+    setSess({ token: "", email: "", uid: 0 });
+    goAuth("login");
+  };
+  setOn401(logout);
 
-  try {
-    const token = decodeURIComponent(match[1]);
-    if (token) {
-      localStorage.setItem("access", token);
-      localStorage.setItem("role", "user");
-    }
-  } catch (e) {
-    console.error("impersonate failed", e);
-  }
-
-  // URL থেকে token মুছে সরাসরি dashboard-এ
-  window.history.replaceState(null, "", "/dashboard");
-})();
-
-/* ================= PROTECTED ROUTE ================= */
-const ProtectedRoute = ({ children }) => {
-  const token = getToken();
-
-  if (!token) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-/* ================= PUBLIC ROUTE ================= */
-const PublicRoute = ({ children }) => {
-  const token = getToken();
-
-  if (token) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return children;
-};
-
-/* ================= APP ================= */
-function App() {
   return (
-    <Routes>
-      {/* ================= PUBLIC ================= */}
-      <Route path="/" element={<Home />} />
-
-      <Route
-        path="/login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-
-      <Route
-        path="/register"
-        element={
-          <PublicRoute>
-            <Register />
-          </PublicRoute>
-        }
-      />
-
-      {/* ================= PROTECTED ================= */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-      <Route path="/bank-info" element={<ProtectedRoute><BankInfo /></ProtectedRoute>} />
-      <Route path="/personal-info" element={<ProtectedRoute><PersonalInfo /></ProtectedRoute>} />
-      <Route path="/loan" element={<ProtectedRoute><Loan /></ProtectedRoute>} />
-      <Route path="/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-      <Route path="/terms" element={<ProtectedRoute><Terms /></ProtectedRoute>} />
-      <Route path="/transactions" element={<ProtectedRoute><TransactionHistory /></ProtectedRoute>} />
-      <Route path="/payment-info" element={<ProtectedRoute><PaymentInfo /></ProtectedRoute>} />
-      <Route path="/withdrew" element={<ProtectedRoute><Withdrew /></ProtectedRoute>} />
-      <Route path="/support" element={<ProtectedRoute><Support /></ProtectedRoute>} />
-
-      {/* ================= DEFAULT ================= */}
-      <Route
-        path="*"
-        element={<Navigate to={getToken() ? "/dashboard" : "/"} replace />}
-      />
-    </Routes>
+    <LangCtx.Provider value={{ lang, t }}>
+      <div className={"cx" + (dark ? " dark" : "")} dir={RTL.includes(lang) ? "rtl" : "ltr"}>
+        <style>{CSS}</style>
+        {sess.token ? (
+          <Dashboard key={sess.email} me0={{ email: sess.email, uid: sess.uid, vip: 1, reputation: 100 }} logout={logout} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />
+        ) : auth.page === "register" || auth.page === "forgot" ? (
+          <Register key={auth.page} mode={auth.page} onLogin={login} go={goAuth} />
+        ) : (
+          <Login key={auth.flash} onLogin={login} lang={lang} setLang={setLang} go={goAuth} flash={auth.flash} />
+        )}
+      </div>
+    </LangCtx.Provider>
   );
 }
-
-export default App;
