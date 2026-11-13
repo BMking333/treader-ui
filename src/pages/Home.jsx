@@ -1,12 +1,12 @@
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import img1 from "../assets/Image1.png";
-import img2 from "../assets/Image2.png";
-import img3 from "../assets/Image3.png";
+import img1 from "./assets/Image1.png";
+import img2 from "./assets/Image2.png";
+import img3 from "./assets/Image3.png";
 
 /* =====================================================================
    CexApp.jsx — এক ফাইলে পুরো অ্যাপ (lib + Home + Dashboard + Login + Register)
+   ফাইল রাখুন: src/CexApp.jsx   |   ছবি: src/assets/Image1.png, Image2.png, Image3.png
    ব্যবহার:  import CexApp from "./CexApp";   <CexApp />
-   ছবির পাথ (../assets/ImageN.png) ফাইলের জায়গা অনুযায়ী ঠিক করে নিন।
    ===================================================================== */
 
 /* ====== BACKEND URL (এখানে বদলান) ====== */
