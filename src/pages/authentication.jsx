@@ -3,7 +3,7 @@ import { LangCtx, API, TOKEN, api, T3 } from "./Home";
 
 /* =====================================================================
    src/pages/authentication.jsx — Identity verification (KYC)
-   Backend: POST /kyc/submit (multipart: doc_type, front, back)
+   Backend: POST /kyc/submit (multipart: doc_type, name, front, back)
             GET  /kyc/status
             GET  /kyc/file/{doc_id}/{front|back}  (Bearer token লাগে → blob হিসেবে আনা হয়)
    ===================================================================== */
@@ -111,6 +111,11 @@ const CSS = `
 .cx-kc-top h1{margin:0;font-size:17px;font-weight:400;text-align:center;color:#fff}
 .cx-kc-top button{font-size:30px;line-height:1;height:46px;display:grid;place-items:center;text-align:center!important;color:#fff}
 .cx[dir=rtl] .cx-kc-top button{transform:scaleX(-1)}
+.cx-kc-name{display:flex;align-items:center;gap:30px;margin:0;padding:0 16px;height:46px;background:#0f2030}
+.cx-kc-name label{font-size:14px;font-weight:600;min-width:56px}
+.cx-kc-name input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#fff;font-size:14px}
+.cx-kc-name input::placeholder{color:#b9c1cd}
+.cx-kc-line{height:1px;background:#3a4b5e;margin:0 16px}
 .cx-kc-sec{padding:14px 16px 0;font-size:14px;color:#fff}
 .cx-kc-docs .cx-kc-box{cursor:default}
 .cx-kc-ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
@@ -133,6 +138,7 @@ const CSS = `
 export default function Authentication({ W, go }) {
   const tr = useTr();
   const alive = useRef(true);
+  const [name, setName] = useState("");
   const [front, setFront] = useState(null);
   const [back, setBack] = useState(null);
   const [pf, setPf] = useState("");
@@ -208,12 +214,14 @@ export default function Authentication({ W, go }) {
   const submit = async () => {
     if (busy) return;
     if (W.guest) return W.needLogin();
+    if (!name.trim()) return setMsg({ k: "eName", s: "bad" });
     if (!front || !back) return setMsg({ k: "ePhotos", s: "bad" });
     setBusy(true);
     setMsg({ k: "wait2", s: "info" });
     try {
       const fd = new FormData();
       fd.append("doc_type", DOC_TYPE);
+      fd.append("name", name.trim());
       fd.append("front", front, "front.jpg");
       fd.append("back", back, "back.jpg");
       let r;
@@ -268,7 +276,9 @@ export default function Authentication({ W, go }) {
 
       {doc && (df || db) && (
         <div className="cx-kc-docs">
-          <div className="cx-kc-sec">{tr("yourDocs")}</div>
+          <div className="cx-kc-sec">
+            {tr("yourDocs")}{doc.full_name ? " — " + doc.full_name : ""}
+          </div>
           <div style={{ height: 8 }} />
           <div className="cx-kc-ups">
             <div className="cx-kc-up">
@@ -285,6 +295,17 @@ export default function Authentication({ W, go }) {
 
       {!locked && (
         <>
+          <div className="cx-kc-name">
+            <label>{tr("name")}</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={tr("namePh")}
+              autoComplete="name"
+              maxLength={120}
+            />
+          </div>
+          <div className="cx-kc-line" />
           <div className="cx-kc-sec">{tr("upPhoto")}</div>
           <div style={{ height: 8 }} />
           <div className="cx-kc-ups">
