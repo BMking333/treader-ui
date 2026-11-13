@@ -62,6 +62,33 @@ const kind = (s) => {
   return "none";
 };
 
+/* ছবি → JPEG (সর্বোচ্চ 1600px) — webp/png/বড় ছবির কারণে 400 এড়াতে */
+const toJpeg = (file, max = 1600, q = 0.85) =>
+  new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        let w = img.naturalWidth, h = img.naturalHeight;
+        const sc = Math.min(1, max / Math.max(w, h));
+        w = Math.round(w * sc); h = Math.round(h * sc);
+        const c = document.createElement("canvas");
+        c.width = w; c.height = h;
+        const ctx = c.getContext("2d");
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, 0, 0, w, h);
+        c.toBlob((b) => {
+          URL.revokeObjectURL(url);
+          if (!b) return reject(new Error("badType"));
+          resolve(new File([b], "id.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg", q);
+      } catch (e) { URL.revokeObjectURL(url); reject(new Error("badType")); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("badType")); };
+    img.src = url;
+  });
+
 const CamI = () => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
     <path d="M9 2L7.2 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-3.2L15 2zm3 15a5 5 0 110-10 5 5 0 010 10zm0-2a3 3 0 100-6 3 3 0 000 6z" />
@@ -135,14 +162,19 @@ export default function Authentication({ W, go }) {
     return () => URL.revokeObjectURL(u);
   }, [back]);
 
-  const pick = (set) => (e) => {
+  const pick = (set) => async (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = "";
     if (!f) return;
     if (f.type && !f.type.startsWith("image/")) return setMsg({ k: "badType", s: "bad" });
-    if (f.size > MAX_MB * 1024 * 1024) return setMsg({ k: "tooBig", s: "bad" });
-    setMsg({ k: "", s: "bad" });
-    set(f);
+    try {
+      const j = await toJpeg(f);
+      if (j.size > MAX_MB * 1024 * 1024) return setMsg({ k: "tooBig", s: "bad" });
+      setMsg({ k: "", s: "bad" });
+      set(j);
+    } catch {
+      setMsg({ k: "badType", s: "bad" });
+    }
   };
 
   const submit = async () => {
@@ -156,8 +188,8 @@ export default function Authentication({ W, go }) {
       const fd = new FormData();
       fd.append("doc_type", DOC_TYPE);
       fd.append("name", name.trim()); /* ব্যাকএন্ড এখন ignore করে; Form("name") যোগ করলে সেভ হবে */
-      fd.append("front", front);
-      fd.append("back", back);
+      fd.append("front", front, "front.jpg");
+      fd.append("back", back, "back.jpg");
       let r;
       try {
         r = await fetch(API + "/kyc/submit", {
@@ -182,7 +214,8 @@ export default function Authentication({ W, go }) {
       loadStatus();
     } catch (e) {
       const code = e && e.message;
-      if (alive.current) setMsg({ k: known(code) ? code : "errGeneric", s: "bad" });
+      console.log("KYC error:", code);
+      if (alive.current) setMsg({ k: known(code) ? code : "errGeneric", s: "bad", raw: known(code) ? "" : code });
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -232,7 +265,7 @@ export default function Authentication({ W, go }) {
 
           {msg.k && (
             <p className={"cx-kc-msg" + (msg.s === "ok" ? " ok" : msg.s === "bad" ? " bad" : "")}>
-              {tr(msg.k)}
+              {tr(msg.k)}{msg.raw ? " (" + msg.raw + ")" : ""}
             </p>
           )}
 
