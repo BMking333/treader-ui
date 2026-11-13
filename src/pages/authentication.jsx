@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { LangCtx, API, TOKEN, api } from "./Home";
+import { LangCtx, API, TOKEN, api, T3 } from "./Home";
 
 /* =====================================================================
    src/pages/authentication.jsx — Identity verification (KYC)
-   Backend: POST /kyc/submit (multipart: doc_type, front, back)
+   Backend: POST /kyc/submit (multipart: doc_type, front, back [, name])
             GET  /kyc/status
    ===================================================================== */
 
@@ -12,24 +12,24 @@ const MAX_MB = 8;
 
 const KEYS = [
   "title", "name", "namePh", "upPhoto", "front", "back", "confirm", "eName", "ePhotos", "tooBig",
-  "okSub", "stPending", "stVerified", "stRejected", "wait2", "errGeneric",
+  "okSub", "stPending", "stVerified", "stRejected", "wait2", "errGeneric", "badType",
 ];
 
 const RAW = {
-  en: ["Identity verification", "Name", "Please enter your real name", "Upload ID photo", "Upload front side of ID", "Upload back side of ID", "Confirm", "Please enter your real name", "Please upload both sides of your ID", "Image is too large (max 8 MB)", "Submitted. Awaiting review", "Your documents are under review", "Your identity is verified", "Verification was rejected. Please submit again", "Please wait...", "Request failed"],
-  bn: ["পরিচয় যাচাই", "নাম", "আপনার আসল নাম লিখুন", "আইডি ছবি আপলোড করুন", "আইডির সামনের পাশ আপলোড করুন", "আইডির পেছনের পাশ আপলোড করুন", "নিশ্চিত করুন", "আপনার আসল নাম লিখুন", "আইডির দুই পাশের ছবি আপলোড করুন", "ছবি অনেক বড় (সর্বোচ্চ ৮ MB)", "জমা হয়েছে। যাচাইয়ের অপেক্ষায়", "আপনার ডকুমেন্ট যাচাই চলছে", "আপনার পরিচয় যাচাই হয়েছে", "যাচাই বাতিল হয়েছে। আবার জমা দিন", "অপেক্ষা করুন...", "অনুরোধ ব্যর্থ হয়েছে"],
-  hi: ["पहचान सत्यापन", "नाम", "अपना असली नाम दर्ज करें", "आईडी फोटो अपलोड करें", "आईडी का अगला भाग अपलोड करें", "आईडी का पिछला भाग अपलोड करें", "पुष्टि करें", "अपना असली नाम दर्ज करें", "आईडी के दोनों तरफ की फोटो अपलोड करें", "फोटो बहुत बड़ी है (अधिकतम 8 MB)", "जमा हुआ। समीक्षा की प्रतीक्षा", "आपके दस्तावेज़ समीक्षा में हैं", "आपकी पहचान सत्यापित है", "सत्यापन अस्वीकृत हुआ। कृपया फिर जमा करें", "कृपया प्रतीक्षा करें...", "अनुरोध विफल रहा"],
-  ur: ["شناخت کی تصدیق", "نام", "اپنا اصل نام درج کریں", "شناختی کارڈ کی تصویر اپ لوڈ کریں", "شناختی کارڈ کا اگلا حصہ اپ لوڈ کریں", "شناختی کارڈ کا پچھلا حصہ اپ لوڈ کریں", "تصدیق کریں", "اپنا اصل نام درج کریں", "شناختی کارڈ کے دونوں طرف کی تصویر اپ لوڈ کریں", "تصویر بہت بڑی ہے (زیادہ سے زیادہ 8 MB)", "جمع ہو گیا۔ جائزے کا انتظار", "آپ کے دستاویزات زیر جائزہ ہیں", "آپ کی شناخت تصدیق شدہ ہے", "تصدیق مسترد ہو گئی۔ دوبارہ جمع کریں", "براہ کرم انتظار کریں...", "درخواست ناکام ہو گئی"],
-  ar: ["التحقق من الهوية", "الاسم", "أدخل اسمك الحقيقي", "ارفع صورة الهوية", "ارفع الوجه الأمامي للهوية", "ارفع الوجه الخلفي للهوية", "تأكيد", "أدخل اسمك الحقيقي", "يرجى رفع وجهي الهوية", "الصورة كبيرة جدا (الحد الأقصى 8 MB)", "تم الإرسال. بانتظار المراجعة", "مستنداتك قيد المراجعة", "تم التحقق من هويتك", "تم رفض التحقق. يرجى الإرسال مرة أخرى", "يرجى الانتظار...", "فشل الطلب"],
-  fr: ["Vérification d'identité", "Nom", "Saisissez votre vrai nom", "Téléverser la photo de la pièce d'identité", "Téléverser le recto", "Téléverser le verso", "Confirmer", "Saisissez votre vrai nom", "Veuillez téléverser les deux faces", "Image trop volumineuse (max 8 Mo)", "Envoyé. En attente de vérification", "Vos documents sont en cours d'examen", "Votre identité est vérifiée", "Vérification refusée. Veuillez renvoyer", "Veuillez patienter...", "Échec de la requête"],
-  es: ["Verificación de identidad", "Nombre", "Ingrese su nombre real", "Subir foto del documento", "Subir frente del documento", "Subir reverso del documento", "Confirmar", "Ingrese su nombre real", "Suba ambos lados del documento", "Imagen demasiado grande (máx. 8 MB)", "Enviado. Pendiente de revisión", "Sus documentos están en revisión", "Su identidad está verificada", "Verificación rechazada. Envíe de nuevo", "Espere por favor...", "La solicitud falló"],
-  de: ["Identitätsprüfung", "Name", "Geben Sie Ihren echten Namen ein", "Ausweisfoto hochladen", "Vorderseite des Ausweises hochladen", "Rückseite des Ausweises hochladen", "Bestätigen", "Geben Sie Ihren echten Namen ein", "Bitte beide Seiten des Ausweises hochladen", "Bild zu groß (max. 8 MB)", "Gesendet. Warten auf Prüfung", "Ihre Dokumente werden geprüft", "Ihre Identität ist verifiziert", "Verifizierung abgelehnt. Bitte erneut senden", "Bitte warten...", "Anfrage fehlgeschlagen"],
-  pt: ["Verificação de identidade", "Nome", "Digite seu nome real", "Enviar foto do documento", "Enviar frente do documento", "Enviar verso do documento", "Confirmar", "Digite seu nome real", "Envie os dois lados do documento", "Imagem muito grande (máx. 8 MB)", "Enviado. Aguardando análise", "Seus documentos estão em análise", "Sua identidade foi verificada", "Verificação recusada. Envie novamente", "Aguarde...", "Falha na solicitação"],
-  ru: ["Проверка личности", "Имя", "Введите ваше настоящее имя", "Загрузите фото документа", "Загрузить лицевую сторону", "Загрузить оборотную сторону", "Подтвердить", "Введите ваше настоящее имя", "Загрузите обе стороны документа", "Файл слишком большой (макс. 8 МБ)", "Отправлено. Ожидает проверки", "Ваши документы на проверке", "Ваша личность подтверждена", "Проверка отклонена. Отправьте снова", "Подождите...", "Запрос не выполнен"],
-  tr: ["Kimlik doğrulama", "Ad", "Gerçek adınızı girin", "Kimlik fotoğrafı yükle", "Kimliğin ön yüzünü yükle", "Kimliğin arka yüzünü yükle", "Onayla", "Gerçek adınızı girin", "Kimliğin iki yüzünü de yükleyin", "Görsel çok büyük (en fazla 8 MB)", "Gönderildi. İnceleme bekleniyor", "Belgeleriniz inceleniyor", "Kimliğiniz doğrulandı", "Doğrulama reddedildi. Tekrar gönderin", "Lütfen bekleyin...", "İstek başarısız"],
-  zh: ["实名认证", "姓名", "请输入真实姓名", "上传证件照片", "上传证件正面", "上传证件反面", "确认", "请输入真实姓名", "请上传证件正反面", "图片过大（最大 8 MB）", "已提交，等待审核", "您的资料正在审核中", "您已通过实名认证", "认证被拒绝，请重新提交", "请稍候...", "请求失败"],
-  ja: ["本人確認", "氏名", "本名を入力してください", "身分証の写真をアップロード", "身分証の表面をアップロード", "身分証の裏面をアップロード", "確認", "本名を入力してください", "身分証の両面をアップロードしてください", "画像が大きすぎます（最大8MB）", "送信しました。審査をお待ちください", "書類を審査中です", "本人確認が完了しました", "確認が却下されました。再送信してください", "お待ちください...", "リクエストに失敗しました"],
-  id: ["Verifikasi identitas", "Nama", "Masukkan nama asli Anda", "Unggah foto KTP", "Unggah sisi depan KTP", "Unggah sisi belakang KTP", "Konfirmasi", "Masukkan nama asli Anda", "Unggah kedua sisi KTP", "Gambar terlalu besar (maks. 8 MB)", "Terkirim. Menunggu tinjauan", "Dokumen Anda sedang ditinjau", "Identitas Anda telah terverifikasi", "Verifikasi ditolak. Kirim ulang", "Harap tunggu...", "Permintaan gagal"],
+  en: ["Identity verification", "Name", "Please enter your real name", "Upload ID photo", "Upload front side of ID", "Upload back side of ID", "Confirm", "Please enter your real name", "Please upload both sides of your ID", "Image is too large (max 8 MB)", "Submitted. Awaiting review", "Your documents are under review", "Your identity is verified", "Verification was rejected. Please submit again", "Please wait...", "Request failed", "Please choose an image file"],
+  bn: ["পরিচয় যাচাই", "নাম", "আপনার আসল নাম লিখুন", "আইডি ছবি আপলোড করুন", "আইডির সামনের পাশ আপলোড করুন", "আইডির পেছনের পাশ আপলোড করুন", "নিশ্চিত করুন", "আপনার আসল নাম লিখুন", "আইডির দুই পাশের ছবি আপলোড করুন", "ছবি অনেক বড় (সর্বোচ্চ ৮ MB)", "জমা হয়েছে। যাচাইয়ের অপেক্ষায়", "আপনার ডকুমেন্ট যাচাই চলছে", "আপনার পরিচয় যাচাই হয়েছে", "যাচাই বাতিল হয়েছে। আবার জমা দিন", "অপেক্ষা করুন...", "অনুরোধ ব্যর্থ হয়েছে", "একটি ছবির ফাইল বেছে নিন"],
+  hi: ["पहचान सत्यापन", "नाम", "अपना असली नाम दर्ज करें", "आईडी फोटो अपलोड करें", "आईडी का अगला भाग अपलोड करें", "आईडी का पिछला भाग अपलोड करें", "पुष्टि करें", "अपना असली नाम दर्ज करें", "आईडी के दोनों तरफ की फोटो अपलोड करें", "फोटो बहुत बड़ी है (अधिकतम 8 MB)", "जमा हुआ। समीक्षा की प्रतीक्षा", "आपके दस्तावेज़ समीक्षा में हैं", "आपकी पहचान सत्यापित है", "सत्यापन अस्वीकृत हुआ। कृपया फिर जमा करें", "कृपया प्रतीक्षा करें...", "अनुरोध विफल रहा", "कृपया इमेज फ़ाइल चुनें"],
+  ur: ["شناخت کی تصدیق", "نام", "اپنا اصل نام درج کریں", "شناختی کارڈ کی تصویر اپ لوڈ کریں", "شناختی کارڈ کا اگلا حصہ اپ لوڈ کریں", "شناختی کارڈ کا پچھلا حصہ اپ لوڈ کریں", "تصدیق کریں", "اپنا اصل نام درج کریں", "شناختی کارڈ کے دونوں طرف کی تصویر اپ لوڈ کریں", "تصویر بہت بڑی ہے (زیادہ سے زیادہ 8 MB)", "جمع ہو گیا۔ جائزے کا انتظار", "آپ کے دستاویزات زیر جائزہ ہیں", "آپ کی شناخت تصدیق شدہ ہے", "تصدیق مسترد ہو گئی۔ دوبارہ جمع کریں", "براہ کرم انتظار کریں...", "درخواست ناکام ہو گئی", "براہ کرم تصویر کی فائل منتخب کریں"],
+  ar: ["التحقق من الهوية", "الاسم", "أدخل اسمك الحقيقي", "ارفع صورة الهوية", "ارفع الوجه الأمامي للهوية", "ارفع الوجه الخلفي للهوية", "تأكيد", "أدخل اسمك الحقيقي", "يرجى رفع وجهي الهوية", "الصورة كبيرة جدا (الحد الأقصى 8 MB)", "تم الإرسال. بانتظار المراجعة", "مستنداتك قيد المراجعة", "تم التحقق من هويتك", "تم رفض التحقق. يرجى الإرسال مرة أخرى", "يرجى الانتظار...", "فشل الطلب", "يرجى اختيار ملف صورة"],
+  fr: ["Vérification d'identité", "Nom", "Saisissez votre vrai nom", "Téléverser la photo de la pièce d'identité", "Téléverser le recto", "Téléverser le verso", "Confirmer", "Saisissez votre vrai nom", "Veuillez téléverser les deux faces", "Image trop volumineuse (max 8 Mo)", "Envoyé. En attente de vérification", "Vos documents sont en cours d'examen", "Votre identité est vérifiée", "Vérification refusée. Veuillez renvoyer", "Veuillez patienter...", "Échec de la requête", "Veuillez choisir une image"],
+  es: ["Verificación de identidad", "Nombre", "Ingrese su nombre real", "Subir foto del documento", "Subir frente del documento", "Subir reverso del documento", "Confirmar", "Ingrese su nombre real", "Suba ambos lados del documento", "Imagen demasiado grande (máx. 8 MB)", "Enviado. Pendiente de revisión", "Sus documentos están en revisión", "Su identidad está verificada", "Verificación rechazada. Envíe de nuevo", "Espere por favor...", "La solicitud falló", "Elija un archivo de imagen"],
+  de: ["Identitätsprüfung", "Name", "Geben Sie Ihren echten Namen ein", "Ausweisfoto hochladen", "Vorderseite des Ausweises hochladen", "Rückseite des Ausweises hochladen", "Bestätigen", "Geben Sie Ihren echten Namen ein", "Bitte beide Seiten des Ausweises hochladen", "Bild zu groß (max. 8 MB)", "Gesendet. Warten auf Prüfung", "Ihre Dokumente werden geprüft", "Ihre Identität ist verifiziert", "Verifizierung abgelehnt. Bitte erneut senden", "Bitte warten...", "Anfrage fehlgeschlagen", "Bitte eine Bilddatei wählen"],
+  pt: ["Verificação de identidade", "Nome", "Digite seu nome real", "Enviar foto do documento", "Enviar frente do documento", "Enviar verso do documento", "Confirmar", "Digite seu nome real", "Envie os dois lados do documento", "Imagem muito grande (máx. 8 MB)", "Enviado. Aguardando análise", "Seus documentos estão em análise", "Sua identidade foi verificada", "Verificação recusada. Envie novamente", "Aguarde...", "Falha na solicitação", "Escolha um arquivo de imagem"],
+  ru: ["Проверка личности", "Имя", "Введите ваше настоящее имя", "Загрузите фото документа", "Загрузить лицевую сторону", "Загрузить оборотную сторону", "Подтвердить", "Введите ваше настоящее имя", "Загрузите обе стороны документа", "Файл слишком большой (макс. 8 МБ)", "Отправлено. Ожидает проверки", "Ваши документы на проверке", "Ваша личность подтверждена", "Проверка отклонена. Отправьте снова", "Подождите...", "Запрос не выполнен", "Выберите файл изображения"],
+  tr: ["Kimlik doğrulama", "Ad", "Gerçek adınızı girin", "Kimlik fotoğrafı yükle", "Kimliğin ön yüzünü yükle", "Kimliğin arka yüzünü yükle", "Onayla", "Gerçek adınızı girin", "Kimliğin iki yüzünü de yükleyin", "Görsel çok büyük (en fazla 8 MB)", "Gönderildi. İnceleme bekleniyor", "Belgeleriniz inceleniyor", "Kimliğiniz doğrulandı", "Doğrulama reddedildi. Tekrar gönderin", "Lütfen bekleyin...", "İstek başarısız", "Lütfen bir görsel dosyası seçin"],
+  zh: ["实名认证", "姓名", "请输入真实姓名", "上传证件照片", "上传证件正面", "上传证件反面", "确认", "请输入真实姓名", "请上传证件正反面", "图片过大（最大 8 MB）", "已提交，等待审核", "您的资料正在审核中", "您已通过实名认证", "认证被拒绝，请重新提交", "请稍候...", "请求失败", "请选择图片文件"],
+  ja: ["本人確認", "氏名", "本名を入力してください", "身分証の写真をアップロード", "身分証の表面をアップロード", "身分証の裏面をアップロード", "確認", "本名を入力してください", "身分証の両面をアップロードしてください", "画像が大きすぎます（最大8MB）", "送信しました。審査をお待ちください", "書類を審査中です", "本人確認が完了しました", "確認が却下されました。再送信してください", "お待ちください...", "リクエストに失敗しました", "画像ファイルを選択してください"],
+  id: ["Verifikasi identitas", "Nama", "Masukkan nama asli Anda", "Unggah foto KTP", "Unggah sisi depan KTP", "Unggah sisi belakang KTP", "Konfirmasi", "Masukkan nama asli Anda", "Unggah kedua sisi KTP", "Gambar terlalu besar (maks. 8 MB)", "Terkirim. Menunggu tinjauan", "Dokumen Anda sedang ditinjau", "Identitas Anda telah terverifikasi", "Verifikasi ditolak. Kirim ulang", "Harap tunggu...", "Permintaan gagal", "Pilih file gambar"],
 };
 
 const AUTH = {};
@@ -38,10 +38,19 @@ Object.keys(RAW).forEach((l) => {
   KEYS.forEach((k, i) => { if (RAW[l][i] != null) AUTH[l][k] = RAW[l][i]; });
 });
 
+/* অনুবাদ খোঁজার ক্রম: AUTH[lang] → AUTH.en → T3[lang] → T3.en → t(k) */
 const useTr = () => {
   const { lang, t } = useContext(LangCtx);
-  return (k) => (AUTH[lang] && AUTH[lang][k]) ?? AUTH.en[k] ?? t(k);
+  return (k) =>
+    (AUTH[lang] && AUTH[lang][k]) ??
+    AUTH.en[k] ??
+    (T3[lang] && T3[lang][k]) ??
+    (T3.en && T3.en[k]) ??
+    t(k);
 };
+
+/* অনুবাদ আছে কি না (ব্যাকএন্ডের অচেনা error code হলে errGeneric দেখাতে) */
+const known = (k) => !!(AUTH.en[k] || (T3.en && T3.en[k]));
 
 /* verify_status → none | wait | ok | bad */
 const kind = (s) => {
@@ -73,11 +82,11 @@ const CSS = `
 .cx-kc-line{height:1px;background:#3a4b5e;margin:0 16px}
 .cx-kc-sec{padding:10px 16px 0;font-size:14px;color:#fff}
 .cx-kc-ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
-.cx-kc-up{display:flex;flex-direction:column;align-items:center;text-align:center!important;padding:0}
+.cx-kc-up{display:flex;flex-direction:column;align-items:center;text-align:center!important;padding:0;cursor:pointer}
 .cx-kc-box{width:100%;height:190px;display:grid;place-items:center;color:#fff;overflow:hidden;border-radius:8px}
 .cx-kc-box img{width:100%;height:100%;object-fit:cover;display:block}
 .cx-kc-box.has{border:1px solid #2a3a50;background:#101c2d}
-.cx-kc-lb{font-size:14px;color:#fff;margin:0 0 4px;padding:0 4px}
+.cx-kc-lb{font-size:14px;color:#fff;margin:6px 0 4px;padding:0 4px}
 .cx-kc-up input{display:none}
 .cx-kc-btn{display:block;width:calc(100% - 32px);margin:14px 16px 0;height:44px;border-radius:8px;background:#1a82d6!important;color:#fff!important;font-size:14px;text-align:center!important}
 .cx-kc-btn:disabled{opacity:.6}
@@ -98,7 +107,8 @@ export default function Authentication({ W, go }) {
   const [pf, setPf] = useState("");
   const [pb, setPb] = useState("");
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState({ k: "", ok: false });
+  /* msg.s: "ok" (সবুজ) | "info" (নীল) | "bad" (লাল) */
+  const [msg, setMsg] = useState({ k: "", s: "bad" });
   const [st, setSt] = useState("none");
 
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
@@ -112,34 +122,49 @@ export default function Authentication({ W, go }) {
   useEffect(() => { if (!W.guest) loadStatus(); }, []); // eslint-disable-line
 
   /* preview URL cleanup */
-  useEffect(() => { if (!front) { setPf(""); return; } const u = URL.createObjectURL(front); setPf(u); return () => URL.revokeObjectURL(u); }, [front]);
-  useEffect(() => { if (!back) { setPb(""); return; } const u = URL.createObjectURL(back); setPb(u); return () => URL.revokeObjectURL(u); }, [back]);
+  useEffect(() => {
+    if (!front) { setPf(""); return; }
+    const u = URL.createObjectURL(front);
+    setPf(u);
+    return () => URL.revokeObjectURL(u);
+  }, [front]);
+  useEffect(() => {
+    if (!back) { setPb(""); return; }
+    const u = URL.createObjectURL(back);
+    setPb(u);
+    return () => URL.revokeObjectURL(u);
+  }, [back]);
 
   const pick = (set) => (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = "";
     if (!f) return;
-    if (f.size > MAX_MB * 1024 * 1024) return setMsg({ k: "tooBig", ok: false });
-    setMsg({ k: "", ok: false });
+    if (f.type && !f.type.startsWith("image/")) return setMsg({ k: "badType", s: "bad" });
+    if (f.size > MAX_MB * 1024 * 1024) return setMsg({ k: "tooBig", s: "bad" });
+    setMsg({ k: "", s: "bad" });
     set(f);
   };
 
   const submit = async () => {
     if (busy) return;
     if (W.guest) return W.needLogin();
-    if (!name.trim()) return setMsg({ k: "eName", ok: false });
-    if (!front || !back) return setMsg({ k: "ePhotos", ok: false });
+    if (!name.trim()) return setMsg({ k: "eName", s: "bad" });
+    if (!front || !back) return setMsg({ k: "ePhotos", s: "bad" });
     setBusy(true);
-    setMsg({ k: "wait2", ok: true });
+    setMsg({ k: "wait2", s: "info" });
     try {
       const fd = new FormData();
       fd.append("doc_type", DOC_TYPE);
-      fd.append("name", name.trim());
+      fd.append("name", name.trim()); /* ব্যাকএন্ড এখন ignore করে; Form("name") যোগ করলে সেভ হবে */
       fd.append("front", front);
       fd.append("back", back);
       let r;
       try {
-        r = await fetch(API + "/kyc/submit", { method: "POST", headers: TOKEN ? { Authorization: "Bearer " + TOKEN } : {}, body: fd });
+        r = await fetch(API + "/kyc/submit", {
+          method: "POST",
+          headers: TOKEN ? { Authorization: "Bearer " + TOKEN } : {},
+          body: fd,
+        });
       } catch { throw new Error("neterr"); }
       let j = null;
       try { j = await r.json(); } catch {}
@@ -148,10 +173,16 @@ export default function Authentication({ W, go }) {
         const d = j && j.detail;
         throw new Error(typeof d === "string" ? d : "errGeneric");
       }
-      if (alive.current) { setMsg({ k: "okSub", ok: true }); setSt("wait"); setFront(null); setBack(null); }
+      if (alive.current) {
+        setMsg({ k: "okSub", s: "ok" });
+        setSt("wait");
+        setFront(null);
+        setBack(null);
+      }
       loadStatus();
     } catch (e) {
-      if (alive.current) setMsg({ k: e.message || "errGeneric", ok: false });
+      const code = e && e.message;
+      if (alive.current) setMsg({ k: known(code) ? code : "errGeneric", s: "bad" });
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -176,7 +207,12 @@ export default function Authentication({ W, go }) {
         <>
           <div className="cx-kc-name">
             <label>{tr("name")}</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("namePh")} autoComplete="name" />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={tr("namePh")}
+              autoComplete="name"
+            />
           </div>
           <div className="cx-kc-line" />
           <div className="cx-kc-sec">{tr("upPhoto")}</div>
@@ -194,7 +230,11 @@ export default function Authentication({ W, go }) {
             </label>
           </div>
 
-          {msg.k && <p className={"cx-kc-msg" + (msg.ok ? (msg.k === "okSub" ? " ok" : "") : " bad")}>{tr(msg.k)}</p>}
+          {msg.k && (
+            <p className={"cx-kc-msg" + (msg.s === "ok" ? " ok" : msg.s === "bad" ? " bad" : "")}>
+              {tr(msg.k)}
+            </p>
+          )}
 
           <button type="button" className="cx-kc-btn" onClick={submit} disabled={busy}>
             {busy ? tr("wait2") : tr("confirm")}
