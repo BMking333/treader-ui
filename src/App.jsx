@@ -1,5 +1,5 @@
 import React from "react";
-import CexApp from "./CexApp";
+import CexApp from "./pages/Home";
 
 export default function App() {
   return <CexApp />;
