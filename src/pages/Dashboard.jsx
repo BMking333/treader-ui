@@ -3,15 +3,17 @@ import Home, { useT, api, usePrices, Ic, ICON, COINS } from "./Home";
 import SideMenu from "./sidebar";
 import Deposit from "./depsoted";
 import Withdraw from "./withdrew";
+import Authentication from "./authentication";
 import { Market, Exchange, Options, Assets } from "./trading";
 
 /* =====================================================================
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
-   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw
+   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication
    ===================================================================== */
 
-const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw" };
+const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication" };
 const HAS_SYM = ["exchange", "options"];
+const DARK_PAGES = ["options", "auth"];
 
 const urlFor = (page, sym) => PATHS[page] + (HAS_SYM.includes(page) ? "?s=" + sym : "");
 
@@ -119,7 +121,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
     <>
-      <div className={"cx-pg" + (page === "options" ? " od" : "")}>
+      <div className={"cx-pg" + (DARK_PAGES.includes(page) ? " od" : "")}>
         {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} />}
         {page === "market" && <Market P={P} go={go} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={pickSym} go={go} spot={spot} />}
@@ -127,6 +129,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
         {page === "assets" && <Assets P={P} W={W} />}
         {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
         {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
+        {page === "auth" && <Authentication W={W} go={go} />}
       </div>
       <SideMenu open={menu} onClose={() => setMenu(false)} me={authed ? me : null} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} guest={!authed} askLogin={askLogin} />
       {toast && <div className="cx-toast">{toast}</div>}
