@@ -99,7 +99,11 @@ function Shell({ title, sub, onBack, lang, setLang, children, cs, setCs }) {
         </button>
 
         <div className="cx-pt2">
-          {setLang && <LangPicker lang={lang} setLang={setLang} />}
+          {setLang && (
+            <div style={{ position: "relative", zIndex: 60 }}>
+              <LangPicker lang={lang} setLang={setLang} />
+            </div>
+          )}
 
           <button type="button" onClick={() => setCs(true)} aria-label="Customer Support">
             <Ic d={ICON.headset} s={26} />
@@ -180,7 +184,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
       await onLogin(r);
     } catch (er) {
-      if (alive.current) setMsg({ k: er.message, ok: false });
+      if (alive.current) setMsg({ k: er.message || "err", ok: false });
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -243,7 +247,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
         onClick={login}
         disabled={busy}
       >
-        {busy ? tr("wait", "Please Wait...") : t("login")}
+        {busy ? t("wait2") : t("login")}
       </button>
 
       <div className="cx-pdiv">
@@ -355,7 +359,7 @@ export function Register({ mode = "register", onLogin, go, lang, setLang }) {
 
       await onLogin(r);
     } catch (er) {
-      if (alive.current) setMsg({ k: er.message, ok: false });
+      if (alive.current) setMsg({ k: er.message || "err", ok: false });
     } finally {
       if (alive.current) setBusy(false);
     }
@@ -430,7 +434,7 @@ export function Register({ mode = "register", onLogin, go, lang, setLang }) {
         onClick={run}
         disabled={busy}
       >
-        {busy ? tr("wait", "Please Wait...") : t("register")}
+        {busy ? t("wait2") : t("register")}
       </button>
 
       <div className="cx-pdiv">
