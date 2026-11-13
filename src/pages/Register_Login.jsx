@@ -1,14 +1,5 @@
-
-import React, { useState } from "react";
-import {
-  useT,
-  store,
-  api,
-  Ic,
-  ICON,
-  LangPicker,
-  CSheet
-} from "./Home";
+import React, { useEffect, useRef, useState } from "react";
+import { useT, store, api, Ic, ICON, LangPicker, CSheet } from "./Home";
 
 /* =====================================================================
    Register_Login.jsx
@@ -17,16 +8,19 @@ import {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/* translate with fallback when the key is missing */
+const useTr = () => {
+  const t = useT();
+  return (k, fb) => {
+    const v = t(k);
+    return v === k ? fb : v;
+  };
+};
+
 /* ---------- ICONS ---------- */
 
 const MailI = () => (
-  <svg
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="currentColor"
-    fillRule="evenodd"
-  >
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fillRule="evenodd">
     <path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1zm1.6 2L12 12.4 19.4 7z" />
   </svg>
 );
@@ -35,13 +29,7 @@ const EyeI = ({ off }) => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
     <path d={ICON.eye} />
     {off && (
-      <path
-        d="M3 3l18 18"
-        stroke="currentColor"
-        strokeWidth="2.2"
-        strokeLinecap="round"
-        fill="none"
-      />
+      <path d="M3 3l18 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" fill="none" />
     )}
   </svg>
 );
@@ -60,17 +48,7 @@ const Logo = () => (
 
 /* ---------- INPUT FIELD ---------- */
 
-function Field({
-  label,
-  icon,
-  type = "text",
-  value,
-  onChange,
-  onKeyDown,
-  auto,
-  placeholder,
-  err
-}) {
+function Field({ label, icon, type = "text", value, onChange, onKeyDown, auto, placeholder, err }) {
   const [show, setShow] = useState(false);
   const isPw = type === "password";
 
@@ -108,44 +86,22 @@ function Field({
 }
 
 /* ---------- PAGE SHELL ---------- */
+/* Support sheet state is owned by the parent page (cs / setCs) */
 
-function Shell({
-  title,
-  sub,
-  onBack,
-  lang,
-  setLang,
-  children,
-  onSupportReady
-}) {
+function Shell({ title, sub, onBack, lang, setLang, children, cs, setCs }) {
   const t = useT();
-  const [cs, setCs] = useState(false);
-
-  const openSupport = () => {
-    setCs(true);
-  };
-
-  React.useEffect(() => {
-    onSupportReady?.(openSupport);
-  }, [onSupportReady]);
 
   return (
     <div className="cx-pg cx-au">
-
       <div className="cx-pt">
-        <button onClick={onBack} aria-label="Back">
+        <button type="button" onClick={onBack} aria-label="Back">
           ‹
         </button>
 
         <div className="cx-pt2">
-          {setLang && (
-            <LangPicker lang={lang} setLang={setLang} />
-          )}
+          {setLang && <LangPicker lang={lang} setLang={setLang} />}
 
-          <button
-            onClick={openSupport}
-            aria-label="Customer Support"
-          >
+          <button type="button" onClick={() => setCs(true)} aria-label="Customer Support">
             <Ic d={ICON.headset} s={26} />
           </button>
         </div>
@@ -157,37 +113,31 @@ function Shell({
         <p>{sub}</p>
       </div>
 
-      <div className="cx-pcard">
-        {children}
-      </div>
+      <div className="cx-pcard">{children}</div>
 
-      <button
-        className="cx-pcs"
-        onClick={openSupport}
-      >
+      <button type="button" className="cx-pcs" onClick={() => setCs(true)}>
         <Ic d={ICON.headset} s={20} />
         {t("csHelp")}
       </button>
 
-      <CSheet
-        open={cs}
-        onClose={() => setCs(false)}
-      />
-
+      <CSheet open={cs} onClose={() => setCs(false)} />
     </div>
   );
 }
 
 /* ================= LOGIN PAGE ================= */
 
-export function Login({
-  onLogin,
-  lang,
-  setLang,
-  go,
-  flash = ""
-}) {
+export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const t = useT();
+  const tr = useTr();
+  const alive = useRef(true);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const rem0 = store.get("cx_rem", "");
 
@@ -195,14 +145,9 @@ export function Login({
   const [pw, setPw] = useState("");
   const [rem, setRem] = useState(!!rem0);
   const [busy, setBusy] = useState(false);
-
-  const [msg, setMsg] = useState({
-    k: flash,
-    ok: true
-  });
-
+  const [msg, setMsg] = useState({ k: flash, ok: true });
   const [errs, setErrs] = useState({});
-  const [openSupport, setOpenSupport] = useState(null);
+  const [cs, setCs] = useState(false);
 
   const mail = email.trim().toLowerCase();
 
@@ -212,14 +157,8 @@ export function Login({
     if (busy) return;
 
     const e = {};
-
-    if (!EMAIL_RE.test(mail)) {
-      e.email = t("bEmail");
-    }
-
-    if (!pw) {
-      e.pw = t("pw");
-    }
+    if (!EMAIL_RE.test(mail)) e.email = t("bEmail");
+    if (!pw) e.pw = t("pw");
 
     setErrs(e);
 
@@ -234,36 +173,21 @@ export function Login({
     try {
       const r = await api("/auth/login", {
         method: "POST",
-        body: {
-          email: mail,
-          password: pw
-        }
+        body: { email: mail, password: pw },
       });
 
       store.set("cx_rem", rem ? mail : "");
 
       await onLogin(r);
-
     } catch (er) {
-      setMsg({
-        k: er.message,
-        ok: false
-      });
+      if (alive.current) setMsg({ k: er.message, ok: false });
     } finally {
-      setBusy(false);
+      if (alive.current) setBusy(false);
     }
   };
 
   const enter = (e) => {
     if (e.key === "Enter") login();
-  };
-
-  /* ---------- FORGOT PASSWORD ---------- */
-
-  const handleForgotPassword = () => {
-    if (openSupport) {
-      openSupport();
-    }
   };
 
   return (
@@ -273,9 +197,9 @@ export function Login({
       onBack={() => go("app")}
       lang={lang}
       setLang={setLang}
-      onSupportReady={setOpenSupport}
+      cs={cs}
+      setCs={setCs}
     >
-
       <Field
         label={t("email")}
         icon={<MailI />}
@@ -300,41 +224,26 @@ export function Login({
       />
 
       <div className="cx-prow">
-
         <label className="cx-rm">
-          <input
-            type="checkbox"
-            checked={rem}
-            onChange={(e) => setRem(e.target.checked)}
-          />
+          <input type="checkbox" checked={rem} onChange={(e) => setRem(e.target.checked)} />
           {t("rem")}
         </label>
 
-        <button
-          type="button"
-          className="cx-plink"
-          onClick={handleForgotPassword}
-        >
-          Forgot Password?
+        <button type="button" className="cx-plink" onClick={() => setCs(true)}>
+          {tr("forgot", "Forgot Password?")}
         </button>
-
       </div>
 
-      {msg.k && (
-        <p className={"cx-msg" + (msg.ok ? "" : " bad")}>
-          {t(msg.k)}
-        </p>
-      )}
+      {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p>}
 
       <button
+        type="button"
         className="cx-pbtn cx-cap"
-        style={{
-          opacity: busy ? 0.6 : 1
-        }}
+        style={{ opacity: busy ? 0.6 : 1 }}
         onClick={login}
         disabled={busy}
       >
-        {busy ? "Please Wait..." : t("login")}
+        {busy ? tr("wait", "Please Wait...") : t("login")}
       </button>
 
       <div className="cx-pdiv">
@@ -343,21 +252,14 @@ export function Login({
 
       <p className="cx-pfoot">
         {t("noAcc")}{" "}
-        <button
-          className="cx-plink cx-cap"
-          onClick={() => go("register")}
-        >
+        <button type="button" className="cx-plink cx-cap" onClick={() => go("register")}>
           {t("register")}
         </button>
       </p>
 
-      <button
-        className="cx-pghost"
-        onClick={() => go("app")}
-      >
+      <button type="button" className="cx-pghost" onClick={() => go("app")}>
         {t("guest")}
       </button>
-
     </Shell>
   );
 }
@@ -376,30 +278,54 @@ const strength = (p) => {
   return s <= 1 ? 1 : s <= 3 ? 2 : 3;
 };
 
-/* ================= REGISTER PAGE ================= */
+/* ================= REGISTER / FORGOT PAGE ================= */
 
-export function Register({
-  onLogin,
-  go,
-  lang,
-  setLang
-}) {
+export function Register({ mode = "register", onLogin, go, lang, setLang }) {
   const t = useT();
+  const tr = useTr();
+  const alive = useRef(true);
+
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
 
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const [msg, setMsg] = useState({
-    k: "",
-    ok: false
-  });
-
+  const [msg, setMsg] = useState({ k: "", ok: false });
   const [errs, setErrs] = useState({});
+  const [cs, setCs] = useState(mode === "forgot");
 
   const mail = email.trim().toLowerCase();
   const st = strength(pw);
+
+  /* ---------- FORGOT MODE → Customer Support ---------- */
+
+  if (mode === "forgot") {
+    return (
+      <Shell
+        title={tr("forgotTitle", "Forgot Password")}
+        sub={tr("forgotSub", "Please contact customer support to reset your password.")}
+        onBack={() => go("login")}
+        lang={lang}
+        setLang={setLang}
+        cs={cs}
+        setCs={setCs}
+      >
+        <button type="button" className="cx-pbtn" onClick={() => setCs(true)}>
+          {t("csHelp")}
+        </button>
+
+        <button type="button" className="cx-pghost" onClick={() => go("login")}>
+          {t("login")}
+        </button>
+      </Shell>
+    );
+  }
 
   /* ---------- REGISTER ---------- */
 
@@ -407,54 +333,31 @@ export function Register({
     if (busy) return;
 
     const e = {};
-
-    if (!EMAIL_RE.test(mail)) {
-      e.email = t("bEmail");
-    }
-
-    if (pw.length < 6) {
-      e.pw = t("bPw");
-    }
-
-    if (pw2 !== pw) {
-      e.pw2 = t("bMatch");
-    }
+    if (!EMAIL_RE.test(mail)) e.email = t("bEmail");
+    if (pw.length < 6) e.pw = t("bPw");
+    if (pw2 !== pw) e.pw2 = t("bMatch");
 
     setErrs(e);
 
     if (Object.keys(e).length) {
-      setMsg({
-        k: "",
-        ok: false
-      });
+      setMsg({ k: "", ok: false });
       return;
     }
 
     setBusy(true);
-    setMsg({
-      k: "wait2",
-      ok: true
-    });
+    setMsg({ k: "wait2", ok: true });
 
     try {
       const r = await api("/auth/register", {
         method: "POST",
-        body: {
-          email: mail,
-          password: pw,
-          password2: pw2
-        }
+        body: { email: mail, password: pw, password2: pw2 },
       });
 
       await onLogin(r);
-
     } catch (er) {
-      setMsg({
-        k: er.message,
-        ok: false
-      });
+      if (alive.current) setMsg({ k: er.message, ok: false });
     } finally {
-      setBusy(false);
+      if (alive.current) setBusy(false);
     }
   };
 
@@ -469,8 +372,9 @@ export function Register({
       onBack={() => go("login")}
       lang={lang}
       setLang={setLang}
+      cs={cs}
+      setCs={setCs}
     >
-
       <Field
         label={t("email")}
         icon={<MailI />}
@@ -497,16 +401,11 @@ export function Register({
         <div className="cx-str">
           <div>
             {[1, 2, 3].map((n) => (
-              <i
-                key={n}
-                className={n <= st ? "on s" + st : ""}
-              />
+              <i key={n} className={n <= st ? "on s" + st : ""} />
             ))}
           </div>
 
-          <span className={"s" + st}>
-            {t(["", "strWeak", "strMid", "strStrong"][st])}
-          </span>
+          <span className={"s" + st}>{t(["", "strWeak", "strMid", "strStrong"][st])}</span>
         </div>
       )}
 
@@ -522,21 +421,16 @@ export function Register({
         err={errs.pw2}
       />
 
-      {msg.k && (
-        <p className={"cx-msg" + (msg.ok ? "" : " bad")}>
-          {t(msg.k)}
-        </p>
-      )}
+      {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p>}
 
       <button
+        type="button"
         className="cx-pbtn cx-cap"
-        style={{
-          opacity: busy ? 0.6 : 1
-        }}
+        style={{ opacity: busy ? 0.6 : 1 }}
         onClick={run}
         disabled={busy}
       >
-        {busy ? "Please Wait..." : t("register")}
+        {busy ? tr("wait", "Please Wait...") : t("register")}
       </button>
 
       <div className="cx-pdiv">
@@ -545,14 +439,10 @@ export function Register({
 
       <p className="cx-pfoot">
         {t("haveAcc")}{" "}
-        <button
-          className="cx-plink cx-cap"
-          onClick={() => go("login")}
-        >
+        <button type="button" className="cx-plink cx-cap" onClick={() => go("login")}>
           {t("login")}
         </button>
       </p>
-
     </Shell>
   );
 }
