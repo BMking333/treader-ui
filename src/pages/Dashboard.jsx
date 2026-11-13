@@ -33,7 +33,8 @@ function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify, guest,
     let link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + me.uid;
     try {
       const j = await api("/user/share-link");
-      if (typeof j === "string" && j) link = j.startsWith("/") ? (typeof window !== "undefined" ? window.location.origin : "") + j : j;
+      const p = typeof j === "string" ? j : j && j.path;
+      if (p) link = p.startsWith("/") ? (typeof window !== "undefined" ? window.location.origin : "") + p : p;
     } catch {}
     try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch {}
     notify(t("copied"));
