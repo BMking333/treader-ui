@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import Home, { useT, api, usePrices, Ic, ICON } from "./Home";
+import Home, { useT, api, usePrices, Ic, ICON, COINS } from "./Home";
 import SideMenu from "./sidebar";
 import Deposit from "./depsoted";
 import Withdraw from "./withdrew";
@@ -7,7 +7,23 @@ import { Market, Exchange, Options, Assets } from "./trading";
 
 /* =====================================================================
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
+   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw
    ===================================================================== */
+
+const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw" };
+const HAS_SYM = ["exchange", "options"];
+
+const urlFor = (page, sym) => PATHS[page] + (HAS_SYM.includes(page) ? "?s=" + sym : "");
+
+const fromLoc = () => {
+  const p = window.location.pathname.replace(/\/+$/, "") || "/";
+  const page = Object.keys(PATHS).find((k) => PATHS[k] === p) || "home";
+  const s = (new URLSearchParams(window.location.search).get("s") || "").toUpperCase();
+  return { page, sym: COINS.includes(s) ? s : "BTC" };
+};
+
+const pushUrl = (url) => { if (url !== window.location.pathname + window.location.search) window.history.pushState(null, "", url); };
+const replaceUrl = (url) => { if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, "", url); };
 
 export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, setDark }) {
   const P = usePrices();
@@ -16,7 +32,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   const [me, setMe] = useState(me0), [menu, setMenu] = useState(false), [w, setW] = useState({ USDT: 0 }), [fz, setFz] = useState({}), [total, setTotal] = useState(null);
   const [pos, setPos] = useState([]), [orders, setOrders] = useState([]), [txs, setTxs] = useState([]), [spot, setSpot] = useState([]), [toast, setToast] = useState("");
   const notify = (m, ms = 3000) => { setToast(m); setTimeout(() => setToast(""), ms); };
-  const [page, setPage] = useState("home"), [sym, setSym] = useState("BTC");
+  const [page, setPage] = useState(() => fromLoc().page), [sym, setSym] = useState(() => fromLoc().sym);
   const ref = useRef({});
   ref.current = { t, pos, page };
   const prevOpen = useRef(null);
@@ -74,15 +90,40 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
     return () => clearInterval(id);
   }, []); // eslint-disable-line
 
-  const go = (p, s) => { if (s) setSym(s); setPage(p); window.scrollTo(0, 0); };
+  /* প্রথম লোডে ভুল/অচেনা URL হলে ঠিক URL বসায় */
+  useEffect(() => { replaceUrl(urlFor(page, sym)); }, []); // eslint-disable-line
+
+  /* ব্রাউজারের Back / Forward */
+  useEffect(() => {
+    const onPop = () => {
+      const l = fromLoc();
+      setPage(l.page); setSym(l.sym);
+      window.scrollTo(0, 0);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  /* পেজ বদল → state + URL দুটোই */
+  const go = (p, s) => {
+    const ns = s || sym;
+    if (s) setSym(s);
+    setPage(p);
+    pushUrl(urlFor(p, ns));
+    window.scrollTo(0, 0);
+  };
+
+  /* Trade/Options পেজে কয়েন বদলালে URL-এর ?s= বদলায় (নতুন history entry ছাড়াই) */
+  const pickSym = (s) => { setSym(s); replaceUrl(urlFor(page, s)); };
+
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
     <>
       <div className={"cx-pg" + (page === "options" ? " od" : "")}>
         {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} />}
         {page === "market" && <Market P={P} go={go} />}
-        {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} spot={spot} />}
-        {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} orders={orders} />}
+        {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={pickSym} go={go} spot={spot} />}
+        {page === "options" && <Options P={P} W={W} sym={sym} setSym={pickSym} pos={pos} orders={orders} />}
         {page === "assets" && <Assets P={P} W={W} />}
         {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
         {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
