@@ -2,20 +2,21 @@ import React, { useEffect, useRef, useState } from "react";
 import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN } from "./Home";
 
 /* =====================================================================
-   src/pages/options.jsx — Options (সেকেন্ড কন্ট্রাক্ট) ট্রেডিং পেজ
+   src/pages/options.jsx — Options (second contract) trading page
    Props: P (prices), W (wallet), sym, setSym, pos, orders
-   Mobile: নিচে Quantity / Time / Buy Long / Sell Short বার
-   PC (≥900px): বামে চার্ট, ডানে ট্রেড প্যানেল
+   Mobile: Quantity / Time / Buy Long / Sell Short bar sits ABOVE the
+           bottom navigation bar
+   PC (>=900px): chart on the left, trade panel on the right
    ===================================================================== */
 
-/* ====== ব্যাকএন্ডে মিল না থাকলে এখানে বদলান ====== */
+/* ====== Change these if they don't match your backend ====== */
 const OPEN_PATH = "/options/open"; /* POST {sym, direction, qty, seconds} */
-const DIR = { long: "long", short: "short" }; /* direction-এর মান */
+const DIR = { long: "long", short: "short" }; /* direction values */
 const MIN_Q = 10, MAX_Q = 1000000;
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 
-/* ---------------- TradingView চার্ট ---------------- */
+/* ---------------- TradingView chart ---------------- */
 let tvP = null;
 const loadTV = () => {
   if (typeof window === "undefined") return Promise.reject();
@@ -61,7 +62,7 @@ function Chart({ sym }) {
   return <div id={id} className="cx-op-tv" />;
 }
 
-/* ---------------- নিচ থেকে ওঠা শিট ---------------- */
+/* ---------------- Bottom sheet ---------------- */
 function Sheet({ open, onClose, title, children }) {
   if (!open) return null;
   return (
@@ -75,7 +76,11 @@ function Sheet({ open, onClose, title, children }) {
 }
 
 const CSS = `
-.cx-op{background:#0b1520;color:#fff;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:114px}
+/* Height of the bottom navigation bar (Home / Market / Trade / Options / Assets).
+   Change this value if your nav is taller or shorter. */
+.cx-op{--cx-nav-h:76px;--cx-bar-h:64px}
+
+.cx-op{background:#0b1520;color:#fff;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
 .cx-op,.cx-op *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
 .cx-op button{color:inherit}
 .cx-op-top{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;background:#0f2030;border-bottom:1px solid #3a4b5e;flex:none}
@@ -90,7 +95,9 @@ const CSS = `
 .cx-op-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .cx-op-chart{flex:1;min-height:300px;position:relative}
 .cx-op-tv{position:absolute;inset:0}
-.cx-op-bar{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:10px;align-items:center;padding:6px 12px;height:64px;background:#0f2030;border-top:1px solid #3a4b5e}
+
+/* Trade bar: fixed ABOVE the bottom navigation */
+.cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#0f2030;border-top:1px solid #3a4b5e}
 .cx-op-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;background:none;border:0;cursor:pointer;line-height:1.4}
 .cx-op-pick span{font-size:14px}
 .cx-op-go{height:44px;border-radius:8px;border:0;font-size:14px;cursor:pointer;color:#fff!important}
@@ -125,14 +132,12 @@ const CSS = `
 .cx-op-card .r i{font-style:normal;color:#9fb0c3}
 .cx-op-tag{padding:2px 8px;border-radius:4px;font-size:12px;color:#fff}
 .cx-op-none{text-align:center;color:#9fb0c3;padding:40px 0;font-size:14px}
-@media(max-width:899px){
-.cx-nav{bottom:64px!important}
-}
+
 @media(min-width:900px){
 .cx-op{height:auto;min-height:100vh;padding-bottom:70px}
 .cx-op-body{flex-direction:row;height:calc(100vh - 46px - 70px - 70px)}
 .cx-op-chart{min-height:520px}
-.cx-op-bar{position:static;z-index:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;width:340px;flex:none;height:auto;padding:16px;border-top:0;border-left:1px solid #3a4b5e}
+.cx-op-bar{position:static;bottom:auto;z-index:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;width:340px;flex:none;height:auto;padding:16px;border-top:0;border-left:1px solid #3a4b5e}
 .cx-op-pick{flex-direction:row;justify-content:space-between;height:46px;padding:0 12px;border:1px solid #2a3a50;border-radius:8px;background:#101c2d}
 .cx-op-yl{display:flex;justify-content:space-between;font-size:13px;color:#9fb0c3}
 .cx-op-yl b{color:#4be0a8;font-weight:400}
@@ -204,7 +209,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
     <div className="cx-op">
       <style>{CSS}</style>
 
-      {/* ---- হেডার ---- */}
+      {/* ---- Header ---- */}
       <div className="cx-op-top">
         <button type="button" className="cx-op-pair" onClick={() => setSh("coin")}>
           <Ic d={ICON.menu} s={22} />{sym}/USDT
@@ -214,7 +219,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
         </button>
       </div>
 
-      {/* ---- দাম + High/Low/Volume ---- */}
+      {/* ---- Price + High / Low / Volume ---- */}
       <div className="cx-op-info">
         <div className="cx-op-pr">
           <b style={{ color: col }}>{p.price ? p.price.toFixed(p.price >= 100 ? 6 : 8) : "--"}</b>
@@ -227,7 +232,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
         </div>
       </div>
 
-      {/* ---- চার্ট + ট্রেড বার ---- */}
+      {/* ---- Chart + trade bar ---- */}
       <div className="cx-op-body">
         <div className="cx-op-chart"><Chart sym={sym} /></div>
 
@@ -251,7 +256,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
 
       {msg.k && <div className={"cx-op-toast " + msg.s}>{msg.k}</div>}
 
-      {/* ---- Quantity শিট ---- */}
+      {/* ---- Quantity sheet ---- */}
       <Sheet open={sh === "qty"} onClose={() => setSh("")} title={t("oq")}>
         <div className="cx-op-grid">
           {QTY.map((q) => (
@@ -263,7 +268,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
         <button type="button" className="cx-op-ok" onClick={applyQty}>OK</button>
       </Sheet>
 
-      {/* ---- Time শিট ---- */}
+      {/* ---- Time sheet ---- */}
       <Sheet open={sh === "time"} onClose={() => setSh("")} title={t("time")}>
         <div className="cx-op-grid">
           {SECS.map((s) => (
@@ -272,7 +277,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
         </div>
       </Sheet>
 
-      {/* ---- কয়েন বাছাই ---- */}
+      {/* ---- Coin picker ---- */}
       <Sheet open={sh === "coin"} onClose={() => setSh("")} title="BTC/USDT">
         {COINS.map((c) => {
           const pc = P && P[c] ? P[c] : null;
@@ -330,4 +335,4 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
       )}
     </div>
   );
-}
+                                                       }
