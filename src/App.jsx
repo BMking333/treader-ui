@@ -9,8 +9,8 @@ import Dashboard from "./pages/Dashboard";
    Home-এর যেকোনো বাটনে (coin, deposit, menu ইত্যাদি) চাপলে Login পেজে যাবে। */
 function GuestHome({ lang, setLang, goAuth }) {
   const P = usePrices();
-  const toLogin = () => goAuth("login");
-  return <div className="cx-pg"><Home P={P} go={toLogin} lang={lang} setLang={setLang} onMenu={toLogin} /></div>;
+  const to = (p) => goAuth(p === "register" ? "register" : "login");
+  return <Home guest P={P} go={to} lang={lang} setLang={setLang} onMenu={() => to("login")} />;
 }
 
 /* App root: language, theme, login gate.
