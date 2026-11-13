@@ -71,9 +71,9 @@ const T2 = {
 
 /* ---------------- Auth / Deposit / Withdraw / API error texts ---------------- */
 const T3 = {
-  en: { login: "login", register: "register", acc: "Please enter your email", pw: "Please enter your password", pw2: "Please re-enter your password", forgot: "Forgot password", rem: "Remember account", email: "Email", bEmail: "Enter a valid email address", bPw: "Password must be at least 6 characters", bMatch: "Passwords do not match", exists: "This email is already registered", noUser: "Account not found", wrongPw: "Wrong password", reset: "Reset password", newPw: "Please enter a new password", resetOk: "Password updated, please log in", dep: "Deposit", coin: "Coin", net: "Network", addr: "Withdrawal address", eAddr: "Enter withdrawal address", bAddr: "Invalid withdrawal address", fee: "Fee", recv: "You will receive", depOk: "Deposit submitted", wdOk: "Withdrawal submitted", hist: "History", proc: "Processing", done: "Completed", feeLow: "Amount must be greater than the fee", amount: "Amount", submit: "Submit", hasAcc: "Back to login", topup: "Demo top-up (+1000 USDT)", topOk: "Demo balance added",
+  en: { login: "login", register: "register", acc: "Please enter your email", pw: "Please enter your password", pw2: "Please re-enter your password", forgot: "Forgot password", rem: "Remember account", email: "Email", bEmail: "Enter a valid email address", bPw: "Password must be at least 6 characters", bMatch: "Passwords do not match", exists: "This email is already registered", noUser: "Account not found", wrongPw: "Wrong password", reset: "Reset password", newPw: "Please enter a new password", resetOk: "Password updated, please log in", dep: "Deposit", coin: "Coin", net: "Network", addr: "Withdrawal address", eAddr: "Enter withdrawal address", bAddr: "Invalid withdrawal address", fee: "Fee", recv: "You will receive", depOk: "Deposit submitted", wdOk: "Withdrawal submitted", hist: "History", proc: "Processing", done: "Completed", feeLow: "Amount must be greater than the fee", amount: "Amount", submit: "Submit", hasAcc: "Back to login", topup: "Demo top-up (+1000 USDT)", topOk: "Demo balance added", needLogin: "Please log in first",
     neterr: "Network error. Server may be waking up, try again", err: "Request failed", unauthorized: "Session expired, please log in", badSym: "Invalid coin", badSide: "Invalid side", badDir: "Invalid direction", badSec: "Invalid time", badCoin: "Invalid coin/network", badInterval: "Invalid interval", forbidden: "Not allowed", wait2: "Please wait..." },
-  bn: { login: "লগইন", register: "রেজিস্টার", acc: "আপনার ইমেইল লিখুন", pw: "পাসওয়ার্ড লিখুন", pw2: "পাসওয়ার্ড আবার লিখুন", forgot: "পাসওয়ার্ড ভুলে গেছেন", rem: "অ্যাকাউন্ট মনে রাখুন", email: "ইমেইল", bEmail: "সঠিক ইমেইল দিন", bPw: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে", bMatch: "পাসওয়ার্ড মিলছে না", exists: "এই ইমেইল আগেই রেজিস্টার করা", noUser: "অ্যাকাউন্ট পাওয়া যায়নি", wrongPw: "পাসওয়ার্ড ভুল", reset: "পাসওয়ার্ড রিসেট", newPw: "নতুন পাসওয়ার্ড লিখুন", resetOk: "পাসওয়ার্ড বদলেছে, লগইন করুন", dep: "ডিপোজিট", coin: "কয়েন", net: "নেটওয়ার্ক", addr: "উইথড্র অ্যাড্রেস", eAddr: "উইথড্র অ্যাড্রেস দিন", bAddr: "অ্যাড্রেস সঠিক নয়", fee: "ফি", recv: "আপনি পাবেন", depOk: "ডিপোজিট জমা হয়েছে", wdOk: "উইথড্র জমা হয়েছে", hist: "ইতিহাস", proc: "প্রসেসিং", done: "সম্পন্ন", feeLow: "পরিমাণ ফি-এর চেয়ে বেশি হতে হবে", amount: "পরিমাণ", submit: "জমা দিন", hasAcc: "লগইনে ফিরুন", topup: "ডেমো টপ-আপ (+1000 USDT)", topOk: "ডেমো ব্যালেন্স যোগ হয়েছে",
+  bn: { login: "লগইন", register: "রেজিস্টার", acc: "আপনার ইমেইল লিখুন", pw: "পাসওয়ার্ড লিখুন", pw2: "পাসওয়ার্ড আবার লিখুন", forgot: "পাসওয়ার্ড ভুলে গেছেন", rem: "অ্যাকাউন্ট মনে রাখুন", email: "ইমেইল", bEmail: "সঠিক ইমেইল দিন", bPw: "পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে", bMatch: "পাসওয়ার্ড মিলছে না", exists: "এই ইমেইল আগেই রেজিস্টার করা", noUser: "অ্যাকাউন্ট পাওয়া যায়নি", wrongPw: "পাসওয়ার্ড ভুল", reset: "পাসওয়ার্ড রিসেট", newPw: "নতুন পাসওয়ার্ড লিখুন", resetOk: "পাসওয়ার্ড বদলেছে, লগইন করুন", dep: "ডিপোজিট", coin: "কয়েন", net: "নেটওয়ার্ক", addr: "উইথড্র অ্যাড্রেস", eAddr: "উইথড্র অ্যাড্রেস দিন", bAddr: "অ্যাড্রেস সঠিক নয়", fee: "ফি", recv: "আপনি পাবেন", depOk: "ডিপোজিট জমা হয়েছে", wdOk: "উইথড্র জমা হয়েছে", hist: "ইতিহাস", proc: "প্রসেসিং", done: "সম্পন্ন", feeLow: "পরিমাণ ফি-এর চেয়ে বেশি হতে হবে", amount: "পরিমাণ", submit: "জমা দিন", hasAcc: "লগইনে ফিরুন", topup: "ডেমো টপ-আপ (+1000 USDT)", topOk: "ডেমো ব্যালেন্স যোগ হয়েছে", needLogin: "আগে লগইন করুন",
     neterr: "নেটওয়ার্ক সমস্যা। সার্ভার জেগে উঠছে হতে পারে, আবার চেষ্টা করুন", err: "অনুরোধ ব্যর্থ হয়েছে", unauthorized: "সেশন শেষ, আবার লগইন করুন", badSym: "কয়েন সঠিক নয়", badSide: "সাইড সঠিক নয়", badDir: "ডিরেকশন সঠিক নয়", badSec: "সময় সঠিক নয়", badCoin: "কয়েন/নেটওয়ার্ক সঠিক নয়", badInterval: "ইন্টারভাল সঠিক নয়", forbidden: "অনুমতি নেই", wait2: "অপেক্ষা করুন..." },
 };
 
@@ -223,7 +223,7 @@ function List({ P, go, names }) {
   );
 }
 
-function Home({ P, go, lang, setLang, onMenu, notify }) {
+function Home({ P, go, lang, setLang, onMenu, notify, guest, askLogin }) {
   const t = useT();
   const [i, setI] = useState(0), [k, setK] = useState(0);
   useEffect(() => { const id = setInterval(() => setI((x) => (x + 1) % BANNERS.length), 3500); return () => clearInterval(id); }, []);
@@ -238,6 +238,7 @@ function Home({ P, go, lang, setLang, onMenu, notify }) {
     <>
       <div className="cx-bar">
         <button className="cx-logo" onClick={onMenu} aria-label="menu">C</button>
+        {guest && <button className="cx-lgin" onClick={() => askLogin("login")}>{t("login")}</button>}
         <LangPicker lang={lang} setLang={setLang} />
       </div>
       <div className="cx-banner">
@@ -280,9 +281,10 @@ function CoinDrawer({ P, onPick, onClose }) {
   );
 }
 
-function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify }) {
+function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify, guest, askLogin }) {
   const t = useT();
   const share = async () => {
+    if (!me) { onClose(); return askLogin("login", "needLogin"); }
     let link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + me.uid;
     try {
       const j = await api("/user/share-link");
@@ -304,7 +306,12 @@ function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify }) {
   return (
     <div className={"cx-mo" + (open ? " open" : "")} onClick={onClose}>
       <aside className="cx-md" onClick={(e) => e.stopPropagation()}>
-        <div className="cx-mp"><p>{me.email}</p><p>UID:{me.uid}</p><p>VIP:{me.vip ?? 0}</p><p>{t("rep")} : {me.reputation ?? 0}</p></div>
+        {me ? <div className="cx-mp"><p>{me.email}</p><p>UID:{me.uid}</p><p>VIP:{me.vip ?? 0}</p><p>{t("rep")} : {me.reputation ?? 0}</p></div> : (
+          <div className="cx-mp">
+            <button className="cx-a1 flat cx-cap" onClick={() => { onClose(); askLogin("login"); }}>{t("login")}</button>
+            <button className="cx-a1 flat cx-cap" onClick={() => { onClose(); askLogin("register"); }}>{t("register")}</button>
+          </div>
+        )}
         {rows.map(([ic, label, val, red, fn]) => (
           <button key={ic} className="cx-mr" onClick={fn}>
             <span className="cx-mi"><Ic d={ICON[ic]} s={28} /></span>
@@ -312,7 +319,7 @@ function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify }) {
             {val === "switch" ? <span className={"cx-sw" + (dark ? " on" : "")}><i /></span> : <>{val && <span className={"cx-mv" + (red ? " red" : "")}>{val}</span>}<span className="cx-ar">›</span></>}
           </button>
         ))}
-        <button className="cx-lo" onClick={() => { onClose(); logout(); }}>{t("logout")}</button>
+        {me && <button className="cx-lo" onClick={() => { onClose(); logout(); }}>{t("logout")}</button>}
       </aside>
     </div>
   );
@@ -347,6 +354,7 @@ function Exchange({ P, W, sym, setSym, go, spot }) {
   const pct = (p) => { if (side === "buy") setAmt(String(+(usdt * p).toFixed(2))); else setQ(String(+(held * p).toFixed(8))); };
   const submit = async () => {
     if (busy) return;
+    if (W.guest) return W.needLogin();
     setMsg("");
     try {
       if (side === "buy") {
@@ -437,7 +445,7 @@ function Chart({ sym, price }) {
   const t = useT();
   const wrap = useRef(null);
   const [w, setW] = useState(360), [iv, setIv] = useState("1d"), [ivOpen, setIvOpen] = useState(false), [data, setData] = useState([]);
-  const [n, setN] = useState(40), [off, setOff] = useState(0), [hov, setHov] = useState(null);
+  const [n, setN] = useState(150), [off, setOff] = useState(0), [hov, setHov] = useState(null);
   const priceRef = useRef(price); priceRef.current = price;
 
   useEffect(() => {
@@ -490,6 +498,9 @@ function Chart({ sym, price }) {
   const ticks = [];
   for (let p = Math.ceil(lo / ps) * ps; p <= hi; p += ps) ticks.push(p);
   const every = Math.max(1, Math.ceil(len / 5));
+  const labs = [];
+  if (iv === "1d") vis.forEach((c, k) => { const d = new Date(c.t), pv = k ? vis[k - 1] : (start > 0 ? cs[start - 1] : null); if (!pv || new Date(pv.t).getMonth() !== d.getMonth()) labs.push([k, MON[d.getMonth()]]); });
+  if (iv !== "1d" || labs.length < 2) { labs.length = 0; vis.forEach((c, k) => { if (k % every === 0) labs.push([k, fmtT(c.t, iv)]); }); }
   const last = vis[len - 1];
   const cur = hov && vis[hov.k] ? vis[hov.k] : last;
   const curIdx = hov && vis[hov.k] ? start + hov.k : start + len - 1;
@@ -498,7 +509,7 @@ function Chart({ sym, price }) {
   const lastCol = cs.length && up(cs[cs.length - 1]) ? CUP : CDN;
   const maPts = vis.map((c, k) => ({ m: ma[start + k], k })).filter((a) => a.m).map((a) => `${cx(a.k)},${y(a.m)}`).join(" ");
 
-  const ptr = useRef(new Map()), gs = useRef({}), offR = useRef(0), nR = useRef(40);
+  const ptr = useRef(new Map()), gs = useRef({}), offR = useRef(0), nR = useRef(150);
   offR.current = off; nR.current = n;
   const maxOff = Math.max(0, cs.length - 10);
   const hover = (e) => {
@@ -547,8 +558,8 @@ function Chart({ sym, price }) {
       <div className="cx-cwrap" style={{ height: H }}>
         {cur && (
           <div className="cx-chead" style={{ color: colr }}>
-            <div><span className="cx-gt2">{sym.toLowerCase()}usdt, {ivl}</span>{" "}O{cur.o.toFixed(dec)} H{cur.h.toFixed(dec)} L{cur.l.toFixed(dec)} C{cur.c.toFixed(dec)} {chgv >= 0 ? "+" : ""}{chgv.toFixed(dec)} ({chgv >= 0 ? "+" : ""}{((chgv / cur.o) * 100).toFixed(2)}%)</div>
-            <div className="cx-gt2">MA (9, close, 0) <span style={{ color: "#e8914f" }}>{ma[curIdx] ? ma[curIdx].toFixed(4) : "n/a"}</span></div>
+            <div><span className="cx-sq" /><span className="cx-gt2">{sym.toLowerCase()}usdt, {ivl} ⌄</span>{" "}O{cur.o.toFixed(dec)} H{cur.h.toFixed(dec)} L{cur.l.toFixed(dec)} C{cur.c.toFixed(dec)} {chgv >= 0 ? "+" : ""}{chgv.toFixed(dec)} ({chgv >= 0 ? "+" : ""}{((chgv / cur.o) * 100).toFixed(2)}%)</div>
+            <div className="cx-gt2">MA (9, close, 0) ⌄ <span style={{ color: "#e8914f" }}>{ma[curIdx] ? ma[curIdx].toFixed(4) : "n/a"}</span></div>
           </div>
         )}
         <svg width={w} height={H} onPointerDown={onDown} onPointerMove={onMv} onPointerUp={onUp} onPointerCancel={onUp}
@@ -568,9 +579,14 @@ function Chart({ sym, price }) {
               <text x={pw + 8} y={vy(vmax * f) + 4} className="cx-gt" fontSize="11">{fmtV(vmax * f)}</text>
             </g>
           ))}
-          {vis.map((c, k) => k % every === 0 && (<text key={"t" + k} x={cx(k)} y={H - 9} textAnchor="middle" className="cx-gt" fontSize="11">{fmtT(c.t, iv)}</text>))}
+          {labs.filter(([k]) => cx(k) > 18 && cx(k) < pw - 18).map(([k, lb]) => (
+            <g key={"t" + k}>
+              <line x1={cx(k)} x2={cx(k)} y1="0" y2={H - TA} className="cx-gl" />
+              <text x={cx(k)} y={H - 9} textAnchor="middle" className="cx-gt" fontSize="11">{lb}</text>
+            </g>
+          ))}
           {vis.map((c, k) => {
-            const col = up(c) ? CUP : CDN, bw = Math.max(3, step * 0.78), top = y(Math.max(c.o, c.c)), bh = Math.max(1.5, Math.abs(y(c.o) - y(c.c)));
+            const col = up(c) ? CUP : CDN, bw = Math.max(2, step * 0.7), top = y(Math.max(c.o, c.c)), bh = Math.max(1.5, Math.abs(y(c.o) - y(c.c)));
             return (
               <g key={c.t}>
                 <rect x={cx(k) - bw / 2} y={vy(c.v)} width={bw} height={H1 + GAP + H2 - 4 - vy(c.v)} fill={col} opacity=".4" />
@@ -599,7 +615,7 @@ function Chart({ sym, price }) {
               <text x={Math.max(0, Math.min(pw - 74, cx(hov.k) - 37)) + 37} y={H - TA + 16} textAnchor="middle" fill="#fff" fontSize="11">{fmtT(vis[hov.k].t, iv)}</text>
             </g>
           )}
-          <text x="8" y={H1 + GAP + 14} className="cx-gt" fontSize="11">Volume (20) <tspan fill={colr}>{cur ? fmtV(cur.v) : ""}</tspan> <tspan fill="#e8914f">{fmtV(vma)}</tspan></text>
+          <text x="8" y={H1 + GAP + 14} className="cx-gt" fontSize="11">Volume (20) ⌄ <tspan fill={colr}>{cur ? fmtV(cur.v) : ""}</tspan> <tspan fill="#e8914f">{fmtV(vma)}</tspan></text>
         </svg>
         <div className="cx-zoom">
           <button onClick={() => setN((x) => Math.min(200, Math.round(x * 1.3)))}>−</button>
@@ -607,7 +623,7 @@ function Chart({ sym, price }) {
           <button onClick={() => setOff((o) => Math.min(Math.max(0, cs.length - 10), o + Math.max(1, Math.round(n / 4))))}>‹</button>
           <button onClick={() => setOff((o) => Math.max(0, o - Math.max(1, Math.round(n / 4))))}>›</button>
         </div>
-        <button className="cx-gear" onClick={() => { setOff(0); setN(40); }} aria-label="reset"><Ic d={ICON.gear} s={18} /></button>
+        <button className="cx-gear" onClick={() => { setOff(0); setN(150); }} aria-label="reset"><Ic d={ICON.gear} s={18} /></button>
       </div>
     </div>
   );
@@ -622,6 +638,7 @@ function Options({ P, W, sym, setSym, pos, orders }) {
   useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
   const open = async (dir) => {
     if (busy) return;
+    if (W.guest) return W.needLogin();
     setMsg("");
     const bal = W.w.USDT || 0;
     if (qty < 10 || qty > 1000000) return setMsg(t("badQ"));
@@ -638,7 +655,7 @@ function Options({ P, W, sym, setSym, pos, orders }) {
     <>
       <div className="cx-top">
         <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
-        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}><Coin s={sym} size={28} />{sym}/USDT</h1>
+        <h1 style={{ textAlign: "start" }}>{sym}/USDT</h1>
         <button className="cx-link" onClick={() => setView(view === "k" ? "p" : "k")}>{view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={22} /></button>
       </div>
       {view === "k" ? (
@@ -724,6 +741,7 @@ function Assets({ P, W }) {
   const title = (k) => (k === "ta" ? t("ta") : t(k));
   const topup = async () => {
     if (busy) return;
+    if (W.guest) return W.needLogin();
     setBusy(true); setNote({ k: "wait2", ok: true });
     try {
       await api("/wallet/demo-topup", { method: "POST", body: { amount: TOPUP } });
@@ -794,6 +812,7 @@ function Deposit({ W, go, txs }) {
   const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
   const submit = async () => {
     if (busy) return;
+    if (W.guest) return W.needLogin();
     const a = parseFloat(amt);
     if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
     setBusy(true);
@@ -829,6 +848,7 @@ function Withdraw({ W, go, txs }) {
   const held = W.w[coin] || 0, fee = WFEE[coin], a = parseFloat(amt) || 0;
   const submit = async () => {
     if (busy) return;
+    if (W.guest) return W.needLogin();
     const ad = addr.trim();
     if (!ad) return setMsg({ k: "eAddr", ok: false });
     if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return setMsg({ k: "bAddr", ok: false });
@@ -864,9 +884,10 @@ function Withdraw({ W, go, txs }) {
   );
 }
 
-function Dashboard({ me0, logout, lang, setLang, dark, setDark }) {
+function Dashboard({ me0, logout, askLogin, lang, setLang, dark, setDark }) {
   const P = usePrices();
   const t = useT();
+  const authed = !!me0;
   const [me, setMe] = useState(me0), [menu, setMenu] = useState(false), [w, setW] = useState({ USDT: 0 }), [fz, setFz] = useState({}), [total, setTotal] = useState(null);
   const [pos, setPos] = useState([]), [orders, setOrders] = useState([]), [txs, setTxs] = useState([]), [spot, setSpot] = useState([]), [toast, setToast] = useState("");
   const notify = (m, ms = 3000) => { setToast(m); setTimeout(() => setToast(""), ms); };
@@ -913,9 +934,10 @@ function Dashboard({ me0, logout, lang, setLang, dark, setDark }) {
     } catch {}
   };
   const reload = () => Promise.all([loadWallet(), loadPos(), loadTx(), loadSpot()]);
-  const W = { w, fz, total, reload };
+  const W = { w, fz, total, reload, guest: !authed, needLogin: () => askLogin("login", "needLogin") };
 
   useEffect(() => {
+    if (!authed) return;
     loadMe(); reload();
     let c = 0;
     const id = setInterval(() => {
@@ -931,8 +953,8 @@ function Dashboard({ me0, logout, lang, setLang, dark, setDark }) {
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
     <>
-      <div className="cx-pg">
-        {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} />}
+      <div className={"cx-pg" + (page === "options" ? " od" : "")}>
+        {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} />}
         {page === "market" && <Market P={P} go={go} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} spot={spot} />}
         {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} orders={orders} />}
@@ -940,7 +962,7 @@ function Dashboard({ me0, logout, lang, setLang, dark, setDark }) {
         {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
         {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
       </div>
-      <SideMenu open={menu} onClose={() => setMenu(false)} me={me} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} />
+      <SideMenu open={menu} onClose={() => setMenu(false)} me={authed ? me : null} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} guest={!authed} askLogin={askLogin} />
       {toast && <div className="cx-toast">{toast}</div>}
       <nav className="cx-nav">
         {nav.map(([k, l]) => (<button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{t(l)}</button>))}
@@ -970,7 +992,7 @@ function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const note = msg.k ? <p className={"cx-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p> : null;
   return (
     <div className="cx-pg cx-au">
-      <AuBar title={t("login")} onBack={() => go("login")} onHelp={() => {}} />
+      <AuBar title={t("login")} onBack={() => go("app")} onHelp={() => {}} />
       <div className="cx-alogo"><i><svg viewBox="0 0 100 100"><g fill="none" stroke="#06c9c9" strokeWidth="6.5"><path d="M76 16H50a34 34 0 000 68h26V66" /><path d="M76 33H50a17 17 0 000 34h26V54" /><path d="M76 49H54a3 3 0 000 6h22" /></g></svg></i></div>
       <div className="cx-acard">
         <input className="cx-ai" type="text" autoComplete="username" placeholder={t("acc")} value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -1029,7 +1051,7 @@ export default function CexApp() {
   const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
   const [dark, setDarkS] = useState(() => store.get("cx_dark", true));
   const [me, setMe] = useState(null);
-  const [view, setView] = useState(TOKEN ? "boot" : "login");
+  const [view, setView] = useState(TOKEN ? "boot" : "app");
   const [flash, setFlash] = useState("");
 
   const patchSettings = (b) => { if (TOKEN) api("/user/settings", { method: "PATCH", body: b }).catch(() => {}); };
@@ -1038,7 +1060,7 @@ export default function CexApp() {
   const t = (k) => (T[lang]?.[k] ?? T2[lang]?.[k] ?? T3[lang]?.[k] ?? T.en[k] ?? T2.en[k] ?? T3.en[k] ?? k);
   const go = (v, f = "") => { setFlash(f); setView(v); };
 
-  const logout = () => { setToken(""); setMe(null); go("login"); };
+  const logout = () => { setToken(""); setMe(null); go("app"); };
   ON401 = logout;
 
   /* সার্ভারে সেভ করা lang/dark ইউজারের সেটিং হিসেবে বসায় */
@@ -1060,7 +1082,7 @@ export default function CexApp() {
 
   useEffect(() => {
     if (!TOKEN) return;
-    api("/auth/me").then((j) => { applyMe(j); setMe(j); setView("app"); }).catch(() => { setToken(""); setView("login"); });
+    api("/auth/me").then((j) => { applyMe(j); setMe(j); setView("app"); }).catch(() => { setToken(""); setView("app"); });
   }, []); // eslint-disable-line
 
   return (
@@ -1071,7 +1093,7 @@ export default function CexApp() {
         {view === "login" && <Login onLogin={onLogin} lang={lang} setLang={setLang} go={go} flash={flash} />}
         {view === "register" && <Register mode="register" onLogin={onLogin} go={go} />}
         {view === "forgot" && <Register mode="forgot" onLogin={onLogin} go={go} />}
-        {view === "app" && me && <Dashboard me0={me} logout={logout} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />}
+        {view === "app" && <Dashboard key={me ? (me.uid ?? me.email) : "guest"} me0={me} logout={logout} askLogin={(v = "login", f = "") => go(v, f)} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />}
       </div>
     </LangCtx.Provider>
   );
@@ -1327,6 +1349,37 @@ const CSS = `
 .cx.dark .cx-chips button.on{border-color:${BLUE}!important;color:#4aa3f0}
 .cx.dark .cx-fm h4,.cx.dark .cx-kv{color:#9aa6bb}
 .cx.dark .cx-msg.bad{background:#3b1a20}
+.cx-cap{text-transform:capitalize}
+.cx-lgin{border:1px solid #1a82d6!important;color:#1a82d6!important;border-radius:20px;padding:8px 20px;font-size:16px;text-transform:capitalize;text-align:center!important}
+.cx-mp .cx-a1{width:100%;margin:8px 0 0}
+.cx-sq{display:inline-block;width:11px;height:11px;border:1px solid #787b86;margin-right:8px;vertical-align:-1px}
+.cx-pg.od{background:#0d1626;color:#e8ecf3}
+.cx-pg.od small{color:#8d98ad}
+.cx-pg.od .cx-top{border-color:#243148;color:#fff}
+.cx-pg.od .cx-top h1{color:#fff;font-weight:700;font-size:22px}
+.cx-pg.od .cx-opt-h{border-bottom:1px solid #243148}
+.cx-pg.od .cx-opt-h i{color:#e8ecf3}
+.cx-pg.od .cx-opt-h div{color:#aab3c5}
+.cx-pg.od .cx-chartw{background:#131a2a;border-color:#2a3548}
+.cx-pg.od .cx-ctool{background:#0d1626;border-color:#2a3548}
+.cx-pg.od .cx-ctool button{border-color:#2a3548;color:#aab3c5}
+.cx-pg.od .cx-cti{color:#c1c7d4}
+.cx-pg.od .cx-ivm{background:#1c2639;border-color:#2a3548}
+.cx-pg.od .cx-gl{stroke:#1e2a3f}
+.cx-pg.od .cx-ax{stroke:#2e3a50}
+.cx-pg.od .cx-gt{fill:#c1c7d4}
+.cx-pg.od .cx-gt2{color:#c1c7d4}
+.cx-pg.od .cx-ch{stroke:#8a93a6}
+.cx-pg.od .cx-zoom button{background:#2a3548!important;color:#e8ecf3!important}
+.cx-pg.od .cx-gear{color:#9aa6bb!important}
+.cx-pg.od .cx-tbl,.cx-pg.od .cx-tbh{border-color:#243148}
+.cx-pg.od .cx-tabs button{color:#aab3c5}
+.cx-pg.od .cx-tabs button.on{color:#fff}
+.cx-pg.od .cx-norec{color:#7d889c}
+.cx-pg.od .cx-msg{background:#17304f}
+.cx-pg.od .cx-obar{background:#0d1626;border-color:#243148;color:#fff}
+.cx-pg.od .cx-sheet,.cx-pg.od .cx-drawer{background:#17263d;color:#e8ecf3}
+.cx-pg.od .cx-drawer button{border-color:#2a3a56}
 @media(min-width:768px){
 .cx-pg{max-width:900px;padding-bottom:110px}
 .cx-nav{max-width:900px;padding:8px 0}
