@@ -1,14 +1,23 @@
 
 import React, { useState } from "react";
-import { useT, store, api, Ic, ICON, LangPicker, CSheet } from "./Home";
+import {
+  useT,
+  store,
+  api,
+  Ic,
+  ICON,
+  LangPicker,
+  CSheet
+} from "./Home";
 
 /* =====================================================================
-   src/pages/Register_Login.jsx
-   Login + Register
-   Forgot Password → Customer Support
+   Register_Login.jsx
+   Login | Register | Forgot Password → Customer Support
    ===================================================================== */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+/* ---------- ICONS ---------- */
 
 const MailI = () => (
   <svg
@@ -86,7 +95,7 @@ function Field({
             type="button"
             className="cx-fe"
             onClick={() => setShow(!show)}
-            aria-label="toggle password"
+            aria-label="Toggle password visibility"
           >
             <EyeI off={show} />
           </button>
@@ -106,16 +115,25 @@ function Shell({
   onBack,
   lang,
   setLang,
-  children
+  children,
+  onSupportReady
 }) {
   const t = useT();
   const [cs, setCs] = useState(false);
+
+  const openSupport = () => {
+    setCs(true);
+  };
+
+  React.useEffect(() => {
+    onSupportReady?.(openSupport);
+  }, [onSupportReady]);
 
   return (
     <div className="cx-pg cx-au">
 
       <div className="cx-pt">
-        <button onClick={onBack} aria-label="back">
+        <button onClick={onBack} aria-label="Back">
           ‹
         </button>
 
@@ -125,8 +143,8 @@ function Shell({
           )}
 
           <button
-            onClick={() => setCs(true)}
-            aria-label="support"
+            onClick={openSupport}
+            aria-label="Customer Support"
           >
             <Ic d={ICON.headset} s={26} />
           </button>
@@ -145,7 +163,7 @@ function Shell({
 
       <button
         className="cx-pcs"
-        onClick={() => setCs(true)}
+        onClick={openSupport}
       >
         <Ic d={ICON.headset} s={20} />
         {t("csHelp")}
@@ -184,8 +202,7 @@ export function Login({
   });
 
   const [errs, setErrs] = useState({});
-
-  const [showSupportMessage, setShowSupportMessage] = useState(false);
+  const [openSupport, setOpenSupport] = useState(null);
 
   const mail = email.trim().toLowerCase();
 
@@ -232,24 +249,21 @@ export function Login({
         k: er.message,
         ok: false
       });
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   };
 
   const enter = (e) => {
     if (e.key === "Enter") login();
   };
 
-  /* ---------- FORGOT PASSWORD SUPPORT ---------- */
+  /* ---------- FORGOT PASSWORD ---------- */
 
-  const contactSupport = () => {
-    setShowSupportMessage(true);
-
-    setMsg({
-      k: "পাসওয়ার্ড ভুলে গেছেন? পাসওয়ার্ড রিসেট করতে কাস্টমার সাপোর্টের সাথে যোগাযোগ করুন।",
-      ok: false
-    });
+  const handleForgotPassword = () => {
+    if (openSupport) {
+      openSupport();
+    }
   };
 
   return (
@@ -259,6 +273,7 @@ export function Login({
       onBack={() => go("app")}
       lang={lang}
       setLang={setLang}
+      onSupportReady={setOpenSupport}
     >
 
       <Field
@@ -298,43 +313,16 @@ export function Login({
         <button
           type="button"
           className="cx-plink"
-          onClick={contactSupport}
+          onClick={handleForgotPassword}
         >
-          পাসওয়ার্ড ভুলে গেছেন?
+          Forgot Password?
         </button>
 
       </div>
 
-      {showSupportMessage && (
-        <div
-          className="cx-msg"
-          style={{
-            marginTop: 10,
-            lineHeight: 1.7
-          }}
-        >
-          পাসওয়ার্ড রিসেট করতে আমাদের কাস্টমার সাপোর্টের সাথে যোগাযোগ করুন।
-
-          <button
-            type="button"
-            className="cx-plink"
-            style={{
-              display: "block",
-              marginTop: 8
-            }}
-            onClick={() => {
-              document.querySelector(".cx-pcs")?.click();
-            }}
-          >
-            <Ic d={ICON.headset} s={18} />
-            {" "}Customer Support
-          </button>
-        </div>
-      )}
-
       {msg.k && (
         <p className={"cx-msg" + (msg.ok ? "" : " bad")}>
-          {msg.k}
+          {t(msg.k)}
         </p>
       )}
 
@@ -346,7 +334,7 @@ export function Login({
         onClick={login}
         disabled={busy}
       >
-        {busy ? "Please wait..." : t("login")}
+        {busy ? "Please Wait..." : t("login")}
       </button>
 
       <div className="cx-pdiv">
@@ -374,7 +362,7 @@ export function Login({
   );
 }
 
-/* ================= REGISTER PAGE ================= */
+/* ================= PASSWORD STRENGTH ================= */
 
 const strength = (p) => {
   if (!p) return 0;
@@ -388,8 +376,9 @@ const strength = (p) => {
   return s <= 1 ? 1 : s <= 3 ? 2 : 3;
 };
 
+/* ================= REGISTER PAGE ================= */
+
 export function Register({
-  mode = "register",
   onLogin,
   go,
   lang,
@@ -410,10 +399,9 @@ export function Register({
   const [errs, setErrs] = useState({});
 
   const mail = email.trim().toLowerCase();
-
   const st = strength(pw);
 
-  /* ---------- VALIDATION + REGISTER ---------- */
+  /* ---------- REGISTER ---------- */
 
   const run = async () => {
     if (busy) return;
@@ -465,9 +453,9 @@ export function Register({
         k: er.message,
         ok: false
       });
+    } finally {
+      setBusy(false);
     }
-
-    setBusy(false);
   };
 
   const enter = (e) => {
@@ -548,7 +536,7 @@ export function Register({
         onClick={run}
         disabled={busy}
       >
-        {busy ? "Please wait..." : t("register")}
+        {busy ? "Please Wait..." : t("register")}
       </button>
 
       <div className="cx-pdiv">
