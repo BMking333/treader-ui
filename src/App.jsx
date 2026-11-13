@@ -54,8 +54,8 @@ export default function App() {
         <style>{CSS}</style>
         {view === "boot" && <div className="cx-pg" />}
         {view === "login" && <Login onLogin={onLogin} lang={lang} setLang={setLang} go={go} flash={flash} />}
-        {view === "register" && <Register mode="register" onLogin={onLogin} go={go} />}
-        {view === "forgot" && <Register mode="forgot" onLogin={onLogin} go={go} />}
+        {view === "register" && <Register mode="register" onLogin={onLogin} go={go} lang={lang} setLang={setLang} />}
+        {view === "forgot" && <Register mode="forgot" onLogin={onLogin} go={go} lang={lang} setLang={setLang} />}
         {view === "app" && <Dashboard key={me ? (me.uid ?? me.email) : "guest"} me0={me} logout={logout} askLogin={(v = "login", f = "") => go(v, f)} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />}
       </div>
     </LangCtx.Provider>
@@ -343,7 +343,70 @@ const CSS = `
 .cx-pg.od .cx-obar{background:#0d1626;border-color:#243148;color:#fff}
 .cx-pg.od .cx-sheet,.cx-pg.od .cx-drawer{background:#17263d;color:#e8ecf3}
 .cx-pg.od .cx-drawer button{border-color:#2a3a56}
+.cx-csh{width:100%;max-width:520px;background:#fff;border-radius:20px 20px 0 0;padding-bottom:calc(30px + env(safe-area-inset-bottom));color:#111}
+.cx-csh-h{display:grid;grid-template-columns:1fr auto;align-items:center;padding:22px 20px 26px;position:relative}
+.cx-csh-h b{font-weight:500;font-size:18px;text-align:center;grid-column:1/-1}
+.cx-csh-h button{position:absolute;inset-inline-end:16px;top:18px;font-size:22px;color:#9aa0ad;line-height:1}
+.cx-csh-r{display:flex;justify-content:space-between;align-items:center;padding:20px 18px;border-top:1px solid #eceef3;font-size:17px;color:inherit;text-decoration:none}
+.cx-csh-r:last-child{border-bottom:1px solid #eceef3}
+.cx-csh-r i{font-style:normal;color:#9aa0ad;font-size:26px;line-height:1}
+.cx[dir=rtl] .cx-csh-r i{transform:scaleX(-1)}
+.cx.dark .cx-csh{background:#17263d;color:#e8ecf3}
+.cx.dark .cx-csh-r{border-color:#22304a}
+.cx-pg.cx-au{background:#f3f5fa;padding-bottom:40px}
+.cx.dark .cx-pg.cx-au{background:#0b1424}
+.cx-pt{display:flex;justify-content:space-between;align-items:center;padding:14px 16px}
+.cx-pt>button,.cx-pt2>button{font-size:34px;line-height:1;width:44px;height:44px;display:grid;place-items:center;border-radius:12px;text-align:center!important}
+.cx-pt2>button{font-size:inherit}
+.cx-pt2{display:flex;align-items:center;gap:8px}
+.cx-pt2 .cx-lang{font-size:15px;padding:8px 10px;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.cx[dir=rtl] .cx-pt>button:first-child{transform:scaleX(-1)}
+.cx-hero{text-align:center;padding:6px 24px 22px}
+.cx-plogo{width:84px;height:84px;margin:0 auto 18px;border-radius:24px;background:linear-gradient(135deg,#17c3c9,#1f7acb);display:grid;place-items:center;box-shadow:0 10px 26px rgba(31,122,203,.35)}
+.cx-plogo svg{width:54px;height:54px}
+.cx-hero h1{margin:0 0 8px;font-size:28px;font-weight:700;letter-spacing:.2px}
+.cx-hero p{margin:0;color:#7b8190;font-size:15px}
+.cx-pcard{background:#fff;margin:0 16px;border-radius:20px;padding:22px 20px 20px;box-shadow:0 8px 30px rgba(20,40,80,.08)}
+.cx-pcard .cx-msg{margin:12px 0 0}
+.cx-fd{margin-bottom:14px}
+.cx-fd label{display:block;font-size:14px;font-weight:500;color:#4a5062;margin-bottom:8px}
+.cx-fw{display:flex;align-items:center;gap:10px;height:52px;padding:0 12px;border:1.5px solid #dfe3ec;border-radius:12px;background:#fafbfe;transition:border-color .15s,box-shadow .15s}
+.cx-fw:focus-within{border-color:${BLUE};box-shadow:0 0 0 3px rgba(31,122,203,.15);background:#fff}
+.cx-fw.err{border-color:${RED}}
+.cx-fi{display:flex;color:#8a93a6;flex:none}
+.cx-fw input{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;color:inherit;height:100%}
+.cx-fe{display:flex;color:#8a93a6;padding:6px;margin-inline-end:-6px;text-align:center!important}
+.cx .cx-fer{color:${RED};font-size:13px;margin-top:6px}
+.cx-prow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:2px 0 6px;flex-wrap:wrap}
+.cx-prow .cx-rm{padding:8px 0;font-size:14px;color:#4a5062}
+.cx-prow .cx-rm input{width:18px;height:18px}
+.cx-plink{color:${BLUE}!important;font-size:14px;font-weight:600}
+.cx-pbtn{display:block;width:100%;margin-top:16px;padding:16px 0;border-radius:12px;background:linear-gradient(135deg,#2a8fe0,#1f7acb)!important;color:#fff!important;font-size:17px;font-weight:600;text-align:center!important;box-shadow:0 6px 16px rgba(31,122,203,.35)}
+.cx-pbtn:active{transform:translateY(1px)}
+.cx-pdiv{display:flex;align-items:center;margin:20px 0 14px}
+.cx-pdiv span{flex:1;height:1px;background:#e5e8f0}
+.cx-pfoot{margin:0;text-align:center;font-size:15px;color:#6b7183}
+.cx-pfoot .cx-plink{font-size:15px;margin-inline-start:4px}
+.cx-pghost{display:block;width:100%;margin-top:14px;padding:13px 0;border:1.5px solid #dfe3ec!important;border-radius:12px;text-align:center!important;font-size:15px;color:#4a5062}
+.cx-pcs{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 32px);margin:22px 16px 0;padding:14px 0;color:${BLUE}!important;font-size:14px;text-align:center!important}
+.cx-str{display:flex;align-items:center;gap:10px;margin:-6px 0 14px}
+.cx-str div{display:flex;gap:5px;flex:1}
+.cx-str i{flex:1;height:5px;border-radius:3px;background:#e3e6ee}
+.cx-str i.s1.on{background:#e5484d}.cx-str i.s2.on{background:#f5a623}.cx-str i.s3.on{background:#0ecb81}
+.cx-str span{font-size:13px;min-width:60px;text-align:end}
+.cx-str span.s1{color:#e5484d}.cx-str span.s2{color:#f5a623}.cx-str span.s3{color:#0ecb81}
+.cx.dark .cx-pcard{background:#17263d;box-shadow:none}
+.cx.dark .cx-hero p,.cx.dark .cx-pfoot{color:#9aa6bb}
+.cx.dark .cx-fd label,.cx.dark .cx-prow .cx-rm{color:#b6c0d3}
+.cx.dark .cx-fw{background:#101c30;border-color:#2c3b57}
+.cx.dark .cx-fw:focus-within{background:#0d1626;border-color:${BLUE}}
+.cx.dark .cx-pdiv span{background:#2c3b57}
+.cx.dark .cx-pghost{border-color:#2c3b57!important;color:#b6c0d3}
+.cx.dark .cx-str i{background:#2c3b57}
+.cx.dark .cx-pt2 .cx-lang{background:#17263d;box-shadow:none}
 @media(min-width:768px){
+.cx-pg.cx-au{max-width:560px}
+.cx-csh{max-width:640px}
 .cx-pg{max-width:900px;padding-bottom:110px}
 .cx-nav{max-width:900px;padding:8px 0}
 .cx-nav button{font-size:14px;gap:3px}
