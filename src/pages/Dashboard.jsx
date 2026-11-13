@@ -4,7 +4,8 @@ import SideMenu from "./sidebar";
 import Deposit from "./depsoted";
 import Withdraw from "./withdrew";
 import Authentication from "./authentication";
-import { Market, Exchange, Options, Assets } from "./trading";
+import { Market, Exchange, Assets } from "./trading";
+import Options from "./options";
 
 /* =====================================================================
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
