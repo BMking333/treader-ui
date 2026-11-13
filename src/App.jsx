@@ -483,4 +483,7 @@ const CSS = `
 .cx-tbl{font-size:14px}
 .cx-norec{font-size:18px}
 }
+/* Options পেজ (src/pages/options.jsx): পুরো প্রস্থ নেয়, PC-তে চার্ট বামে + ট্রেড প্যানেল ডানে */
+.cx-pg:has(.cx-op){max-width:none;padding-bottom:0;box-shadow:none}
+.cx:has(.cx-op) .cx-nav{max-width:none}
 `;
