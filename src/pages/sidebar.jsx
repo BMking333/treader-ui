@@ -20,7 +20,7 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
   };
   const soon = () => notify(t("soon"));
   const rows = [
-    ["idcard", t("auth"), t("wait"), true, soon],
+    ["idcard", t("auth"), t("wait"), true, () => { onClose(); go("auth"); }],
     ["pin", t("bind"), "", false, () => { onClose(); go("withdraw"); }],
     ["share", t("share"), "", false, share],
     ["bell", t("smsg"), "", false, () => notify(t("nomsg"))],
