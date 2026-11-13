@@ -1,375 +1,760 @@
-// src/pages/Dashboard.jsx  (ইউজার ড্যাশবোর্ড)
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import api from "../services/api";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  BLUE, GREEN, RED, CUP, CDN, COINS, MARKETS, QTY, SECS, YIELD, ASSET_COINS,
+  useT, api, usePrices, fmt, fmtV, Ic, ICON, Coin,
+} from "../lib/cex";
+import Home, { List } from "./Home";
 
-import TopBar from "../components/TopBar";
-import DownBar from "../components/DownBar";
-
-/* ================= STYLES ================= */
-
-// বাংলা যুক্তাক্ষর (যেমন "ন্স") ঠিকমতো দেখানোর জন্য:
-// - Noto Sans Bengali আগে, Hind Siliguri পরে
-// - ligature চালু, letter-spacing বন্ধ
-const styles = `
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@400;500;600;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap');
-
-.db-root {
-  font-family: 'Noto Sans Bengali', 'Hind Siliguri', 'Kalpurush', system-ui, sans-serif;
-  font-feature-settings: "liga" 1, "clig" 1, "rlig" 1, "calt" 1, "locl" 1;
-  font-variant-ligatures: common-ligatures contextual;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-}
-.db-root h1, .db-root h2, .db-root h3, .db-root p, .db-root span, .db-root button {
-  letter-spacing: 0 !important;
-  word-spacing: 0;
-}
-`;
-
-const NAVY_BG = {
-  background: "radial-gradient(900px 420px at 15% -20%, #17495a 0%, #0A1F2E 65%)",
-};
-
-/* ================= BUTTON STYLES ================= */
-
-const GOLD_BTN =
-  "bg-gradient-to-b from-[#E8CB7E] via-[#C9A24B] to-[#B48A34] text-[#1B1405] " +
-  "shadow-[0_10px_24px_-8px_rgba(201,162,75,0.75),inset_0_1px_0_rgba(255,255,255,0.55)] " +
-  "hover:brightness-105 active:translate-y-px " +
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#C9A24B]/40";
-
-const INK_BTN =
-  "bg-[#0A1F2E] text-white hover:bg-[#123244] active:translate-y-px " +
-  "shadow-[0_10px_24px_-10px_rgba(10,31,46,0.8)] " +
-  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#0A1F2E]/30";
-
-/* ================= ICONS ================= */
-
-const Svg = ({ children, className = "w-6 h-6", strokeWidth = 1.9 }) => (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={strokeWidth}
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-    aria-hidden="true"
-  >
-    {children}
-  </svg>
-);
-
-const CheckCircleIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M8 12.5l2.7 2.7L16 9.8" />
-  </Svg>
-);
-
-const ClockIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 7v5l3 2" />
-  </Svg>
-);
-
-const CrossCircleIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M9 9l6 6M15 9l-6 6" />
-  </Svg>
-);
-
-const AlertIcon = () => (
-  <Svg>
-    <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-    <path d="M12 9v4M12 17h.01" />
-  </Svg>
-);
-
-const InfoIcon = () => (
-  <Svg>
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 16v-5M12 8h.01" />
-  </Svg>
-);
-
-const WalletIcon = () => (
-  <Svg className="w-5 h-5">
-    <path d="M3 7a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v3" />
-    <path d="M3 7v11a2 2 0 0 0 2 2h14a1 1 0 0 0 1-1v-3" />
-    <path d="M21 10h-5a2 2 0 0 0 0 4h5z" />
-  </Svg>
-);
-
-/* ================= LOAN STATUS CONFIG ================= */
-// কালার স্কিম: সবুজ = সফল, হলুদ = অপেক্ষা, ধূসর = বাতিল, লাল = সমস্যা, নীল = যাচাই চলছে
-
-const TONES = {
-  green: {
-    wrap: "bg-[#EEF8F3] border-[#BFE3D0]",
-    circle: "bg-[#D6F0E2] text-[#1F9D6B]",
-    title: "text-[#15724E]",
-    text: "text-[#2B5B47]",
-  },
-  yellow: {
-    wrap: "bg-[#FDF6E3] border-[#EBDCA8]",
-    circle: "bg-[#F8E9B8] text-[#B07A10]",
-    title: "text-[#8A5F08]",
-    text: "text-[#6B5320]",
-  },
-  gray: {
-    wrap: "bg-[#F3F4F5] border-[#D9DCDF]",
-    circle: "bg-[#E4E7EA] text-[#5B6770]",
-    title: "text-[#33404A]",
-    text: "text-[#5B6770]",
-  },
-  red: {
-    wrap: "bg-[#FCEFEF] border-[#F0C9C9]",
-    circle: "bg-[#F9D9D9] text-[#D64545]",
-    title: "text-[#B02F2F]",
-    text: "text-[#7A3A3A]",
-  },
-  blue: {
-    wrap: "bg-[#EAF1FB] border-[#B9D0EE]",
-    circle: "bg-[#D3E3F6] text-[#1F5BA8]",
-    title: "text-[#174382]",
-    text: "text-[#2A4D78]",
-  },
-};
-
-const STATUS = {
-  Approved: {
-    ...TONES.green,
-    icon: <CheckCircleIcon />,
-    heading: "ঋণ অনুমোদিত হয়েছে",
-    message: "অভিনন্দন! আপনার ঋণ অনুমোদিত হয়েছে, আপনি এখন ঋণ উত্তোলন করতে পারেন।",
-  },
-  Pending: {
-    ...TONES.yellow,
-    icon: <ClockIcon />,
-    heading: "অনুমোদনের অপেক্ষায়",
-    message: "আপনার ঋণের আবেদন পর্যবেক্ষণ করা হচ্ছে। অনুগ্রহ করে অপেক্ষা করুন।",
-  },
-  Rejected: {
-    ...TONES.gray,
-    icon: <CrossCircleIcon />,
-    heading: "আবেদন প্রত্যাখ্যাত",
-    message: "আপনার ঋণ আবেদন বাতিল করা হয়েছে।",
-  },
-  Processing: {
-    ...TONES.red,
-    icon: <AlertIcon />,
-    heading: "প্রক্রিয়াধীন",
-    message: "আপনার ঋণ প্রক্রিয়াধীন চলছে। অনুগ্রহ করে গ্রাহক প্রতিনিধির সাথে যোগাযোগ করুন।",
-  },
-  "Payment Pending": {
-    ...TONES.blue,
-    icon: <ClockIcon />,
-    heading: "পেমেন্ট যাচাই চলছে",
-    message: "আপনার পাঠানো পেমেন্ট স্ক্রিনশট যাচাই করা হচ্ছে।",
-  },
-  "Payment Success": {
-    ...TONES.green,
-    icon: <CheckCircleIcon />,
-    heading: "পেমেন্ট সফল হয়েছে",
-    message: "আপনার পেমেন্ট সফলভাবে যাচাই হয়েছে।",
-  },
-  "Payment Failed": {
-    ...TONES.red,
-    icon: <AlertIcon />,
-    heading: "পেমেন্ট ব্যর্থ হয়েছে",
-    message: "আপনার পেমেন্ট যাচাই করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।",
-  },
-};
-
-// অচেনা স্ট্যাটাস এলে যেন কার্ড হারিয়ে না যায়
-const FALLBACK_STATUS = {
-  ...TONES.gray,
-  icon: <InfoIcon />,
-  heading: "ঋণের অবস্থা",
-  message: "আপনার ঋণের তথ্য হালনাগাদ হচ্ছে।",
-};
-
-const getStatus = (loan) => (loan ? STATUS[loan.loan_status] || FALLBACK_STATUS : null);
-
-/* ================= DASHBOARD ================= */
-
-const Dashboard = () => {
-  const navigate = useNavigate();
-
-  const [user, setUser] = useState(null);
-  const [loan, setLoan] = useState(null);
-  const [loanLoaded, setLoanLoaded] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  // ================= FETCH =================
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-
-      const token = localStorage.getItem("access") || localStorage.getItem("token");
-      const headers = { Authorization: token ? `Bearer ${token}` : "" };
-
-      const [userRes, loanRes] = await Promise.allSettled([
-        api.get("/user/kyc/me", { headers }),
-        api.get("/loan/loan/my-loans", { headers }),
-      ]);
-
-      // সেশন শেষ হলে লগইন পেজে পাঠানো হবে
-      const unauthorized = [userRes, loanRes].some(
-        (r) => r.status === "rejected" && r.reason?.response?.status === 401
-      );
-      if (unauthorized) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("token");
-        localStorage.removeItem("role");
-        navigate("/login", { replace: true });
-        return;
-      }
-
-      // USER
-      setUser(userRes.status === "fulfilled" ? userRes.value.data : null);
-
-      // LOANS: সবচেয়ে নতুন ঋণ বেছে নেওয়া হচ্ছে
-      if (loanRes.status === "fulfilled") {
-        const list = Array.isArray(loanRes.value.data) ? [...loanRes.value.data] : [];
-        list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-        setLoan(list[0] || null);
-        setLoanLoaded(true);
-      } else {
-        setLoan(null);
-        setLoanLoaded(false); // লোড ব্যর্থ হলে "আবেদন করেননি" দেখানো হবে না
-      }
-    } catch (err) {
-      console.error(err);
-      setUser(null);
-      setLoan(null);
-      setLoanLoaded(false);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  /* ================= LOADING ================= */
-
-  if (loading) {
-    return (
-      <div lang="bn" className="db-root flex min-h-screen flex-col items-center justify-center gap-4 bg-[#FAF8F3]">
-        <style>{styles}</style>
-
-        <svg className="h-10 w-10 animate-spin text-[#C9A24B]" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25" />
-          <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-        </svg>
-
-        <p className="text-[17px] font-semibold text-[#0A1F2E]">লোড হচ্ছে...</p>
-      </div>
-    );
-  }
-
-  const status = getStatus(loan);
-  const showInfoNotice = !!user && !user.kyc_submitted;
-  const showLoanNotice = loanLoaded && !loan && !showInfoNotice;
-
+/* ---------------- Coin drawer (shared) ---------------- */
+function CoinDrawer({ P, onPick, onClose }) {
+  const t = useT();
   return (
-    <div lang="bn" className="db-root min-h-screen bg-[#FAF8F3] pb-28 text-[#0A1F2E]">
-      <style>{styles}</style>
-
-      <TopBar />
-
-      <main className="mx-auto mt-8 max-w-3xl space-y-6 px-4">
-        {/* ================= BALANCE ================= */}
-        <section
-          className="rounded-3xl border border-[#C9A24B]/40 p-6 text-white shadow-[0_24px_60px_-24px_rgba(10,31,46,0.8)] sm:p-8"
-          style={NAVY_BG}
-        >
-          <p lang="bn" className="text-[16px] font-medium text-white/75">
-            অ্যাকাউন্ট ব্যালেন্স
-          </p>
-
-          <p className="mt-2 text-4xl font-bold sm:text-5xl">
-            <span className="mr-1 text-[#E6C878]">৳</span>
-            {Number(user?.balance || 0).toLocaleString("en-BD")}
-          </p>
-
-          <button
-            onClick={() => navigate("/withdrew")}
-            className={`mt-7 flex w-full items-center justify-center gap-2.5 rounded-xl py-3.5 text-[17px] font-semibold transition ${GOLD_BTN}`}
-          >
-            <WalletIcon />
-            <span>ঋণ উত্তোলন</span>
+    <div className="cx-over" onClick={onClose}>
+      <div className="cx-drawer" onClick={(e) => e.stopPropagation()}>
+        <h2>{t("spot")}</h2><h3>USDT</h3>
+        {COINS.map((s) => (
+          <button key={s} onClick={() => onPick(s)}>
+            <span className="cx-dn"><Coin s={s} size={30} /><b>{s}<small>/USDT</small></b></span>
+            <span style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{fmt(P[s].price)}</span>
           </button>
-        </section>
-
-        {/* ================= NOTICE ================= */}
-        {showInfoNotice && (
-          <NoticeBox
-            text="প্রথমে ব্যক্তিগত তথ্য পূরণ করুন।"
-            buttonText="তথ্য দিন"
-            onClick={() => navigate("/personal-info")}
-          />
-        )}
-
-        {showLoanNotice && (
-          <NoticeBox
-            text="আপনি এখনো ঋণের জন্য আবেদন করেননি।"
-            buttonText="আবেদন করুন"
-            onClick={() => navigate("/loan")}
-          />
-        )}
-
-        {/* ================= LOAN STATE ================= */}
-        {status && <StatusCard status={status} />}
-      </main>
-
-      <DownBar />
+        ))}
+      </div>
     </div>
   );
+}
+
+/* ---------------- Side menu (C icon) ---------------- */
+function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify }) {
+  const t = useT();
+  const share = () => {
+    const link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + me.uid;
+    try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch {}
+    notify(t("copied"));
+  };
+  const rows = [
+    ["idcard", t("auth"), t("wait"), true, () => notify(t("demo"))],
+    ["pin", t("bind"), "", false, () => { onClose(); go("withdraw"); }],
+    ["share", t("share"), "", false, share],
+    ["bell", t("smsg"), "", false, () => notify(t("nomsg"))],
+    ["moon", t("night"), "switch", false, () => setDark(!dark)],
+    ["lock", t("sec"), t("notset"), true, () => notify(t("demo"))],
+    ["user", t("web"), "", false, () => notify(t("demo"))],
+  ];
+  return (
+    <div className={"cx-mo" + (open ? " open" : "")} onClick={onClose}>
+      <aside className="cx-md" onClick={(e) => e.stopPropagation()}>
+        <div className="cx-mp">
+          <p>{me.email}</p><p>UID:{me.uid}</p><p>VIP:{me.vip}</p><p>{t("rep")} : {me.reputation}</p>
+        </div>
+        {rows.map(([ic, label, val, red, fn]) => (
+          <button key={ic} className="cx-mr" onClick={fn}>
+            <span className="cx-mi"><Ic d={ICON[ic]} s={28} /></span>
+            <span className="cx-ml">{label}</span>
+            {val === "switch"
+              ? <span className={"cx-sw" + (dark ? " on" : "")}><i /></span>
+              : <>{val && <span className={"cx-mv" + (red ? " red" : "")}>{val}</span>}<span className="cx-ar">›</span></>}
+          </button>
+        ))}
+        <button className="cx-lo" onClick={() => { onClose(); logout(); }}>{t("logout")}</button>
+      </aside>
+    </div>
+  );
+}
+
+/* ---------------- Market ---------------- */
+function Market({ P, go }) {
+  const t = useT();
+  const [m, setM] = useState("USDT");
+  const [sub, setSub] = useState("All");
+  return (
+    <>
+      <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("market")}</h1><span /></div>
+      <div className="cx-tabs">{MARKETS.map((x) => <button key={x} className={m === x ? "on" : ""} onClick={() => setM(x)}>{x}</button>)}</div>
+      <div className="cx-tabs two">{["All", "NFT"].map((x) => <button key={x} className={sub === x ? "on" : ""} onClick={() => setSub(x)}>{x === "All" ? t("all") : x}</button>)}</div>
+      {m === "USDT" && sub === "All" ? <List P={P} go={go} names /> : <div className="cx-empty">{t("nodata")}</div>}
+    </>
+  );
+}
+
+/* ---------------- Exchange (spot) → POST /spot/order ---------------- */
+function Exchange({ P, W, sym, setSym, go }) {
+  const t = useT();
+  const [side, setSide] = useState("buy");
+  const [price, setPrice] = useState("");
+  const [q, setQ] = useState("");
+  const [amt, setAmt] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [pick, setPick] = useState(false);
+  const d = P[sym];
+  const book = useMemo(() => {
+    const mk = (k) => Array.from({ length: 5 }, (_, i) => [d.price * (1 + k * 0.0004 * (i + 1)), Math.random() * 1.2 + 0.001]);
+    return { a: mk(1).reverse(), b: mk(-1) };
+  }, [Math.round(d.price)]); // eslint-disable-line
+  const usdt = W.w.USDT || 0, held = W.w[sym] || 0;
+  const px = parseFloat(price) || d.price;
+  const est = side === "buy" ? (parseFloat(amt) || 0) / px : (parseFloat(q) || 0);
+  const pct = (p) => { if (side === "buy") setAmt(String(+(usdt * p).toFixed(2))); else setQ(String(+(held * p).toFixed(8))); };
+  const submit = async () => {
+    if (busy) return;
+    setMsg("");
+    try {
+      if (side === "buy") {
+        const a = parseFloat(amt) || 0;
+        if (a <= 0) return setMsg(t("eAmt"));
+        if (a > usdt) return setMsg(t("iU"));
+        setBusy(true);
+        await api("/spot/order", { method: "POST", body: { sym, side: "buy", amount: a } });
+      } else {
+        const n = parseFloat(q) || 0;
+        if (n <= 0) return setMsg(t("eQty"));
+        if (n > held) return setMsg(t("iC") + " " + sym);
+        setBusy(true);
+        await api("/spot/order", { method: "POST", body: { sym, side: "sell", qty: n } });
+      }
+      await W.reload();
+      setAmt(""); setQ(""); setMsg(t("ok"));
+    } catch (e) { setMsg(t(e.message)); }
+    setBusy(false);
+  };
+  const R = ({ r, c }) => (<div className="cx-bk"><b style={{ color: c }}>{r[0].toFixed(6)}</b><span>{r[1].toFixed(6)}</span></div>);
+  return (
+    <>
+      <div className="cx-top">
+        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
+        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}><Coin s={sym} size={28} />{sym}/USDT <small style={{ color: d.chg >= 0 ? GREEN : RED }}>{d.chg.toFixed(2)} %</small></h1>
+        <button onClick={() => go("options")}><Ic d={ICON.market} s={26} /></button>
+      </div>
+      <div className="cx-ex">
+        <div className="cx-book">
+          <div className="cx-bh"><span>{t("price")}</span><span>{t("qty")}</span></div>
+          {book.a.map((r, i) => <R key={"a" + i} r={r} c={RED} />)}
+          <div className="cx-mid" style={{ color: d.chg >= 0 ? GREEN : RED }}>{fmt(d.price)}<small>≈ {d.price.toFixed(2)}</small></div>
+          {book.b.map((r, i) => <R key={"b" + i} r={r} c={GREEN} />)}
+        </div>
+        <div className="cx-form">
+          <div className="cx-bs">
+            <button className={"bb" + (side === "buy" ? " on" : "")} onClick={() => setSide("buy")}>{t("buy")}</button>
+            <button className={"sb" + (side === "sell" ? " on" : "")} onClick={() => setSide("sell")}>{t("sell")}</button>
+          </div>
+          <div className="cx-sel">{t("limit")} ⌄</div>
+          <div className="cx-in"><input value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("price")} inputMode="decimal" /><button onClick={() => setPrice(fmt(px * 1.001))}>+</button><button onClick={() => setPrice(fmt(px * 0.999))}>−</button></div>
+          <small>≈ {fmt(px)}</small>
+          <div className="cx-in"><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("qty")} inputMode="decimal" /><b>{sym}</b></div>
+          <small>{t("avail")} {side === "buy" ? usdt.toFixed(8) + " USDT" : held.toFixed(8) + " " + sym}<br />{side === "buy" ? t("buy") : t("sell")} {est ? est.toFixed(6) : "0"} {sym}</small>
+          <div className="cx-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
+          <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amt")} inputMode="decimal" /><b>USDT</b></div>
+          {msg && <p className="cx-msg">{msg}</p>}
+          <button className="cx-cta" style={{ background: side === "buy" ? GREEN : RED, opacity: busy ? 0.6 : 1 }} onClick={submit}>{busy ? t("wait2") : (side === "buy" ? t("buy") : t("sell")) + " " + sym}</button>
+        </div>
+      </div>
+      <div className="cx-ent"><span>{t("entrust")} <b style={{ color: BLUE }}>{t("buy")} ⌄</b></span><span>{t("all")}</span></div>
+      <div className="cx-empty" style={{ height: 120 }} />
+      {pick && <CoinDrawer P={P} onClose={() => setPick(false)} onPick={(s) => { setSym(s); setPick(false); }} />}
+    </>
+  );
+}
+
+/* ---------------- Candle chart ---------------- */
+const IVS = [["1m", "1m"], ["5m", "5m"], ["15m", "15m"], ["1h", "1H"], ["4h", "4H"], ["1d", "D"]];
+const IVMS = { "1m": 6e4, "5m": 3e5, "15m": 9e5, "1h": 36e5, "4h": 144e5, "1d": 864e5 };
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function synth(price, iv, n = 200) {
+  const ms = IVMS[iv], now = Math.floor(Date.now() / ms) * ms;
+  let seed = (Math.round(price * 100) % 9973) + iv.length + 7;
+  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  const vol = iv === "1d" ? 0.025 : iv === "4h" ? 0.012 : iv === "1h" ? 0.006 : 0.002;
+  const arr = [];
+  let c = price;
+  for (let i = 0; i < n; i++) {
+    const o = c / (1 + (rnd() - 0.5) * vol * 2);
+    const h = Math.max(o, c) * (1 + rnd() * vol * 0.5);
+    const l = Math.min(o, c) * (1 - rnd() * vol * 0.5);
+    arr.unshift({ t: now - i * ms, o, h, l, c, v: (rnd() * 0.8 + 0.2) * 1000 });
+    c = o;
+  }
+  return arr;
+}
+const niceStep = (range, target) => {
+  const raw = range / target, mag = Math.pow(10, Math.floor(Math.log10(raw))), r = raw / mag;
+  return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+};
+const decOf = (p) => (p >= 100 ? 2 : p >= 1 ? 4 : p >= 0.01 ? 6 : 8);
+const fmtT = (ts, iv) => {
+  const d = new Date(ts), z = (x) => String(x).padStart(2, "0");
+  return iv === "1d" ? d.getDate() + " " + MON[d.getMonth()] : z(d.getHours()) + ":" + z(d.getMinutes());
 };
 
-/* ================= STATUS CARD ================= */
-const StatusCard = ({ status }) => (
-  <section className={`rounded-2xl border p-5 ${status.wrap}`}>
-    <div className="flex items-start gap-4">
-      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${status.circle}`}>
-        {status.icon}
-      </span>
+function Chart({ sym, price }) {
+  const t = useT();
+  const wrap = useRef(null);
+  const [w, setW] = useState(360);
+  const [iv, setIv] = useState("1d");
+  const [ivOpen, setIvOpen] = useState(false);
+  const [data, setData] = useState([]);
+  const [n, setN] = useState(40);
+  const [off, setOff] = useState(0);
+  const [hov, setHov] = useState(null);
+  const priceRef = useRef(price);
+  priceRef.current = price;
 
-      <div className="min-w-0">
-        <h2 className={`text-lg font-bold ${status.title}`}>{status.heading}</h2>
-        <p className={`mt-1 text-[16px] leading-relaxed ${status.text}`}>{status.message}</p>
+  useEffect(() => {
+    const el = wrap.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setW(el.clientWidth || 360));
+    ro.observe(el); setW(el.clientWidth || 360);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let stop = false;
+    setOff(0); setHov(null);
+    const load = async () => {
+      try {
+        if (sym === "BSV") throw 0;
+        const j = await api(`/market/klines?sym=${sym}&interval=${iv}&limit=300`);
+        if (!j || !j.length) throw 0;
+        if (!stop) setData(j);
+      } catch { if (!stop) setData((o) => (o.length && o.__sym === sym + iv ? o : Object.assign(synth(priceRef.current, iv), { __sym: sym + iv }))); }
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => { stop = true; clearInterval(id); };
+  }, [sym, iv]);
+
+  const cs = useMemo(() => {
+    if (!data.length || !price) return data;
+    const a = data.slice(), l = a[a.length - 1];
+    a[a.length - 1] = { ...l, c: price, h: Math.max(l.h, price), l: Math.min(l.l, price) };
+    return a;
+  }, [data, price]);
+
+  const ma = useMemo(() => cs.map((_, i) => (i < 8 ? null : cs.slice(i - 8, i + 1).reduce((s, x) => s + x.c, 0) / 9)), [cs]);
+
+  const AX = 66, H1 = 340, GAP = 12, H2 = 90, TA = 28, H = H1 + GAP + H2 + TA;
+  const pw = Math.max(100, w - AX);
+  const end = Math.max(1, cs.length - off), start = Math.max(0, end - n);
+  const vis = cs.slice(start, end), len = vis.length;
+  const step = pw / n;
+  const x0 = pw - len * step;
+  const cx = (k) => x0 + (k + 0.5) * step;
+
+  let hi = -Infinity, lo = Infinity, vmax = 0;
+  vis.forEach((c, k) => {
+    hi = Math.max(hi, c.h); lo = Math.min(lo, c.l); vmax = Math.max(vmax, c.v);
+    const m = ma[start + k]; if (m) { hi = Math.max(hi, m); lo = Math.min(lo, m); }
+  });
+  if (!isFinite(hi) || !len) { hi = 1; lo = 0; vmax = 1; }
+  const padp = (hi - lo) * 0.06 || hi * 0.01;
+  hi += padp; lo -= padp;
+  const y = (p) => 6 + ((hi - p) / (hi - lo)) * (H1 - 12);
+  const vy = (v) => H1 + GAP + H2 - 4 - (v / (vmax || 1)) * (H2 - 14);
+  const dec = decOf(price || 1);
+  const ps = niceStep(hi - lo, 8);
+  const ticks = [];
+  for (let p = Math.ceil(lo / ps) * ps; p <= hi; p += ps) ticks.push(p);
+  const every = Math.max(1, Math.ceil(len / 5));
+  const last = vis[len - 1];
+  const cur = hov && vis[hov.k] ? vis[hov.k] : last;
+  const curIdx = hov && vis[hov.k] ? start + hov.k : start + len - 1;
+  const up = (c) => c.c >= c.o;
+  const colr = cur ? (up(cur) ? CUP : CDN) : CUP;
+  const lastCol = cs.length && up(cs[cs.length - 1]) ? CUP : CDN;
+  const maPts = vis.map((c, k) => ({ m: ma[start + k], k })).filter((a) => a.m).map((a) => `${cx(a.k)},${y(a.m)}`).join(" ");
+
+  /* ---- Touch: pinch zoom, drag pan, tap crosshair, wheel zoom ---- */
+  const ptr = useRef(new Map()), gs = useRef({}), offR = useRef(0), nR = useRef(40);
+  offR.current = off; nR.current = n;
+  const maxOff = Math.max(0, cs.length - 10);
+  const hover = (e) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - r.left, py = e.clientY - r.top;
+    if (px > pw || px < x0 || !len) return setHov(null);
+    setHov({ k: Math.max(0, Math.min(len - 1, Math.floor((px - x0) / step))), x: px, y: py });
+  };
+  const dist = () => { const a = [...ptr.current.values()]; return Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1; };
+  const onDown = (e) => {
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    ptr.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptr.current.size === 2) { gs.current = { d: dist(), n: nR.current }; setHov(null); }
+    else gs.current = { x: e.clientX, off: offR.current, mv: false };
+    hover(e);
+  };
+  const onMv = (e) => {
+    if (ptr.current.has(e.pointerId)) ptr.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (ptr.current.size >= 2) { setN(Math.max(10, Math.min(200, Math.round(gs.current.n * gs.current.d / dist())))); return; }
+    if (ptr.current.size === 1) {
+      const dx = e.clientX - gs.current.x;
+      if (gs.current.mv || Math.abs(dx) > 6) { gs.current.mv = true; setHov(null); setOff(Math.max(0, Math.min(maxOff, gs.current.off + Math.round(dx / step)))); return; }
+    }
+    hover(e);
+  };
+  const onUp = (e) => {
+    ptr.current.delete(e.pointerId);
+    const r = [...ptr.current.values()][0];
+    if (r) gs.current = { x: r.x, off: offR.current, mv: true };
+  };
+  const onWheel = (e) => setN((x) => Math.max(10, Math.min(200, Math.round(x * (e.deltaY > 0 ? 1.1 : 0.9)))));
+
+  const chgv = cur ? cur.c - cur.o : 0;
+  const vma = (() => { const i = curIdx; const s = cs.slice(Math.max(0, i - 19), i + 1); return s.length ? s.reduce((a, x) => a + x.v, 0) / s.length : 0; })();
+
+  return (
+    <div className="cx-chartw" ref={wrap}>
+      <div className="cx-ctool">
+        <div className="cx-ivw">
+          <button onClick={() => setIvOpen(!ivOpen)}>{(IVS.find((a) => a[0] === iv) || [])[1]}</button>
+          {ivOpen && <div className="cx-ivm">{IVS.map(([k, l]) => <button key={k} className={k === iv ? "on" : ""} onClick={() => { setIv(k); setIvOpen(false); }}>{l}</button>)}</div>}
+        </div>
+        <span className="cx-cti"><Ic d={ICON.candle} s={18} /></span>
+        <span className="cx-cti ind">∿ {t("ind")}</span>
+      </div>
+      <div className="cx-cwrap" style={{ height: H }}>
+        {cur && (
+          <div className="cx-chead" style={{ color: colr }}>
+            <div><span className="cx-gt2">{sym.toLowerCase()}usdt, {(IVS.find((a) => a[0] === iv) || [])[1]}</span>{" "}O{cur.o.toFixed(dec)} H{cur.h.toFixed(dec)} L{cur.l.toFixed(dec)} C{cur.c.toFixed(dec)} {chgv >= 0 ? "+" : ""}{chgv.toFixed(dec)} ({chgv >= 0 ? "+" : ""}{((chgv / cur.o) * 100).toFixed(2)}%)</div>
+            <div className="cx-gt2">MA (9, close, 0) <span style={{ color: "#e8914f" }}>{ma[curIdx] ? ma[curIdx].toFixed(4) : "n/a"}</span></div>
+          </div>
+        )}
+        <svg width={w} height={H} onPointerDown={onDown} onPointerMove={onMv} onPointerUp={onUp} onPointerCancel={onUp}
+          onPointerLeave={(e) => { if (e.pointerType === "mouse") setHov(null); }} onWheel={onWheel}
+          style={{ touchAction: "none", display: "block" }}>
+          {ticks.map((p) => (
+            <g key={p}>
+              <line x1="0" x2={pw} y1={y(p)} y2={y(p)} className="cx-gl" />
+              <line x1={pw} x2={pw + 4} y1={y(p)} y2={y(p)} className="cx-ax" />
+              <text x={pw + 8} y={y(p) + 4} className="cx-gt" fontSize="11">{p.toFixed(dec > 2 ? dec : 2)}</text>
+            </g>
+          ))}
+          <line x1={pw} x2={pw} y1="0" y2={H - TA} className="cx-ax" />
+          <line x1="0" x2={w} y1={H1 + GAP / 2} y2={H1 + GAP / 2} className="cx-ax" />
+          {[0, 0.5, 1].map((f) => (
+            <g key={f}>
+              <line x1={pw} x2={pw + 4} y1={vy(vmax * f)} y2={vy(vmax * f)} className="cx-ax" />
+              <text x={pw + 8} y={vy(vmax * f) + 4} className="cx-gt" fontSize="11">{fmtV(vmax * f)}</text>
+            </g>
+          ))}
+          {vis.map((c, k) => k % every === 0 && (
+            <text key={"t" + k} x={cx(k)} y={H - 9} textAnchor="middle" className="cx-gt" fontSize="11">{fmtT(c.t, iv)}</text>
+          ))}
+          {vis.map((c, k) => {
+            const col = up(c) ? CUP : CDN, bw = Math.max(3, step * 0.78), top = y(Math.max(c.o, c.c)), bh = Math.max(1.5, Math.abs(y(c.o) - y(c.c)));
+            return (
+              <g key={c.t}>
+                <rect x={cx(k) - bw / 2} y={vy(c.v)} width={bw} height={H1 + GAP + H2 - 4 - vy(c.v)} fill={col} opacity=".4" />
+                <line x1={cx(k)} x2={cx(k)} y1={y(c.h)} y2={y(c.l)} stroke={col} strokeWidth="1.6" />
+                <rect x={cx(k) - bw / 2} y={top} width={bw} height={bh} fill={col} />
+              </g>
+            );
+          })}
+          {maPts && <polyline points={maPts} fill="none" stroke="#e8a46b" strokeWidth="1" />}
+          {off === 0 && price > lo && price < hi && (
+            <g>
+              <line x1="0" x2={pw} y1={y(price)} y2={y(price)} stroke={lastCol} strokeWidth="1" strokeDasharray="1 2" />
+              <rect x={pw} y={y(price) - 10} width={AX} height="20" fill={lastCol} />
+              <text x={pw + 6} y={y(price) + 4} fill="#fff" fontSize="11">{price.toFixed(dec > 2 ? dec : 2)}</text>
+            </g>
+          )}
+          {hov && vis[hov.k] && (
+            <g>
+              <line x1={cx(hov.k)} x2={cx(hov.k)} y1="0" y2={H - TA} className="cx-ch" />
+              {hov.y < H1 && <>
+                <line x1="0" x2={pw} y1={hov.y} y2={hov.y} className="cx-ch" />
+                <rect x={pw} y={hov.y - 10} width={AX} height="20" fill="#4a5568" />
+                <text x={pw + 6} y={hov.y + 4} fill="#fff" fontSize="11">{(hi - ((hov.y - 6) / (H1 - 12)) * (hi - lo)).toFixed(dec > 2 ? dec : 2)}</text>
+              </>}
+              <rect x={Math.max(0, Math.min(pw - 74, cx(hov.k) - 37))} y={H - TA + 2} width="74" height="20" fill="#4a5568" />
+              <text x={Math.max(0, Math.min(pw - 74, cx(hov.k) - 37)) + 37} y={H - TA + 16} textAnchor="middle" fill="#fff" fontSize="11">{fmtT(vis[hov.k].t, iv)}</text>
+            </g>
+          )}
+          <text x="8" y={H1 + GAP + 14} className="cx-gt" fontSize="11">Volume (20) <tspan fill={colr}>{cur ? fmtV(cur.v) : ""}</tspan> <tspan fill="#e8914f">{fmtV(vma)}</tspan></text>
+        </svg>
+        <div className="cx-zoom">
+          <button onClick={() => setN((x) => Math.min(200, Math.round(x * 1.3)))}>−</button>
+          <button onClick={() => setN((x) => Math.max(10, Math.round(x / 1.3)))}>+</button>
+          <button onClick={() => setOff((o) => Math.min(Math.max(0, cs.length - 10), o + Math.max(1, Math.round(n / 4))))}>‹</button>
+          <button onClick={() => setOff((o) => Math.max(0, o - Math.max(1, Math.round(n / 4))))}>›</button>
+        </div>
+        <button className="cx-gear" onClick={() => { setOff(0); setN(40); }} aria-label="reset"><Ic d={ICON.gear} s={18} /></button>
       </div>
     </div>
-  </section>
-);
+  );
+}
 
-/* ================= NOTICE ================= */
-const NoticeBox = ({ text, buttonText, onClick }) => (
-  <section className="flex flex-col gap-4 rounded-2xl border border-[#EBDCA8] bg-[#FDF6E3] p-5 sm:flex-row sm:items-center sm:justify-between">
-    <div className="flex items-center gap-3.5">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F8E9B8] text-[#B07A10]">
-        <InfoIcon />
-      </span>
+/* ---------------- Options (long / short) → POST /options/open ---------------- */
+function Options({ P, W, sym, setSym, pos, orders }) {
+  const t = useT();
+  const [qty, setQty] = useState(10);
+  const [sec, setSec] = useState(20);
+  const [sheet, setSheet] = useState(false);
+  const [, tick] = useState(0);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState("k");
+  const [ptab, setPtab] = useState("list");
+  const [pick, setPick] = useState(false);
+  const d = P[sym];
+  useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
+  const open = async (dir) => {
+    if (busy) return;
+    setMsg("");
+    const bal = W.w.USDT || 0;
+    if (qty < 10 || qty > 1000000) return setMsg(t("badQ"));
+    if (qty > bal) return setMsg(t("iB"));
+    setBusy(true);
+    try {
+      await api("/options/open", { method: "POST", body: { sym, direction: dir, qty, sec } });
+      await W.reload();
+      setSheet(false); setMsg(t("openMsg"));
+    } catch (e) { setMsg(t(e.message)); }
+    setBusy(false);
+  };
+  return (
+    <>
+      <div className="cx-top">
+        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
+        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}><Coin s={sym} size={28} />{sym}/USDT</h1>
+        <button className="cx-link" onClick={() => setView(view === "k" ? "p" : "k")}>
+          {view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={22} />
+        </button>
+      </div>
 
-      <p className="text-[16px] font-medium leading-relaxed text-[#5C4512]">{text}</p>
+      {view === "k" ? (
+        <>
+          <div className="cx-opt-h">
+            <b style={{ color: d.chg >= 0 ? GREEN : RED }}>{d.price.toFixed(6)}<small>{d.chg.toFixed(2)} %</small></b>
+            <div><span>{t("hi")}</span><i>{fmt(d.hi)}</i><span>{t("lo")}</span><i>{fmt(d.lo)}</i><span>{t("vol")}</span><i>{d.vol.toFixed(2)}</i></div>
+          </div>
+          <Chart sym={sym} price={d.price} />
+          {msg && <p className="cx-msg">{msg}</p>}
+          <div style={{ height: 110 }} />
+          <div className="cx-obar">
+            <button onClick={() => setSheet(true)}>{t("qty")} ⌄<b>{qty.toFixed(2)}</b></button>
+            <button onClick={() => setSheet(true)}>{t("time")} ⌄<b>{sec}s</b></button>
+            <button className="g" style={{ opacity: busy ? 0.6 : 1 }} onClick={() => open("long")}>{t("bl")}</button>
+            <button className="r" style={{ opacity: busy ? 0.6 : 1 }} onClick={() => open("short")}>{t("ss")}</button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="cx-tabs two cx-ptabs">
+            <button className={ptab === "list" ? "on" : ""} onClick={() => setPtab("list")}>{t("pl")}</button>
+            <button className={ptab === "rec" ? "on" : ""} onClick={() => setPtab("rec")}>{t("orec")}</button>
+          </div>
+          <div className="cx-tbl cx-tbh"><span>{t("qty")}</span><span>{t("pp")}</span><span>{t("fp")}</span><span>{t("pnl")}</span></div>
+          {ptab === "list" && pos.map((p) => {
+            const c = P[p.sym] ? P[p.sym].price : p.open;
+            const win = p.dir === "long" ? c > p.open : c < p.open;
+            return (
+              <div key={p.id} className="cx-tbl">
+                <span><Coin s={p.sym} size={18} /> {p.qty}<small>{p.sym} · {p.dir === "long" ? t("bl") : t("ss")} · {Math.max(0, Math.ceil((p.end - Date.now()) / 1000))}s</small></span>
+                <span>{fmt(p.open)}</span>
+                <span>{fmt(c)}</span>
+                <span style={{ color: win ? CUP : CDN }}>{win ? "+" : "-"}{(win ? p.qty * YIELD : p.qty).toFixed(2)}</span>
+              </div>
+            );
+          })}
+          {ptab === "rec" && orders.map((o) => (
+            <div key={o.id} className="cx-tbl">
+              <span><Coin s={o.sym} size={18} /> {o.qty}<small>{o.sym} · {o.dir === "long" ? t("bl") : t("ss")}</small></span>
+              <span>{fmt(o.open)}</span>
+              <span>{fmt(o.close)}</span>
+              <span style={{ color: o.pnl >= 0 ? CUP : CDN }}>{o.pnl >= 0 ? "+" : ""}{o.pnl.toFixed(2)}</span>
+            </div>
+          ))}
+          {((ptab === "list" && !pos.length) || (ptab === "rec" && !orders.length)) && (
+            <div className="cx-norec">
+              <svg width="150" height="120" viewBox="0 0 150 120"><rect x="38" y="20" width="74" height="70" rx="4" fill="#eceef2" /><rect x="46" y="28" width="58" height="44" fill="#fff" /><rect x="54" y="38" width="42" height="5" fill="#e0e2e8" /><rect x="54" y="49" width="42" height="5" fill="#e0e2e8" /><rect x="54" y="60" width="42" height="5" fill="#e0e2e8" /><rect x="34" y="72" width="82" height="22" rx="3" fill="#e3e5ea" /><rect x="62" y="81" width="26" height="4" rx="2" fill="#fff" /></svg>
+              <p>{t("norec")}</p>
+            </div>
+          )}
+        </>
+      )}
+
+      {sheet && (
+        <div className="cx-over end" onClick={() => setSheet(false)}>
+          <div className="cx-sheet" onClick={(e) => e.stopPropagation()}>
+            <h4>{t("mode")}</h4><div className="cx-chs"><button className="on">USDT</button></div>
+            <h4>{t("oq")}</h4>
+            <div className="cx-chs">{QTY.map((x) => <button key={x} className={qty === x ? "on" : ""} onClick={() => setQty(x)}>{x.toFixed(2)}</button>)}</div>
+            <div className="cx-line"><input value={qty} inputMode="decimal" onChange={(e) => setQty(parseFloat(e.target.value) || 0)} /><button onClick={() => setQty(Math.floor(W.w.USDT || 0))}>{t("all")}</button></div>
+            <h4>{t("ot")}</h4>
+            <div className="cx-chs">{SECS.map((x) => <button key={x} className={sec === x ? "on" : ""} onClick={() => setSec(x)}>{x}s</button>)}</div>
+            <div className="cx-info"><span>{t("bal")} : {(W.w.USDT || 0).toFixed(8)}</span><span>{t("yld")} : {YIELD * 100}%</span></div>
+            <div className="cx-info"><span>{t("oq")} : 10.00 - 1000000.00</span></div>
+            {msg && <p className="cx-msg" style={{ margin: "0 0 10px" }}>{msg}</p>}
+            <div className="cx-two"><button className="g" onClick={() => open("long")}>{t("bl")}</button><button className="r" onClick={() => open("short")}>{t("ss")}</button></div>
+          </div>
+        </div>
+      )}
+      {pick && <CoinDrawer P={P} onClose={() => setPick(false)} onPick={(s) => { setSym(s); setPick(false); }} />}
+    </>
+  );
+}
+
+/* ---------------- Assets → POST /wallet/demo-topup ---------------- */
+function Assets({ P, W }) {
+  const t = useT();
+  const [tab, setTab] = useState("assets");
+  const [hide, setHide] = useState(false);
+  const [add, setAdd] = useState("");
+  const [msg, setMsg] = useState("");
+  const val = (s, q) => (s === "USDT" || s === "USDC" ? q : q * (P[s]?.price || 0));
+  const total = Object.entries(W.w).reduce((x, [s, q]) => x + val(s, q), 0);
+  const sub = tab === "assets" ? null : tab;
+  const tabs = [["assets", t("assets")], ["funds", t("funds")], ["options", t("options")], ["quant", t("quant")]];
+  const sec = [["ta", total], ["funds", total], ["options", 0], ["quant", 0]];
+  const title = (k) => (k === "ta" ? t("ta") : t(k));
+  const topup = async () => {
+    const a = parseFloat(add);
+    if (!(a > 0)) return;
+    setMsg("");
+    try {
+      await api("/wallet/demo-topup", { method: "POST", body: { amount: a } });
+      await W.reload();
+      setAdd("");
+    } catch (e) { setMsg(t(e.message)); }
+  };
+  return (
+    <>
+      <div className="cx-tabs big">{tabs.map(([k, l]) => <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}</div>
+      {!sub ? (
+        <div className="cx-cards">
+          {sec.map(([k, v]) => (
+            <div key={k} className="cx-ac"><h3>{title(k)} {t("conv")}</h3><small>{t("avail")}</small><b>{v.toFixed(2)}</b></div>
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="cx-sum">
+            <div><h2>{title(sub)} {t("conv")}</h2><span>{t("ta")}</span><small>{t("cv")}</small></div>
+            <button onClick={() => setHide(!hide)}><Ic d={ICON.eye} s={26} /></button>
+            <b>$ {hide ? "••••••" : (sub === "funds" ? total : 0).toFixed(8)}</b><small>≈ $ {(sub === "funds" ? total : 0).toFixed(2)}</small>
+          </div>
+          <div className="cx-cards gray">
+            {ASSET_COINS.map((s) => {
+              const q = sub === "funds" ? W.w[s] || 0 : 0;
+              const fz = sub === "funds" ? W.fz[s] || 0 : 0;
+              return (
+                <div key={s} className="cx-ac wide">
+                  <h3><span className="cx-dn"><Coin s={s} size={30} />{s}</span> <i>›</i></h3>
+                  <div className="cx-3"><span><small>{t("avail")}</small>{q.toFixed(8)}</span><span><small>{t("frozen")}</small>{fz.toFixed(8)}</span><span><small>{t("cv")}</small>$ {val(s, q).toFixed(2)}</span></div>
+                </div>
+              );
+            })}
+          </div>
+          {sub === "funds" && (
+            <div className="cx-demo"><b>{t("top")}</b><div className="cx-line"><input placeholder={t("ua")} value={add} inputMode="decimal" onChange={(e) => setAdd(e.target.value)} />
+              <button onClick={topup}>{t("add")}</button></div>
+              {msg && <p className="cx-msg bad" style={{ margin: "6px 0 0" }}>{msg}</p>}</div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+/* ---------------- Deposit / Withdraw → /deposit, /withdraw ---------------- */
+const NETS = { USDT: ["TRC20", "ERC20"], USDC: ["ERC20"], ETH: ["ERC20"], BTC: ["BTC"] };
+const WFEE = { USDT: 1, USDC: 1, ETH: 0.002, BTC: 0.0002 };
+
+function TxList({ txs, type }) {
+  const t = useT();
+  const l = txs.filter((x) => x.type === type);
+  return (
+    <div className="cx-hist">
+      <h3>{t("hist")}</h3>
+      {l.length ? l.map((x) => (
+        <div key={x.id} className="cx-tx">
+          <span><b>{x.type === "dep" ? "+" : "-"}{x.amt} {x.coin}</b><small>{x.net} · {new Date(x.time).toLocaleString()}</small></span>
+          <span className={"st " + x.type}>{t(x.type === "dep" ? "done" : "proc")}</span>
+        </div>
+      )) : <div className="cx-empty2">{t("norec")}</div>}
     </div>
+  );
+}
 
-    <button
-      onClick={onClick}
-      className={`shrink-0 rounded-xl px-6 py-2.5 text-[16px] font-semibold transition ${INK_BTN}`}
-    >
-      {buttonText}
-    </button>
-  </section>
-);
+function Chips({ list, v, set }) {
+  return <div className="cx-chips">{list.map((x) => <button key={x} className={x === v ? "on" : ""} onClick={() => set(x)}>{x}</button>)}</div>;
+}
 
-export default Dashboard;
+function Deposit({ W, go, txs }) {
+  const t = useT();
+  const [coin, setCoin] = useState("USDT");
+  const [net, setNet] = useState("TRC20");
+  const [amt, setAmt] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState({ k: "", ok: false });
+  const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
+  const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
+  const submit = async () => {
+    if (busy) return;
+    const a = parseFloat(amt);
+    if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
+    setBusy(true);
+    try {
+      await api("/deposit", { method: "POST", body: { coin, net: nn, amount: a } });
+      await W.reload();
+      setAmt(""); setMsg({ k: "depOk", ok: true });
+    } catch (e) { setMsg({ k: e.message, ok: false }); }
+    setBusy(false);
+  };
+  return (
+    <>
+      <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("dep")}</h1><span /></div>
+      <div className="cx-fm">
+        <h4>{t("coin")}</h4><Chips list={Object.keys(NETS)} v={coin} set={pickCoin} />
+        <h4>{t("net")}</h4><Chips list={nl} v={nn} set={setNet} />
+        <p className="cx-note">{t("depNote")}</p>
+        <h4>{t("amount")}</h4>
+        <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amount")} inputMode="decimal" /><b>{coin}</b></div>
+        {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "10px 0 0" }}>{t(msg.k)}</p>}
+        <button className="cx-a1 flat" style={{ opacity: busy ? 0.6 : 1 }} onClick={submit}>{t("submit")}</button>
+      </div>
+      <TxList txs={txs} type="dep" />
+    </>
+  );
+}
+
+function Withdraw({ W, go, txs }) {
+  const t = useT();
+  const [coin, setCoin] = useState("USDT");
+  const [net, setNet] = useState("TRC20");
+  const [addr, setAddr] = useState("");
+  const [amt, setAmt] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState({ k: "", ok: false });
+  const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
+  const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
+  const held = W.w[coin] || 0, fee = WFEE[coin], a = parseFloat(amt) || 0;
+  const submit = async () => {
+    if (busy) return;
+    const ad = addr.trim();
+    if (!ad) return setMsg({ k: "eAddr", ok: false });
+    if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return setMsg({ k: "bAddr", ok: false });
+    if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
+    if (a <= fee) return setMsg({ k: "feeLow", ok: false });
+    if (a > held) return setMsg({ k: "iB", ok: false });
+    setBusy(true);
+    try {
+      await api("/withdraw", { method: "POST", body: { coin, net: nn, address: ad, amount: a } });
+      await W.reload();
+      setAmt(""); setAddr(""); setMsg({ k: "wdOk", ok: true });
+    } catch (e) { setMsg({ k: e.message, ok: false }); }
+    setBusy(false);
+  };
+  return (
+    <>
+      <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("wd")}</h1><span /></div>
+      <div className="cx-fm">
+        <h4>{t("coin")}</h4><Chips list={Object.keys(NETS)} v={coin} set={pickCoin} />
+        <h4>{t("net")}</h4><Chips list={nl} v={nn} set={setNet} />
+        <h4>{t("addr")}</h4>
+        <div className="cx-in"><input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={t("addr")} autoComplete="off" /></div>
+        <h4>{t("amount")}</h4>
+        <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amount")} inputMode="decimal" /><button className="cx-all" onClick={() => setAmt(String(held))}>{t("all")}</button><b>{coin}</b></div>
+        <div className="cx-kv"><span>{t("avail")}</span><b>{held.toFixed(8)} {coin}</b></div>
+        <div className="cx-kv"><span>{t("fee")}</span><b>{fee} {coin}</b></div>
+        <div className="cx-kv"><span>{t("recv")}</span><b>{Math.max(0, a - fee).toFixed(8)} {coin}</b></div>
+        <p className="cx-note">{t("wdNote")}</p>
+        {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "10px 0 0" }}>{t(msg.k)}</p>}
+        <button className="cx-a1 flat" style={{ opacity: busy ? 0.6 : 1 }} onClick={submit}>{t("submit")}</button>
+      </div>
+      <TxList txs={txs} type="wd" />
+    </>
+  );
+}
+
+/* ---------------- Dashboard (লগইনের পর পুরো অ্যাপ): সব ডেটা API থেকে ---------------- */
+export default function Dashboard({ me0, logout, lang, setLang, dark, setDark }) {
+  const P = usePrices();
+  const t = useT();
+  const [me, setMe] = useState(me0);
+  const [menu, setMenu] = useState(false);
+  const [w, setW] = useState({ USDT: 0 });
+  const [fz, setFz] = useState({});
+  const [pos, setPos] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [txs, setTxs] = useState([]);
+  const [toast, setToast] = useState("");
+  const notify = (m, ms = 3000) => { setToast(m); setTimeout(() => setToast(""), ms); };
+  const [page, setPage] = useState("home");
+  const [sym, setSym] = useState("BTC");
+  const ref = useRef({});
+  ref.current = { t, pos, page };
+  const prevOpen = useRef(null);
+
+  const loadMe = async () => { try { const j = await api("/auth/me"); setMe(j); } catch {} };
+  const loadWallet = async () => {
+    try {
+      const j = await api("/wallet");
+      const a = {}, f = {};
+      Object.entries(j.wallet).forEach(([c, v]) => { a[c] = v.available; f[c] = v.frozen; });
+      setW(a); setFz(f);
+    } catch {}
+  };
+  const loadPos = async () => {
+    try {
+      const [o, r] = await Promise.all([api("/options/positions"), api("/options/records")]);
+      const np = o.map((x) => ({ id: x.id, sym: x.sym, dir: x.direction, qty: x.qty, open: x.open_price, end: Date.parse(x.end_at) }));
+      const no = r.map((x) => ({ id: x.id, sym: x.sym, dir: x.direction, qty: x.qty, open: x.open_price, close: x.close_price, pnl: x.pnl || 0 }));
+      if (prevOpen.current) {
+        const ids = new Set(np.map((x) => x.id));
+        const gone = [...prevOpen.current].filter((i) => !ids.has(i));
+        const cl = no.filter((x) => gone.includes(x.id));
+        if (cl.length) {
+          const wins = cl.filter((x) => x.pnl > 0).length;
+          notify(ref.current.t("closed").replace("{n}", cl.length).replace("{w}", wins).replace("{l}", cl.length - wins), 4000);
+          loadWallet();
+        }
+      }
+      prevOpen.current = new Set(np.map((x) => x.id));
+      setPos(np); setOrders(no);
+    } catch {}
+  };
+  const loadTx = async () => {
+    try {
+      const [d, x] = await Promise.all([api("/deposit/history"), api("/withdraw/history")]);
+      const m = (a) => a.map((y) => ({ id: y.type + y.id, type: y.type, coin: y.coin, net: y.net, amt: y.amount, time: y.created_at }));
+      setTxs([...m(d), ...m(x)].sort((a, b) => Date.parse(b.time) - Date.parse(a.time)));
+    } catch {}
+  };
+  const reload = () => Promise.all([loadWallet(), loadPos(), loadTx()]);
+  const W = { w, fz, reload };
+
+  useEffect(() => {
+    loadMe(); reload();
+    let c = 0;
+    const id = setInterval(() => {
+      c++;
+      const { pos: ps, page: pg } = ref.current;
+      if (ps.length || pg === "options") loadPos();
+      if (c % 3 === 0) loadWallet();
+    }, 2000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line
+
+  const go = (p, s) => { if (s) setSym(s); setPage(p); window.scrollTo(0, 0); };
+  const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
+  return (
+    <>
+      <div className="cx-pg">
+        {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} />}
+        {page === "market" && <Market P={P} go={go} />}
+        {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={setSym} go={go} />}
+        {page === "options" && <Options P={P} W={W} sym={sym} setSym={setSym} pos={pos} orders={orders} />}
+        {page === "assets" && <Assets P={P} W={W} />}
+        {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
+        {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
+      </div>
+      <SideMenu open={menu} onClose={() => setMenu(false)} me={me} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} />
+      {toast && <div className="cx-toast">{toast}</div>}
+      <nav className="cx-nav">
+        {nav.map(([k, l]) => (
+          <button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{t(l)}</button>
+        ))}
+      </nav>
+    </>
+  );
+}
