@@ -1,115 +1,428 @@
+
 import React, { useEffect, useState } from "react";
 import {
   BLUE, GREEN, RED,
   store, TOKEN, setToken, setOn401, api,
 } from "./pages/Home";
+
 import { RTL, LangCtx, isLang, translate } from "./lib/i18n";
 import Dashboard from "./pages/Dashboard";
 import { Login, Register } from "./pages/Register_Login";
 
-/* =====================================================================
-   src/App.jsx — Root: ভাষা, ডার্ক মোড, লগইন স্টেট, পেজ রাউটিং + CSS
-   URL: /login /register /forgot  → auth পেজ, বাকি সব → Dashboard
-   ভাষা/ডার্ক: লগইন থাকলে সার্ভারে (PATCH /user/settings) সেভ হয়,
-   লগইনের সময় সার্ভারের মান বসে। গেস্ট হলে শুধু localStorage।
-   ভাষার তালিকা ও অনুবাদ: src/lib/i18n.jsx
+// Admin Pages
+import Admin_Dashbord from "./pages/Admin_Dashbord";
+import Admin_PaymentMethod from "./pages/Admin_PaymentMethod";
+import Admin_Deposit from "./pages/Admin_Deposit";
 
-   আপডেট:
-   - .cx-logo: পুরনো "C" বক্স সরিয়ে সাদা টাইলে ব্র্যান্ড লোগোর স্টাইল
-   - .cx-bauth / .cx-reg: গেস্টের Login + Register বাটনের স্টাইল
-   ===================================================================== */
+/* =========================================================
+   APP ROUTING
+========================================================= */
 
-const AUTH_PATH = { login: "/login", register: "/register", forgot: "/forgot" };
-const cleanPath = () => (window.location.pathname.replace(/\/+$/, "") || "/");
-const pathToView = (p) => (p === "/login" ? "login" : p === "/register" ? "register" : p === "/forgot" ? "forgot" : "app");
-const isAuthPath = (p) => p === "/login" || p === "/register" || p === "/forgot";
-const pushUrl = (url) => { if (url !== window.location.pathname + window.location.search) window.history.pushState(null, "", url); };
-const replaceUrl = (url) => { if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, "", url); };
+const AUTH_PATH = {
+  login: "/login",
+  register: "/register",
+  forgot: "/forgot",
+};
+
+const ADMIN_PATH = {
+  admin: "/admin",
+  adminPaymentMethods: "/admin/payment-methods",
+  adminDeposits: "/admin/deposits",
+};
+
+const cleanPath = () =>
+  window.location.pathname.replace(/\/+$/, "") || "/";
+
+const pathToView = (path) => {
+  if (path === "/login") return "login";
+  if (path === "/register") return "register";
+  if (path === "/forgot") return "forgot";
+
+  if (path === "/admin") return "admin";
+  if (path === "/admin/payment-methods") return "adminPaymentMethods";
+  if (path === "/admin/deposits") return "adminDeposits";
+
+  return "app";
+};
+
+const isAuthPath = (path) =>
+  path === "/login" ||
+  path === "/register" ||
+  path === "/forgot";
+
+const isAdminPath = (path) =>
+  path === "/admin" ||
+  path.startsWith("/admin/");
+
+const pushUrl = (url) => {
+  if (url !== window.location.pathname + window.location.search) {
+    window.history.pushState(null, "", url);
+  }
+};
+
+const replaceUrl = (url) => {
+  if (url !== window.location.pathname + window.location.search) {
+    window.history.replaceState(null, "", url);
+  }
+};
+
+// Admin role check
+const isAdmin = (user) => {
+  const role = String(user?.role || "").toLowerCase();
+  return role === "admin" && user?.is_active !== false;
+};
 
 export default function App() {
   const [lang, setLangS] = useState(() => {
     const l = store.get("cx_lang", "en");
     return isLang(l) ? l : "en";
   });
-  const [dark, setDarkS] = useState(() => store.get("cx_dark", true));
+
+  const [dark, setDarkS] = useState(() =>
+    store.get("cx_dark", true)
+  );
+
   const [me, setMe] = useState(null);
-  const [view, setView] = useState(() => (TOKEN ? "boot" : pathToView(cleanPath())));
+
+  const [view, setView] = useState(() =>
+    TOKEN ? "boot" : pathToView(cleanPath())
+  );
+
   const [flash, setFlash] = useState("");
 
-  const patchSettings = (b) => { if (TOKEN) api("/user/settings", { method: "PATCH", body: b }).catch(() => {}); };
-  const setLang = (l) => { if (!isLang(l)) return; setLangS(l); store.set("cx_lang", l); patchSettings({ lang: l }); };
-  const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); patchSettings({ dark: v }); };
-  const t = (k) => translate(lang, k);
+  /* =====================================================
+     LANGUAGE / THEME
+  ===================================================== */
 
-  /* html ট্যাগেও ভাষা ও দিক বসে */
+  const patchSettings = (body) => {
+    if (TOKEN) {
+      api("/user/settings", {
+        method: "PATCH",
+        body,
+      }).catch(() => {});
+    }
+  };
+
+  const setLang = (value) => {
+    if (!isLang(value)) return;
+
+    setLangS(value);
+    store.set("cx_lang", value);
+
+    patchSettings({ lang: value });
+  };
+
+  const setDark = (value) => {
+    setDarkS(value);
+    store.set("cx_dark", value);
+
+    patchSettings({ dark: value });
+  };
+
+  const t = (key) => translate(lang, key);
+
   useEffect(() => {
     document.documentElement.lang = lang;
     document.documentElement.dir = RTL.includes(lang) ? "rtl" : "ltr";
   }, [lang]);
 
-  /* পেজ বদলালে URL-ও বদলায় */
-  const go = (v, f = "") => {
-    setFlash(f);
-    setView(v);
-    if (AUTH_PATH[v]) pushUrl(AUTH_PATH[v]);
-    else if (v === "app" && isAuthPath(cleanPath())) pushUrl("/");
-  };
+  /* =====================================================
+     NAVIGATION
+  ===================================================== */
 
-  const logout = () => { setToken(""); setMe(null); setFlash(""); setView("app"); replaceUrl("/"); };
-  setOn401(logout);
+  const go = (target, message = "") => {
+    setFlash(message);
 
-  /* সার্ভারে সেভ করা lang/dark ইউজারের সেটিং হিসেবে বসায় */
-  const applyMe = (u) => {
-    if (!u) return;
-    if (u.lang && isLang(u.lang)) { setLangS(u.lang); store.set("cx_lang", u.lang); }
-    if (typeof u.dark === "boolean") { setDarkS(u.dark); store.set("cx_dark", u.dark); }
-  };
+    // Admin pages require an authenticated admin
+    if (ADMIN_PATH[target]) {
+      if (!TOKEN || !isAdmin(me)) {
+        setView("login");
+        pushUrl("/login");
+        setFlash("Please login with an admin account.");
+        return;
+      }
 
-  /* login/register রেসপন্স = {access_token, token_type, email, uid, lang, dark} */
-  const onLogin = async (r) => {
-    const tok = r && (r.token || r.access_token);
-    if (tok) setToken(tok);
-    const isNew = view === "register";
-    if (isNew) {
-      /* নতুন অ্যাকাউন্ট: গেস্ট অবস্থায় বাছা ভাষা/থিম সার্ভারে সেভ হবে */
-      await api("/user/settings", { method: "PATCH", body: { lang, dark } }).catch(() => {});
-    } else {
-      applyMe(r); /* লগইন রেসপন্সেই lang/dark আসে */
+      setView(target);
+      pushUrl(ADMIN_PATH[target]);
+      return;
     }
-    let u = { email: r?.email, uid: r?.uid, vip: 0, reputation: 0 };
-    try { u = await api("/auth/me"); if (!isNew) applyMe(u); } catch {}
-    setMe(u);
-    setView("app");
-    replaceUrl("/");
+
+    setView(target);
+
+    if (AUTH_PATH[target]) {
+      pushUrl(AUTH_PATH[target]);
+    } else if (target === "app") {
+      pushUrl("/");
+    }
+  };
+
+  /* =====================================================
+     LOGOUT
+  ===================================================== */
+
+  const logout = () => {
+    setToken("");
+    setMe(null);
+    setFlash("");
+    setView("login");
+    replaceUrl("/login");
   };
 
   useEffect(() => {
-    if (!TOKEN) return;
-    api("/auth/me")
-      .then((j) => { applyMe(j); setMe(j); setView("app"); if (isAuthPath(cleanPath())) replaceUrl("/"); })
-      .catch(() => { setToken(""); setView("app"); });
-  }, []); // eslint-disable-line
+    setOn401(logout);
+  });
 
-  /* ব্রাউজারের Back / Forward বাটন */
+  /* =====================================================
+     USER SETTINGS
+  ===================================================== */
+
+  const applyMe = (user) => {
+    if (!user) return;
+
+    if (user.lang && isLang(user.lang)) {
+      setLangS(user.lang);
+      store.set("cx_lang", user.lang);
+    }
+
+    if (typeof user.dark === "boolean") {
+      setDarkS(user.dark);
+      store.set("cx_dark", user.dark);
+    }
+  };
+
+  /* =====================================================
+     LOGIN / REGISTER SUCCESS
+  ===================================================== */
+
+  const onLogin = async (response) => {
+    const token =
+      response?.token ||
+      response?.access_token;
+
+    if (!token) {
+      throw new Error("Login token missing");
+    }
+
+    setToken(token);
+
+    const isNew = view === "register";
+
+    if (isNew) {
+      await api("/user/settings", {
+        method: "PATCH",
+        body: { lang, dark },
+      }).catch(() => {});
+    } else {
+      applyMe(response);
+    }
+
+    let user = {
+      email: response?.email,
+      uid: response?.uid,
+      role: response?.role,
+      vip: 0,
+      reputation: 0,
+    };
+
+    // Always verify user role from backend
+    try {
+      const result = await api("/auth/me");
+      user = result?.user || result;
+
+      if (!isNew) applyMe(user);
+    } catch (error) {
+      setToken("");
+      setMe(null);
+      setView("login");
+      replaceUrl("/login");
+      throw error;
+    }
+
+    setMe(user);
+
+    if (isAdmin(user)) {
+      setView("admin");
+      replaceUrl("/admin");
+    } else {
+      setView("app");
+      replaceUrl("/");
+    }
+  };
+
+  /* =====================================================
+     RESTORE LOGIN SESSION
+  ===================================================== */
+
+  useEffect(() => {
+    if (!TOKEN) {
+      if (isAdminPath(cleanPath())) {
+        replaceUrl("/login");
+        setView("login");
+      }
+      return;
+    }
+
+    api("/auth/me")
+      .then((result) => {
+        const user = result?.user || result;
+
+        applyMe(user);
+        setMe(user);
+
+        const currentPath = cleanPath();
+
+        if (isAdminPath(currentPath)) {
+          if (isAdmin(user)) {
+            setView(pathToView(currentPath));
+          } else {
+            replaceUrl("/");
+            setView("app");
+          }
+        } else if (isAuthPath(currentPath)) {
+          if (isAdmin(user)) {
+            replaceUrl("/admin");
+            setView("admin");
+          } else {
+            replaceUrl("/");
+            setView("app");
+          }
+        } else {
+          setView("app");
+        }
+      })
+      .catch(() => {
+        setToken("");
+        setMe(null);
+
+        if (isAdminPath(cleanPath())) {
+          replaceUrl("/login");
+          setView("login");
+        } else {
+          setView("app");
+        }
+      });
+  }, []);
+
+  /* =====================================================
+     BROWSER BACK / FORWARD
+  ===================================================== */
+
   useEffect(() => {
     const onPop = () => {
-      const p = cleanPath();
-      if (TOKEN && isAuthPath(p)) { replaceUrl("/"); setView("app"); return; }
-      setView((cur) => (cur === "boot" ? cur : pathToView(p)));
+      const path = cleanPath();
+
+      if (TOKEN && isAuthPath(path)) {
+        if (isAdmin(me)) {
+          replaceUrl("/admin");
+          setView("admin");
+        } else {
+          replaceUrl("/");
+          setView("app");
+        }
+        return;
+      }
+
+      if (isAdminPath(path)) {
+        if (!TOKEN || !isAdmin(me)) {
+          replaceUrl(TOKEN ? "/" : "/login");
+          setView(TOKEN ? "app" : "login");
+          return;
+        }
+      }
+
+      setView((current) =>
+        current === "boot" ? current : pathToView(path)
+      );
     };
+
     window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, []);
+
+    return () =>
+      window.removeEventListener("popstate", onPop);
+  }, [me]);
+
+  /* =====================================================
+     RENDER
+  ===================================================== */
 
   return (
     <LangCtx.Provider value={{ lang, t }}>
-      <div className={"cx" + (dark ? " dark" : "")} dir={RTL.includes(lang) ? "rtl" : "ltr"}>
+      <div
+        className={"cx" + (dark ? " dark" : "")}
+        dir={RTL.includes(lang) ? "rtl" : "ltr"}
+      >
         <style>{CSS}</style>
-        {view === "boot" && <div className="cx-pg" />}
-        {view === "login" && <Login onLogin={onLogin} lang={lang} setLang={setLang} go={go} flash={flash} />}
-        {view === "register" && <Register mode="register" onLogin={onLogin} go={go} lang={lang} setLang={setLang} />}
-        {view === "forgot" && <Register mode="forgot" onLogin={onLogin} go={go} lang={lang} setLang={setLang} />}
-        {view === "app" && <Dashboard key={me ? (me.uid ?? me.email) : "guest"} me0={me} logout={logout} askLogin={(v = "login", f = "") => go(v, f)} lang={lang} setLang={setLang} dark={dark} setDark={setDark} />}
+
+        {view === "boot" && (
+          <div className="cx-pg" />
+        )}
+
+        {view === "login" && (
+          <Login
+            onLogin={onLogin}
+            lang={lang}
+            setLang={setLang}
+            go={go}
+            flash={flash}
+          />
+        )}
+
+        {view === "register" && (
+          <Register
+            mode="register"
+            onLogin={onLogin}
+            go={go}
+            lang={lang}
+            setLang={setLang}
+          />
+        )}
+
+        {view === "forgot" && (
+          <Register
+            mode="forgot"
+            onLogin={onLogin}
+            go={go}
+            lang={lang}
+            setLang={setLang}
+          />
+        )}
+
+        {view === "app" && (
+          <Dashboard
+            key={me ? (me.uid ?? me.email) : "guest"}
+            me0={me}
+            logout={logout}
+            askLogin={(v = "login", f = "") => go(v, f)}
+            lang={lang}
+            setLang={setLang}
+            dark={dark}
+            setDark={setDark}
+          />
+        )}
+
+        {view === "admin" && isAdmin(me) && (
+          <Admin_Dashbord
+            me={me}
+            go={go}
+            logout={logout}
+          />
+        )}
+
+        {view === "adminPaymentMethods" && isAdmin(me) && (
+          <Admin_PaymentMethod
+            me={me}
+            go={go}
+            logout={logout}
+          />
+        )}
+
+        {view === "adminDeposits" && isAdmin(me) && (
+          <Admin_Deposit
+            me={me}
+            go={go}
+            logout={logout}
+          />
+        )}
       </div>
     </LangCtx.Provider>
   );
