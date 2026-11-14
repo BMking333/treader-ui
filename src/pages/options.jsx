@@ -7,7 +7,6 @@ import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN
    Mobile: Quantity / Time / Buy Long / Sell Short bar sits ABOVE the
            bottom navigation bar
    PC (>=900px): chart on the left, trade panel on the right
-   Chart: custom canvas candlestick chart (Binance public klines), no logo
    ===================================================================== */
 
 /* ====== Change these if they don't match your backend ====== */
@@ -17,183 +16,107 @@ const MIN_Q = 10, MAX_Q = 1000000;
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 
-/* ---------------- Custom candlestick chart ---------------- */
-const IVS = [["1m", "1m"], ["5m", "5m"], ["15m", "15m"], ["1h", "1h"], ["4h", "4h"], ["1d", "1D"]];
-const KLINE = "https://api.binance.com/api/v3/klines";
+/* ---------------- TradingView chart ---------------- */
+let tvP = null;
+const loadTV = () => {
+  if (typeof window === "undefined") return Promise.reject();
+  if (window.TradingView) return Promise.resolve();
+  if (tvP) return tvP;
 
-const fp = (v) => (v >= 100 ? v.toFixed(2) : v >= 1 ? v.toFixed(4) : v.toFixed(6));
+  tvP = new Promise((res, rej) => {
+    const s = document.createElement("script");
+    s.src = "https://s3.tradingview.com/tv.js";
+    s.onload = res;
+    s.onerror = () => {
+      tvP = null;
+      rej();
+    };
+    document.head.appendChild(s);
+  });
+
+  return tvP;
+};
 
 function Chart({ sym }) {
-  const wrap = useRef(null);
-  const cv = useRef(null);
-  const [iv, setIv] = useState("15m");
-  const [data, setData] = useState([]);
-  const [err, setErr] = useState(false);
-  const [size, setSize] = useState({ w: 0, h: 0 });
+  const id = useRef("cx-tv-" + Math.random().toString(36).slice(2, 8)).current;
 
-  /* fetch candles (poll every 4s) */
   useEffect(() => {
-    let dead = false, timer;
-    const pull = async () => {
-      try {
-        const r = await fetch(KLINE + "?symbol=" + sym + "USDT&interval=" + iv + "&limit=120");
-        const j = await r.json();
-        if (dead) return;
-        if (!Array.isArray(j)) throw new Error("bad");
-        setData(j.map((k) => ({ t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] })));
-        setErr(false);
-      } catch (e) {
-        if (!dead) setErr(true);
-      }
-      if (!dead) timer = setTimeout(pull, 4000);
+    let dead = false;
+
+    loadTV()
+      .then(() => {
+        if (dead || !window.TradingView) return;
+
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        el.innerHTML = "";
+
+        new window.TradingView.widget({
+          autosize: true,
+          symbol: "BINANCE:" + sym + "USDT",
+          interval: "D",
+          timezone: "Etc/UTC",
+          theme: "dark",
+          style: "1",
+          locale: "en",
+          toolbar_bg: "#0b1520",
+          backgroundColor: "#0b1520",
+          enable_publishing: false,
+          hide_side_toolbar: true,
+          allow_symbol_change: false,
+          hide_top_toolbar: true,
+          studies: ["MASimple@tv-basicstudies", "Volume@tv-basicstudies"],
+          container_id: id,
+        });
+
+        // Best-effort visual hide of TradingView attribution/logo
+        setTimeout(() => {
+          if (!document.getElementById(id)) return;
+          const root = document.getElementById(id);
+
+          const hideSelectors = [
+            ".tv-embed-widget-wrapper .tv-embed-widget__footer",
+            ".tv-embed-widget-wrapper .tv-widget-copyright",
+            ".tv-widget-copyright",
+            ".tv-copyright",
+            ".tv-embed-widget__footer",
+            "[class*='copyright']",
+            "[class*='attribution']"
+          ];
+
+          hideSelectors.forEach((sel) => {
+            root.querySelectorAll(sel).forEach((n) => {
+              n.style.display = "none !important";
+              n.style.visibility = "hidden";
+              n.style.opacity = "0";
+              n.style.pointerEvents = "none";
+              n.remove();
+            });
+          });
+        }, 500);
+      })
+      .catch(() => {});
+
+    return () => {
+      dead = true;
     };
-    setData([]);
-    pull();
-    return () => { dead = true; clearTimeout(timer); };
-  }, [sym, iv]);
+  }, [sym, id]);
 
-  /* track container size */
-  useEffect(() => {
-    const el = wrap.current;
-    if (!el) return;
-    const upd = () => setSize({ w: el.clientWidth, h: el.clientHeight });
-    upd();
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", upd);
-      return () => window.removeEventListener("resize", upd);
-    }
-    const ro = new ResizeObserver(upd);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  /* draw */
-  useEffect(() => {
-    const c = cv.current;
-    const { w, h } = size;
-    if (!c || !w || !h) return;
-    const dpr = window.devicePixelRatio || 1;
-    c.width = w * dpr;
-    c.height = h * dpr;
-    const ctx = c.getContext("2d");
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, w, h);
-    const n = data.length;
-    if (!n) return;
-
-    const R = 62, B = 20, T = 8;
-    const pw = w - R, ph = h - B - T;
-    const volH = ph * 0.18;
-    const cH = ph - volH - 6;
-
-    let hi = -Infinity, lo = Infinity, vmax = 0;
-    data.forEach((d) => { if (d.h > hi) hi = d.h; if (d.l < lo) lo = d.l; if (d.v > vmax) vmax = d.v; });
-    const pad = (hi - lo) * 0.06 || hi * 0.001;
-    const top = hi + pad, bot = lo - pad;
-    const y = (v) => T + ((top - v) / (top - bot)) * cH;
-
-    ctx.font = "11px sans-serif";
-    ctx.textBaseline = "middle";
-
-    /* grid + price axis */
-    ctx.strokeStyle = "#1d2d42";
-    ctx.fillStyle = "#9fb0c3";
-    ctx.lineWidth = 1;
-    ctx.textAlign = "left";
-    for (let i = 0; i <= 5; i++) {
-      const v = top - ((top - bot) * i) / 5;
-      const yy = Math.round(y(v)) + 0.5;
-      ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(pw, yy); ctx.stroke();
-      ctx.fillText(fp(v), pw + 6, yy);
-    }
-
-    /* volume */
-    const cw = pw / n;
-    const bw = Math.max(1, cw * 0.65);
-    data.forEach((d, i) => {
-      const x = i * cw + cw / 2;
-      const upc = d.c >= d.o;
-      const vh = vmax ? (d.v / vmax) * volH : 0;
-      ctx.globalAlpha = 0.35;
-      ctx.fillStyle = upc ? CUP : CDN;
-      ctx.fillRect(x - bw / 2, T + ph - vh, bw, vh);
-      ctx.globalAlpha = 1;
-    });
-
-    /* candles */
-    data.forEach((d, i) => {
-      const x = i * cw + cw / 2;
-      const upc = d.c >= d.o;
-      const colr = upc ? CUP : CDN;
-      ctx.strokeStyle = colr;
-      ctx.fillStyle = colr;
-      ctx.beginPath(); ctx.moveTo(x, y(d.h)); ctx.lineTo(x, y(d.l)); ctx.stroke();
-      const yo = y(d.o), yc = y(d.c);
-      ctx.fillRect(x - bw / 2, Math.min(yo, yc), bw, Math.max(1, Math.abs(yc - yo)));
-    });
-
-    /* MA20 */
-    ctx.strokeStyle = "#f0b90b";
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    let started = false;
-    for (let i = 19; i < n; i++) {
-      let s = 0;
-      for (let k = i - 19; k <= i; k++) s += data[k].c;
-      const x = i * cw + cw / 2, yy = y(s / 20);
-      if (!started) { ctx.moveTo(x, yy); started = true; } else ctx.lineTo(x, yy);
-    }
-    ctx.stroke();
-    ctx.lineWidth = 1;
-
-    /* last price line + label */
-    const last = data[n - 1];
-    const ly = Math.round(y(last.c)) + 0.5;
-    const lc = last.c >= last.o ? CUP : CDN;
-    ctx.strokeStyle = lc;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(pw, ly); ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.fillStyle = lc;
-    ctx.fillRect(pw, ly - 9, R, 18);
-    ctx.fillStyle = "#fff";
-    ctx.fillText(fp(last.c), pw + 6, ly);
-
-    /* time labels */
-    ctx.fillStyle = "#9fb0c3";
-    ctx.textAlign = "center";
-    const step = Math.max(1, Math.floor(n / 5));
-    for (let i = step; i < n; i += step) {
-      const dt = new Date(data[i].t);
-      const p2 = (v) => String(v).padStart(2, "0");
-      const lb = iv === "1d" ? p2(dt.getMonth() + 1) + "/" + p2(dt.getDate()) : p2(dt.getHours()) + ":" + p2(dt.getMinutes());
-      ctx.fillText(lb, i * cw + cw / 2, h - B / 2);
-    }
-  }, [data, size, iv]);
-
-  return (
-    <div className="cx-op-chartbox">
-      <div className="cx-op-ivs">
-        {IVS.map(([k, l]) => (
-          <button key={k} type="button" className={k === iv ? "on" : ""} onClick={() => setIv(k)}>{l}</button>
-        ))}
-      </div>
-      <div className="cx-op-cv" ref={wrap}>
-        <canvas ref={cv} style={{ width: "100%", height: "100%", display: "block" }} />
-        {err && !data.length && <div className="cx-op-cvmsg">Chart unavailable</div>}
-        {!err && !data.length && <div className="cx-op-cvmsg">...</div>}
-      </div>
-    </div>
-  );
+  return <div id={id} className="cx-op-tv" />;
 }
 
 /* ---------------- Bottom sheet ---------------- */
 function Sheet({ open, onClose, title, children }) {
   if (!open) return null;
+
   return (
     <div className="cx-op-ov" onClick={onClose}>
       <div className="cx-op-sh" onClick={(e) => e.stopPropagation()}>
-        <div className="cx-op-sh-h"><b>{title}</b><button type="button" onClick={onClose} aria-label="close">✕</button></div>
+        <div className="cx-op-sh-h">
+          <b>{title}</b>
+          <button type="button" onClick={onClose} aria-label="close">✕</button>
+        </div>
         {children}
       </div>
     </div>
@@ -219,15 +142,29 @@ const CSS = `
 .cx-op-st b{text-align:right;font-weight:400;overflow-wrap:anywhere}
 .cx-op-body{flex:1;min-height:0;display:flex;flex-direction:column}
 .cx-op-chart{flex:1;min-height:300px;position:relative}
-
-/* Custom chart */
-.cx-op-chartbox{position:absolute;inset:0;display:flex;flex-direction:column;background:#0b1520}
-.cx-op-ivs{display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid #1d2d42;flex:none}
-.cx-op-ivs button{height:26px;padding:0 10px;border-radius:6px;border:0;background:none;font-size:12px;cursor:pointer;color:#9fb0c3!important}
-.cx-op-ivs button.on{background:#17304f;color:#8fc4ff!important}
-.cx-op-cv{flex:1;min-height:0;position:relative}
-.cx-op-cv canvas{position:absolute;inset:0}
-.cx-op-cvmsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;color:#9fb0c3;pointer-events:none}
+.cx-op-tv{position:absolute;inset:0;overflow:hidden}
+.cx-op-tv .tv-embed-widget-wrapper,
+.cx-op-tv .tv-widget-container,
+.cx-op-tv iframe{width:100% !important;height:100% !important;display:block !important}
+ 
+/* hide TradingView logo/attribution visually */
+.cx-op-tv .tv-embed-widget-wrapper .tv-embed-widget__footer,
+.cx-op-tv .tv-embed-widget-wrapper .tv-widget-copyright,
+.cx-op-tv .tv-widget-copyright,
+.cx-op-tv .tv-copyright,
+.cx-op-tv .tv-embed-widget__footer,
+.cx-op-tv [class*="copyright"],
+.cx-op-tv [class*="attribution"]{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+  height:0 !important;
+  overflow:hidden !important;
+  margin:0 !important;
+  padding:0 !important;
+  border:0 !important;
+}
 
 /* Trade bar: fixed ABOVE the bottom navigation */
 .cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#0f2030;border-top:1px solid #3a4b5e}
@@ -267,16 +204,16 @@ const CSS = `
 .cx-op-none{text-align:center;color:#9fb0c3;padding:40px 0;font-size:14px}
 
 @media(min-width:900px){
-.cx-op{height:auto;min-height:100vh;padding-bottom:70px}
-.cx-op-body{flex-direction:row;height:calc(100vh - 46px - 70px - 70px)}
-.cx-op-chart{min-height:520px}
-.cx-op-bar{position:static;bottom:auto;z-index:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;width:340px;flex:none;height:auto;padding:16px;border-top:0;border-left:1px solid #3a4b5e}
-.cx-op-pick{flex-direction:row;justify-content:space-between;height:46px;padding:0 12px;border:1px solid #2a3a50;border-radius:8px;background:#101c2d}
-.cx-op-yl{display:flex;justify-content:space-between;font-size:13px;color:#9fb0c3}
-.cx-op-yl b{color:#4be0a8;font-weight:400}
-.cx-op-ov{align-items:center}
-.cx-op-sh{border-radius:14px}
-.cx-op-pn{left:auto;width:420px;border-left:1px solid #3a4b5e}
+  .cx-op{height:auto;min-height:100vh;padding-bottom:70px}
+  .cx-op-body{flex-direction:row;height:calc(100vh - 46px - 70px - 70px)}
+  .cx-op-chart{min-height:520px}
+  .cx-op-bar{position:static;bottom:auto;z-index:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;width:340px;flex:none;height:auto;padding:16px;border-top:0;border-left:1px solid #3a4b5e}
+  .cx-op-pick{flex-direction:row;justify-content:space-between;height:46px;padding:0 12px;border:1px solid #2a3a50;border-radius:8px;background:#101c2d}
+  .cx-op-yl{display:flex;justify-content:space-between;font-size:13px;color:#9fb0c3}
+  .cx-op-yl b{color:#4be0a8;font-weight:400}
+  .cx-op-ov{align-items:center}
+  .cx-op-sh{border-radius:14px}
+  .cx-op-pn{left:auto;width:420px;border-left:1px solid #3a4b5e}
 }
 `;
 
@@ -293,7 +230,11 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
   const [now, setNow] = useState(Date.now());
   const tm = useRef(null);
 
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => () => clearTimeout(tm.current), []);
 
   const flash = (k, s = "bad") => {
@@ -312,6 +253,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
     if (!(qty >= MIN_Q && qty <= MAX_Q)) return flash(t("badQ"));
     if ((W.w && W.w.USDT ? W.w.USDT : 0) < qty) return flash(t("iB"));
     setBusy(true);
+
     try {
       await api(OPEN_PATH, { method: "POST", body: { sym, direction: dir, qty, seconds: secs } });
       flash(t("openMsg"), "ok");
@@ -367,7 +309,9 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
 
       {/* ---- Chart + trade bar ---- */}
       <div className="cx-op-body">
-        <div className="cx-op-chart"><Chart sym={sym} /></div>
+        <div className="cx-op-chart">
+          <Chart sym={sym} />
+        </div>
 
         <div className="cx-op-bar">
           <button type="button" className="cx-op-pick" onClick={() => { setQIn(String(qty)); setSh("qty"); }}>
@@ -439,29 +383,29 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
             {tab === "pos" && (myPos.length === 0
               ? <div className="cx-op-none">{t("norec")}</div>
               : myPos.map((x) => (
-                <div key={x.id} className="cx-op-card">
-                  <div className="h">
-                    <b>{x.sym}/USDT</b>
-                    <span className="cx-op-tag" style={{ background: isLong(x.dir) ? CUP : CDN }}>{isLong(x.dir) ? t("bl") : t("ss")}</span>
+                  <div key={x.id} className="cx-op-card">
+                    <div className="h">
+                      <b>{x.sym}/USDT</b>
+                      <span className="cx-op-tag" style={{ background: isLong(x.dir) ? CUP : CDN }}>{isLong(x.dir) ? t("bl") : t("ss")}</span>
+                    </div>
+                    <div className="r"><i>{t("oq")}</i><span>{Number(x.qty).toFixed(2)}</span></div>
+                    <div className="r"><i>{t("pp")}</i><span>{fmt(Number(x.open))}</span></div>
+                    <div className="r"><i>{t("time")}</i><span>{left(x.end)}</span></div>
                   </div>
-                  <div className="r"><i>{t("oq")}</i><span>{Number(x.qty).toFixed(2)}</span></div>
-                  <div className="r"><i>{t("pp")}</i><span>{fmt(Number(x.open))}</span></div>
-                  <div className="r"><i>{t("time")}</i><span>{left(x.end)}</span></div>
-                </div>
               )))}
             {tab === "rec" && (myOrd.length === 0
               ? <div className="cx-op-none">{t("norec")}</div>
               : myOrd.map((x) => (
-                <div key={x.id} className="cx-op-card">
-                  <div className="h">
-                    <b>{x.sym}/USDT</b>
-                    <span className="cx-op-tag" style={{ background: isLong(x.dir) ? CUP : CDN }}>{isLong(x.dir) ? t("bl") : t("ss")}</span>
+                  <div key={x.id} className="cx-op-card">
+                    <div className="h">
+                      <b>{x.sym}/USDT</b>
+                      <span className="cx-op-tag" style={{ background: isLong(x.dir) ? CUP : CDN }}>{isLong(x.dir) ? t("bl") : t("ss")}</span>
+                    </div>
+                    <div className="r"><i>{t("oq")}</i><span>{Number(x.qty).toFixed(2)}</span></div>
+                    <div className="r"><i>{t("pp")}</i><span>{fmt(Number(x.open))}</span></div>
+                    <div className="r"><i>{t("fp")}</i><span>{x.close != null ? fmt(Number(x.close)) : "--"}</span></div>
+                    <div className="r"><i>{t("pnl")}</i><b style={{ color: x.pnl >= 0 ? CUP : CDN, fontWeight: 400 }}>{x.pnl > 0 ? "+" : ""}{Number(x.pnl).toFixed(2)}</b></div>
                   </div>
-                  <div className="r"><i>{t("oq")}</i><span>{Number(x.qty).toFixed(2)}</span></div>
-                  <div className="r"><i>{t("pp")}</i><span>{fmt(Number(x.open))}</span></div>
-                  <div className="r"><i>{t("fp")}</i><span>{x.close != null ? fmt(Number(x.close)) : "--"}</span></div>
-                  <div className="r"><i>{t("pnl")}</i><b style={{ color: x.pnl >= 0 ? CUP : CDN, fontWeight: 400 }}>{x.pnl > 0 ? "+" : ""}{Number(x.pnl).toFixed(2)}</b></div>
-                </div>
               )))}
           </div>
         </div>
