@@ -106,6 +106,8 @@ export default function Assets({ P, W, go }) {
             <div className="cx-as-act">
               <button type="button" onClick={() => toPage("deposit")}>{tt("deposit", "Deposit")}</button>
               <button type="button" onClick={() => toPage("withdraw")}>{tt("withdraw", "Withdraw")}</button>
+              <button type="button" onClick={() => toPage("changemoney")}>{tt("transfer", "Transfer")}</button>
+              <button type="button" onClick={() => toPage("exchangeb")}>{tt("exchange", "Exchange")}</button>
             </div>
           </div>
 
@@ -139,4 +141,3 @@ export default function Assets({ P, W, go }) {
     </div>
   );
 }
-
