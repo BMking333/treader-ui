@@ -3,10 +3,10 @@ import { useT, api, store, CSheet } from "./Home";
 import { LangPicker } from "../lib/i18n";
 
 /* =========================================================
-   Register_Login.jsx  (Professional UI)
-   - Email / password text is now clearly visible
-   - Custom SVG icons (no dependency on ICON from Home)
-   - Login button no longer overflows the screen
+   Register_Login.jsx  (Premium UI)
+   - No blue focus border on inputs
+   - Login / Register buttons always visible (page scrolls itself)
+   - Custom SVG icons
    - Password: minimum 6 / maximum 12 characters
    ========================================================= */
 
@@ -42,11 +42,13 @@ const FB = {
   err: "Something went wrong. Please try again.",
   loginOk: "Login successful",
   regOk: "Registration successful",
-  loginSub: "Welcome back! Sign in to continue.",
+  loginTitle: "Welcome back",
+  loginSub: "Sign in to continue to your account.",
   createAcc: "Create your account",
   createSub: "It only takes a minute to get started.",
   haveAcc: "Already have an account?",
-  noAcc: "Don't have an account?",
+  noAcc: "New here?",
+  or: "or",
   guest: "Continue as guest",
   csHelp: "Need help? Contact support",
   strWeak: "Weak",
@@ -86,9 +88,7 @@ const PATHS = {
       <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
     </>
   ),
-  chat: (
-    <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4A8 8 0 1 1 20 12Z" />
-  ),
+  chat: <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4A8 8 0 1 1 20 12Z" />,
   back: <path d="m15 5-7 7 7 7" />,
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
   alert: (
@@ -128,131 +128,168 @@ function Icon({ n, s = 20, w = 1.8 }) {
 const CSS = `
 .ax, .ax * { box-sizing: border-box; }
 
+/* Full-screen layer: scrolls by itself so buttons are never cut off */
 .ax {
-  --bg: #0a1120;
-  --card: #111b2e;
-  --field: #0c1526;
-  --line: #24334d;
-  --text: #eef3fb;
-  --muted: #8b9ab2;
-  --accent: #22b8d0;
+  --bg: #070d1a;
+  --card: rgba(18,28,48,.78);
+  --field: #0b1424;
+  --line: #22314b;
+  --text: #f1f5fb;
+  --muted: #8392ab;
+  --accent: #26bfd6;
   --danger: #f0627d;
   --ok: #19c37d;
 
-  min-height: 100vh;
-  min-height: 100dvh;
-  width: 100%;
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   justify-content: center;
-  background:
-    radial-gradient(520px 320px at 50% -80px, rgba(34,184,208,.16), transparent 70%),
-    var(--bg);
+  align-items: flex-start;
+  background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
 }
 
-.ax-box {
-  width: 100%;
-  max-width: 420px;
-  padding: 0 20px calc(28px + env(safe-area-inset-bottom, 0px));
+/* soft ambient glow */
+.ax::before, .ax::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(70px);
+  z-index: 0;
+}
+.ax::before {
+  width: 320px; height: 320px;
+  top: -140px; left: 50%;
+  margin-left: -160px;
+  background: rgba(38,191,214,.22);
+}
+.ax::after {
+  width: 260px; height: 260px;
+  bottom: -120px; right: -90px;
+  background: rgba(40,120,224,.18);
 }
 
-.ax button, .ax input { font-family: inherit; outline: none; }
-.ax button { cursor: pointer; }
+.ax-box {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  padding: 0 20px calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.ax button, .ax input { font-family: inherit; }
+.ax button { cursor: pointer; -webkit-appearance: none; appearance: none; }
 
 /* ---------- top bar ---------- */
 .ax-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 0 4px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 0 0;
 }
-.ax-back {
+.ax .ax-back {
   width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 13px;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  background: var(--card);
+  background: rgba(255,255,255,.04);
   color: var(--text);
+  outline: none;
 }
-.ax-back:active { transform: scale(.95); }
+.ax .ax-back:active { transform: scale(.94); }
 
 /* ---------- brand ---------- */
 .ax-logo {
-  width: 72px; height: 72px;
-  margin: 26px auto 22px;
+  width: 68px; height: 68px;
+  margin: 22px auto 18px;
   display: flex; align-items: center; justify-content: center;
-  border-radius: 22px;
-  background: #fff;
-  box-shadow: 0 10px 32px rgba(34,184,208,.28);
+  border-radius: 21px;
+  background: linear-gradient(160deg, #ffffff, #e6f6fa);
+  box-shadow:
+    0 0 0 6px rgba(38,191,214,.10),
+    0 14px 34px rgba(38,191,214,.30);
 }
-.ax-logo svg { width: 46px; height: 46px; }
+.ax-logo svg { width: 42px; height: 42px; }
 
-.ax-head { text-align: center; margin-bottom: 26px; }
+.ax-head { text-align: center; margin-bottom: 22px; }
 .ax-head h1 {
-  margin: 0 0 8px;
-  font-size: 26px;
+  margin: 0 0 6px;
+  font-size: 27px;
+  line-height: 1.2;
   font-weight: 800;
-  letter-spacing: -.4px;
+  letter-spacing: -.5px;
   color: var(--text);
 }
 .ax-head p { margin: 0; font-size: 14px; color: var(--muted); }
 
 /* ---------- card ---------- */
 .ax-card {
-  padding: 22px 20px 20px;
-  border-radius: 22px;
-  border: 1px solid var(--line);
+  padding: 22px 18px 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,.07);
   background: var(--card);
-  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 60px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.05);
 }
 
 /* ---------- field ---------- */
-.ax-fd { margin-bottom: 18px; }
+.ax-fd { margin-bottom: 16px; }
 .ax-fd label {
   display: block;
-  margin-bottom: 8px;
+  margin: 0 0 8px 2px;
   font-size: 13px;
   font-weight: 600;
-  color: #c9d4e6;
+  color: #c4d0e3;
 }
 .ax-fw {
   display: flex;
   align-items: center;
-  height: 54px;
-  padding: 0 6px 0 14px;
-  border-radius: 14px;
+  height: 56px;
+  padding: 0 6px 0 10px;
+  border-radius: 16px;
   border: 1px solid var(--line);
   background: var(--field);
-  transition: border-color .18s, box-shadow .18s;
+  transition: border-color .18s, background .18s;
 }
-.ax-fw:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px rgba(34,184,208,.15);
-}
+/* focus: only a soft border change, NO blue ring / glow */
+.ax-fw:focus-within { border-color: #3a5278; background: #0d172a; }
 .ax-fw.err { border-color: var(--danger); }
-.ax-fw.err:focus-within { box-shadow: 0 0 0 4px rgba(240,98,125,.15); }
 
 .ax-fi {
-  display: flex;
-  margin-right: 12px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 10px;
+  border-radius: 11px;
+  background: rgba(38,191,214,.10);
   color: var(--accent);
   flex-shrink: 0;
 }
 
-/* TEXT COLOR FIX: typed email / password is now bright and visible */
-.ax .ax-in {
+.ax .ax-in,
+.ax .ax-in:focus,
+.ax .ax-in:active {
   flex: 1;
   width: 0;
   min-width: 0;
   height: 100%;
+  margin: 0;
   padding: 0;
-  border: 0;
+  border: 0 !important;
   border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent !important;
   color: var(--text);
   -webkit-text-fill-color: var(--text);
   caret-color: var(--accent);
@@ -260,37 +297,34 @@ const CSS = `
   letter-spacing: .2px;
 }
 .ax .ax-in::placeholder {
-  color: #66758f;
-  -webkit-text-fill-color: #66758f;
+  color: #5f6f8a;
+  -webkit-text-fill-color: #5f6f8a;
   opacity: 1;
 }
-/* AUTOFILL FIX: removes the dark / white box behind saved email & password */
+/* autofill: no coloured box behind saved email / password */
 .ax .ax-in:-webkit-autofill,
 .ax .ax-in:-webkit-autofill:hover,
 .ax .ax-in:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--text);
+  -webkit-text-fill-color: var(--text) !important;
   caret-color: var(--accent);
-  -webkit-box-shadow: 0 0 0 1000px #0c1526 inset;
-  box-shadow: 0 0 0 1000px #0c1526 inset;
+  -webkit-box-shadow: 0 0 0 1000px #0b1424 inset !important;
+  box-shadow: 0 0 0 1000px #0b1424 inset !important;
   transition: background-color 99999s ease-in-out 0s;
 }
 
-.ax-eye {
-  width: 44px; height: 44px;
+.ax .ax-eye {
+  width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
   border: 0;
   border-radius: 12px;
   background: transparent;
   color: var(--muted);
+  outline: none;
   flex-shrink: 0;
 }
-.ax-eye:hover, .ax-eye.on { color: var(--accent); }
+.ax .ax-eye.on { color: var(--accent); }
 
-.ax-er {
-  margin-top: 7px;
-  font-size: 12px;
-  color: var(--danger);
-}
+.ax-er { margin: 7px 0 0 2px; font-size: 12px; color: var(--danger); }
 
 /* ---------- remember + forgot ---------- */
 .ax-row {
@@ -298,7 +332,7 @@ const CSS = `
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 2px 0 20px;
+  margin: 4px 0 20px;
 }
 .ax-rm {
   display: flex;
@@ -310,7 +344,7 @@ const CSS = `
   user-select: none;
 }
 .ax-rm input { position: absolute; opacity: 0; width: 0; height: 0; }
-.ax-box-ck {
+.ax-ck {
   width: 20px; height: 20px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 6px;
@@ -319,70 +353,113 @@ const CSS = `
   color: transparent;
   transition: .15s;
 }
-.ax-rm input:checked + .ax-box-ck {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #06202a;
+.ax-rm input:checked + .ax-ck {
+  background: linear-gradient(135deg, #22bcd3, #2878e0);
+  border-color: transparent;
+  color: #fff;
 }
-.ax-rm input:focus-visible + .ax-box-ck { box-shadow: 0 0 0 3px rgba(34,184,208,.3); }
 
-.ax-link {
+.ax .ax-link {
   border: 0;
   background: none;
   padding: 6px 0;
   font-size: 13px;
   font-weight: 600;
   color: var(--accent);
+  outline: none;
 }
 
-/* ---------- buttons ---------- */
-.ax-btn {
-  display: block;
-  width: 100%;
+/* ---------- main button ---------- */
+.ax .ax-btn {
+  position: relative;
+  overflow: hidden;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
   max-width: 100%;
-  height: 54px;
+  min-height: 56px;
   margin: 0;
+  padding: 0 16px;
   border: 0;
-  border-radius: 14px;
-  background: linear-gradient(110deg, #1db6c8, #2878e0);
-  color: #fff;
+  border-radius: 16px;
+  outline: none;
+  background: linear-gradient(110deg, #1fbad0 0%, #2a7de1 100%) !important;
+  color: #fff !important;
   font-size: 16px;
   font-weight: 700;
   letter-spacing: .2px;
-  box-shadow: 0 10px 26px rgba(40,120,224,.28);
+  box-shadow:
+    0 12px 28px rgba(40,125,225,.35),
+    inset 0 1px 0 rgba(255,255,255,.28);
   transition: transform .15s, opacity .15s;
 }
-.ax-btn:active { transform: scale(.98); }
-.ax-btn:disabled { opacity: .55; cursor: not-allowed; }
+.ax .ax-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0 0 50% 0;
+  background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,0));
+  pointer-events: none;
+}
+.ax .ax-btn:active { transform: scale(.98); }
+.ax .ax-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-.ax-foot {
-  margin: 22px 0 0;
-  text-align: center;
-  font-size: 14px;
+/* ---------- secondary (outline) button ---------- */
+.ax-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 18px;
+  font-size: 12px;
   color: var(--muted);
 }
-.ax-foot .ax-link { margin-left: 6px; font-weight: 700; font-size: 14px; }
+.ax-or::before, .ax-or::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,.09);
+}
+.ax .ax-btn2 {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 100% !important;
+  min-height: 54px;
+  margin: 0;
+  padding: 0 16px;
+  border-radius: 16px;
+  border: 1px solid #2d4163;
+  background: rgba(255,255,255,.04) !important;
+  color: #e6edf9 !important;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  transition: transform .15s, background .15s;
+}
+.ax .ax-btn2:active { transform: scale(.98); background: rgba(255,255,255,.08) !important; }
 
-.ax-ghost {
+.ax .ax-ghost {
   display: block;
-  margin: 8px auto 0;
+  margin: 14px auto 0;
   border: 0;
   background: none;
   padding: 8px 12px;
   font-size: 13px;
   color: var(--muted);
+  outline: none;
 }
-.ax-help {
+.ax .ax-help {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin: 18px auto 0;
+  margin: 6px auto 0;
   border: 0;
   background: none;
   padding: 8px 12px;
   font-size: 13px;
   color: var(--accent);
+  outline: none;
 }
 
 /* ---------- strength ---------- */
@@ -390,11 +467,11 @@ const CSS = `
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: -6px 0 18px;
+  margin: -4px 2px 16px;
   font-size: 12px;
 }
 .ax-str > div { display: flex; gap: 5px; flex: 1; }
-.ax-str i { flex: 1; height: 4px; border-radius: 4px; background: #2c3b55; }
+.ax-str i { flex: 1; height: 4px; border-radius: 4px; background: #2a3a55; }
 .ax-str i.on.s1 { background: var(--danger); }
 .ax-str i.on.s2 { background: #e5ad40; }
 .ax-str i.on.s3 { background: var(--ok); }
@@ -408,13 +485,14 @@ const CSS = `
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
   background: rgba(2,6,14,.65);
+  -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   animation: axfade .16s ease-out;
 }
 .ax-tcard {
   width: min(86vw, 320px);
   padding: 28px 22px 24px;
-  border-radius: 20px;
+  border-radius: 22px;
   background: #131c2e;
   border: 1px solid rgba(255,255,255,.08);
   box-shadow: 0 24px 64px rgba(0,0,0,.55);
@@ -428,7 +506,7 @@ const CSS = `
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
-.ax-tcard.ok .ax-tic   { background: rgba(25,195,125,.14); color: var(--ok, #19c37d); }
+.ax-tcard.ok .ax-tic   { background: rgba(25,195,125,.14); color: #19c37d; }
 .ax-tcard.bad .ax-tic  { background: rgba(240,98,125,.14); color: #f0627d; }
 .ax-tcard.info .ax-tic,
 .ax-tcard.load .ax-tic { background: rgba(47,140,255,.14); color: #2f8cff; }
@@ -556,7 +634,7 @@ function Field({
       <label htmlFor={id}>{label}</label>
       <div className={"ax-fw" + (error ? " err" : "")}>
         <span className="ax-fi">
-          <Icon n={icon} s={20} />
+          <Icon n={icon} s={19} />
         </span>
         <input
           id={id}
@@ -657,7 +735,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
         <Logo />
 
         <div className="ax-head">
-          <h1>{tx("login")}</h1>
+          <h1>{tx("loginTitle")}</h1>
           <p>{tx("loginSub")}</p>
         </div>
 
@@ -698,7 +776,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
                 checked={rem}
                 onChange={(e) => setRem(e.target.checked)}
               />
-              <span className="ax-box-ck">
+              <span className="ax-ck">
                 <Icon n="check" s={14} w={3} />
               </span>
               {tx("rem")}
@@ -719,12 +797,11 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
           </button>
         </div>
 
-        <p className="ax-foot">
-          {tx("noAcc")}
-          <button type="button" className="ax-link" onClick={() => go("register")}>
-            {tx("register")}
-          </button>
-        </p>
+        <div className="ax-or">{tx("noAcc")}</div>
+
+        <button type="button" className="ax-btn2" onClick={() => go("register")}>
+          {tx("register")}
+        </button>
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
         <CSheet open={cs} onClose={() => setCs(false)} />
@@ -865,18 +942,17 @@ export function Register({ onLogin, go, lang, setLang }) {
             className="ax-btn"
             onClick={submit}
             disabled={busy}
-            style={{ marginTop: 6 }}
+            style={{ marginTop: 8 }}
           >
             {busy ? tx("wait2") : tx("register")}
           </button>
         </div>
 
-        <p className="ax-foot">
-          {tx("haveAcc")}
-          <button type="button" className="ax-link" onClick={() => go("login")}>
-            {tx("login")}
-          </button>
-        </p>
+        <div className="ax-or">{tx("haveAcc")}</div>
+
+        <button type="button" className="ax-btn2" onClick={() => go("login")}>
+          {tx("login")}
+        </button>
 
         <button type="button" className="ax-ghost" onClick={() => go("app")}>
           {tx("guest")}
