@@ -14,7 +14,7 @@ const DEP_NETS = {
 };
 const NET_LABEL = { TRC20: "Tron", ERC20: "Ethereum", BTC: "Bitcoin", DOGE: "Dogecoin", XRP: "XRP", SOL: "Solana" };
 
-// ⚠️ এখানে নিজের deposit address বসাও (চাইলে backend থেকেও আনতে পারো)
+// ⚠️ এখানে নিজের deposit address বসাও
 const ADDR = {
   "USDT-TRC20": "YOUR_TRON_ADDRESS",
   "USDT-ERC20": "YOUR_ETH_ADDRESS",
@@ -29,6 +29,7 @@ const ADDR = {
 
 const isDone = (x) => x.type === "dep" || /done|success|complete|approved|paid/i.test(x.status || "");
 
+// Withdraw পেজ এটা ব্যবহার করে, তাই export থাকছে
 export function TxList({ txs, type }) {
   const t = useT();
   const l = txs.filter((x) => x.type === type);
@@ -76,7 +77,7 @@ const S = {
   opt: (on) => ({ padding: "18px 0", textAlign: "center", fontSize: 24, borderTop: "1px solid #eee", cursor: "pointer", color: on ? "#007aff" : "#000", fontWeight: on ? 700 : 400 }),
 };
 
-export default function Deposit({ W, go, txs }) {
+export default function Deposit({ W, go }) {
   const t = useT();
   const [coin, setCoin] = useState("USDT"), [net, setNet] = useState("TRC20"), [amt, setAmt] = useState(""), [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", ok: false });
@@ -162,8 +163,6 @@ export default function Deposit({ W, go, txs }) {
           {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")} style={{ margin: "0 0 14px" }}>{t(msg.k)}</p>}
           <button style={{ ...S.submit, opacity: busy ? 0.6 : 1 }} onClick={submit}>Submit for review</button>
         </div>
-
-        <TxList txs={txs} type="dep" />
       </div>
 
       {/* Currency picker bottom sheet */}
@@ -184,4 +183,4 @@ export default function Deposit({ W, go, txs }) {
       )}
     </div>
   );
-             }
+                                                       }
