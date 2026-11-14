@@ -5,26 +5,38 @@ import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN
 /* =====================================================================
    src/pages/options.jsx — Options (second contract) trading page
    Props: P (prices), W (wallet), sym, setSym, pos, orders
-   Mobile: Quantity / Time / Buy Long / Sell Short bar sits ABOVE the
-           bottom navigation bar
-   PC (>=900px): chart on the left, trade panel on the right
+   Design: light theme (same as reference site)
+   - Header: ☰ BTC/USDT  ........  Positions [icon]
+   - Price + High / Low / 24H volume
+   - Chart toolbar: [D ⌄] [candle] [Indicators]
+   - Chart with OHLC legend, MA(9), separate volume pane
+   - Bottom bar (above nav): Quantity / Time / Buy Long / Sell Short
+   - Tap Quantity / Time -> bottom sheet (Transaction mode, Opening
+     quantity, Opening time, balance, yield, Buy Long / Sell Short)
+   - Tap pair -> left drawer "Spot trading / USDT" coin list
    ===================================================================== */
 
 /* ====== Change these if they don't match your backend ====== */
 const OPEN_PATH = "/options/open"; /* POST {sym, direction, qty, seconds} */
-const DIR = { long: "long", short: "short" }; /* direction values */
+const DIR = { long: "long", short: "short" };
 const MIN_Q = 10, MAX_Q = 1000000;
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 
-/* ---------------- Independent market chart ----------------
-   Uses Lightweight Charts + Binance public market data for crypto pairs.
-   No TradingView hosted widget or iframe is loaded.
-   Lightweight Charts license attribution is kept (small, inside chart).
------------------------------------------------------------------------ */
+/* ---------------- Chart helpers ---------------- */
 const TF = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
-const BINANCE_INTERVALS = { "1m":"1m", "5m":"5m", "15m":"15m", "30m":"30m", "1h":"1h", "4h":"4h", "1d":"1d", "1w":"1w" };
+const TF_LABEL = { "1d": "D", "1w": "W" };
+const tfLabel = (tf) => TF_LABEL[tf] || tf;
 const CHART_LIMIT = 500;
+
+const UP = "#1fa67a";
+const DOWN = "#e5101d";
+
+const fmtP = (v) => {
+  const n = Number(v);
+  if (!isFinite(n)) return "--";
+  return n >= 100 ? n.toFixed(2) : n >= 1 ? n.toFixed(4) : n.toFixed(8);
+};
 
 function calcSMA(data, period) {
   const out = [];
@@ -49,7 +61,7 @@ function calcEMA(data, period) {
 function calcBollinger(data, period = 20, mult = 2) {
   const mid = [], upper = [], lower = [];
   for (let i = period - 1; i < data.length; i++) {
-    const values = data.slice(i - period + 1, i + 1).map(x => x.close);
+    const values = data.slice(i - period + 1, i + 1).map((x) => x.close);
     const avg = values.reduce((a, b) => a + b, 0) / period;
     const variance = values.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / period;
     const sd = Math.sqrt(variance);
@@ -78,8 +90,8 @@ function calcRSI(data, period = 14) {
 }
 function calcMACD(data) {
   const fast = calcEMA(data, 12), slow = calcEMA(data, 26);
-  const slowMap = new Map(slow.map(x => [x.time, x.value]));
-  const line = fast.filter(x => slowMap.has(x.time)).map(x => ({ time: x.time, value: x.value - slowMap.get(x.time) }));
+  const slowMap = new Map(slow.map((x) => [x.time, x.value]));
+  const line = fast.filter((x) => slowMap.has(x.time)).map((x) => ({ time: x.time, value: x.value - slowMap.get(x.time) }));
   if (!line.length) return { line: [], signal: [], hist: [] };
   const k = 2 / 10;
   let signalValue = line.slice(0, 9).reduce((a, x) => a + x.value, 0) / Math.min(9, line.length);
@@ -88,20 +100,24 @@ function calcMACD(data) {
     signalValue = line[i].value * k + signalValue * (1 - k);
     signal.push({ time: line[i].time, value: signalValue });
   }
-  const signalMap = new Map(signal.map(x => [x.time, x.value]));
-  const hist = line.filter(x => signalMap.has(x.time)).map(x => ({ time: x.time, value: x.value - signalMap.get(x.time), color: x.value >= signalMap.get(x.time) ? "#00c087" : "#e05260" }));
+  const signalMap = new Map(signal.map((x) => [x.time, x.value]));
+  const hist = line.filter((x) => signalMap.has(x.time)).map((x) => ({ time: x.time, value: x.value - signalMap.get(x.time), color: x.value >= signalMap.get(x.time) ? UP : DOWN }));
   return { line, signal, hist };
 }
 
-function Chart({ sym, price }) {
-  const hostRef = useRef(null);
-  const [timeframe, setTimeframe] = useState("1m");
-  const [chartType, setChartType] = useState("candle");
-  const [indicators, setIndicators] = useState({ volume: true, ma: false, ema: false, bb: false, rsi: false, macd: false });
-  const [status, setStatus] = useState("Loading market data...");
-  const [, setFull] = useState(false);
+const IND_LIST = [["volume", "Volume"], ["ma", "MA (9)"], ["ema", "EMA (20)"], ["bb", "BOLL"], ["rsi", "RSI"], ["macd", "MACD"]];
 
-  const toggle = (key) => setIndicators(old => ({ ...old, [key]: !old[key] }));
+/* ---------------- Independent market chart ---------------- */
+function Chart({ sym, tt }) {
+  const hostRef = useRef(null);
+  const [timeframe, setTimeframe] = useState("1d");
+  const [chartType, setChartType] = useState("candle");
+  const [indicators, setIndicators] = useState({ volume: true, ma: true, ema: false, bb: false, rsi: false, macd: false });
+  const [status, setStatus] = useState("");
+  const [menu, setMenu] = useState(""); /* "", "tf", "type", "ind" */
+  const [legend, setLegend] = useState(null);
+
+  const toggle = (key) => setIndicators((old) => ({ ...old, [key]: !old[key] }));
 
   useEffect(() => {
     const host = hostRef.current;
@@ -110,30 +126,37 @@ function Chart({ sym, price }) {
     let socket = null;
     let retryTimer = null;
     let candles = [];
+    let idxMap = new Map();
+    let maMap = new Map();
+    let hover = false;
     const cleanSymbol = String(sym || "BTC").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const pair = cleanSymbol.endsWith("USDT") ? cleanSymbol : cleanSymbol + "USDT";
-    const interval = BINANCE_INTERVALS[timeframe] || "1m";
+    const interval = timeframe;
     const supported = /^[A-Z0-9]{5,20}$/.test(pair);
     const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 600px)").matches;
-    const hasSub = indicators.rsi || indicators.macd;
 
     const chart = createChart(host, {
       autoSize: true,
-      layout: { background: { type: "solid", color: "#0b1520" }, textColor: "#9fb0c3", fontFamily: "Inter, Arial, sans-serif", attributionLogo: false },
-      grid: { vertLines: { color: "rgba(75,95,120,.13)" }, horzLines: { color: "rgba(75,95,120,.18)" } },
-      crosshair: { mode: 1, vertLine: { color: "#8294a8", width: 1, style: 2 }, horzLine: { color: "#8294a8", width: 1, style: 2 } },
+      layout: {
+        background: { type: "solid", color: "#ffffff" },
+        textColor: "#5b6574",
+        fontFamily: "Inter, Arial, sans-serif",
+        attributionLogo: false,
+        panes: { separatorColor: "#c9ced6", separatorHoverColor: "rgba(26,130,214,.2)", enableResize: true },
+      },
+      grid: { vertLines: { color: "#f1f2f4" }, horzLines: { color: "#f1f2f4" } },
+      crosshair: { mode: 0, vertLine: { color: "#8a94a6", width: 1, style: 2 }, horzLine: { color: "#8a94a6", width: 1, style: 2 } },
       rightPriceScale: {
-        borderColor: "#26384b",
-        /* candles go almost to the bottom axis */
-        scaleMargins: { top: isMobile ? 0.08 : 0.06, bottom: indicators.volume ? 0.14 : 0.05 },
-        minimumWidth: isMobile ? 58 : 72,
+        borderColor: "#c9ced6",
+        scaleMargins: { top: 0.14, bottom: 0.06 },
+        minimumWidth: isMobile ? 70 : 80,
       },
       timeScale: {
-        borderColor: "#26384b",
+        borderColor: "#c9ced6",
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: isMobile ? 4 : 5,
-        barSpacing: isMobile ? 15 : 11,
+        rightOffset: isMobile ? 4 : 6,
+        barSpacing: isMobile ? 12 : 10,
         minBarSpacing: 3,
         lockVisibleTimeRangeOnResize: true,
       },
@@ -142,55 +165,95 @@ function Chart({ sym, price }) {
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
 
+    let nextPane = 1;
+    const volPane = indicators.volume ? nextPane++ : 0;
+    const rsiPane = indicators.rsi ? nextPane++ : 0;
+    const macdPane = indicators.macd ? nextPane++ : 0;
+
     const candlesSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#16c784",
-      downColor: "#ea3943",
-      borderUpColor: "#16c784",
-      borderDownColor: "#ea3943",
-      borderVisible: true,
-      wickUpColor: "#16c784",
-      wickDownColor: "#ea3943",
-      wickVisible: true,
-      priceLineVisible: false, /* dotted line removed */
+      upColor: UP, downColor: DOWN,
+      borderUpColor: UP, borderDownColor: DOWN,
+      wickUpColor: UP, wickDownColor: DOWN,
+      borderVisible: true, wickVisible: true,
+      priceLineVisible: true, priceLineStyle: 1, priceLineWidth: 1,
       lastValueVisible: true,
     });
     candlesSeries.applyOptions({ visible: chartType === "candle" });
 
-    const closeLine = chart.addSeries(LineSeries, { color: "#26a7ff", lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
+    const closeLine = chart.addSeries(LineSeries, { color: "#1a82d6", lineWidth: 2, lastValueVisible: true, priceLineVisible: true, priceLineStyle: 1 });
     closeLine.applyOptions({ visible: chartType === "line" });
 
-    const volumeSeries = chart.addSeries(HistogramSeries, {
-      priceFormat: { type: "volume" }, priceScaleId: "volume",
-      priceLineVisible: false, lastValueVisible: false,
-    });
-    chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.88, bottom: 0 }, visible: false });
-    volumeSeries.applyOptions({ visible: indicators.volume });
+    const volumeSeries = indicators.volume
+      ? chart.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceLineVisible: false, lastValueVisible: false }, volPane)
+      : null;
 
     const mk = (on, color, w = 1) => on ? chart.addSeries(LineSeries, { color, lineWidth: w, priceLineVisible: false, lastValueVisible: false }) : null;
-    const maSeries = mk(indicators.ma, "#f6c453");
-    const emaSeries = mk(indicators.ema, "#42a5f5");
-    const bbUpper = mk(indicators.bb, "rgba(167,139,250,.8)");
-    const bbMid = mk(indicators.bb, "rgba(167,139,250,.55)");
-    const bbLower = mk(indicators.bb, "rgba(167,139,250,.8)");
+    const maSeries = mk(indicators.ma, "#f57c00");
+    const emaSeries = mk(indicators.ema, "#1a82d6");
+    const bbUpper = mk(indicators.bb, "rgba(124,92,230,.85)");
+    const bbMid = mk(indicators.bb, "rgba(124,92,230,.55)");
+    const bbLower = mk(indicators.bb, "rgba(124,92,230,.85)");
 
-    /* RSI / MACD panes are created ONLY when enabled (no empty panes) */
     const rsiSeries = indicators.rsi
-      ? chart.addSeries(LineSeries, { color: "#c084fc", lineWidth: 2, priceLineVisible: false, lastValueVisible: true }, 1) : null;
-    const macdPane = indicators.rsi ? 2 : 1;
+      ? chart.addSeries(LineSeries, { color: "#9c27b0", lineWidth: 2, priceLineVisible: false, lastValueVisible: true }, rsiPane) : null;
     const macdSeries = indicators.macd
-      ? chart.addSeries(LineSeries, { color: "#42a5f5", lineWidth: 2, priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
+      ? chart.addSeries(LineSeries, { color: "#1a82d6", lineWidth: 2, priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
     const signalSeries = indicators.macd
-      ? chart.addSeries(LineSeries, { color: "#f6c453", lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
+      ? chart.addSeries(LineSeries, { color: "#f57c00", lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
     const macdHist = indicators.macd
       ? chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
 
+    /* main pane big, sub panes small */
+    const sizePanes = () => {
+      try {
+        const panes = chart.panes();
+        if (panes.length < 2) return;
+        panes.forEach((pn, i) => {
+          if (typeof pn.setStretchFactor === "function") pn.setStretchFactor(i === 0 ? 3.2 : 1);
+        });
+      } catch (_) {}
+    };
+    sizePanes();
+
+    const showLegend = (c) => {
+      if (!alive || !c) return;
+      const i = idxMap.get(c.time);
+      const prev = i > 0 ? candles[i - 1].close : c.open;
+      const ch = c.close - prev;
+      setLegend({ o: c.open, h: c.high, l: c.low, c: c.close, ch, pct: prev ? (ch / prev) * 100 : 0, ma: maMap.get(c.time) });
+    };
+
+    chart.subscribeCrosshairMove((param) => {
+      if (!alive) return;
+      if (!param || !param.time) {
+        hover = false;
+        showLegend(candles[candles.length - 1]);
+        return;
+      }
+      hover = true;
+      const i = idxMap.get(param.time);
+      if (i != null) showLegend(candles[i]);
+    });
+
+    let precisionSet = false;
     const applyData = (data, fit = false) => {
       if (!alive || !data.length) return;
       candles = data;
+      idxMap = new Map(data.map((x, i) => [x.time, i]));
+      if (!precisionSet) {
+        const c = data[data.length - 1].close;
+        const precision = c >= 100 ? 2 : c >= 1 ? 4 : 8;
+        const pf = { type: "price", precision, minMove: 1 / Math.pow(10, precision) };
+        candlesSeries.applyOptions({ priceFormat: pf });
+        closeLine.applyOptions({ priceFormat: pf });
+        precisionSet = true;
+      }
       candlesSeries.setData(data);
-      closeLine.setData(data.map(x => ({ time: x.time, value: x.close })));
-      volumeSeries.setData(data.map(x => ({ time: x.time, value: x.volume || 0, color: x.close >= x.open ? "rgba(0,192,135,.35)" : "rgba(224,82,96,.35)" })));
-      if (maSeries) maSeries.setData(calcSMA(data, 20));
+      closeLine.setData(data.map((x) => ({ time: x.time, value: x.close })));
+      if (volumeSeries) volumeSeries.setData(data.map((x) => ({ time: x.time, value: x.volume || 0, color: x.close >= x.open ? "rgba(31,166,122,.28)" : "rgba(229,16,29,.28)" })));
+      const ma9 = calcSMA(data, 9);
+      maMap = new Map(ma9.map((x) => [x.time, x.value]));
+      if (maSeries) maSeries.setData(ma9);
       if (emaSeries) emaSeries.setData(calcEMA(data, 20));
       if (bbUpper) {
         const bb = calcBollinger(data);
@@ -201,14 +264,12 @@ function Chart({ sym, price }) {
         const macd = calcMACD(data);
         macdSeries.setData(macd.line); signalSeries.setData(macd.signal); macdHist.setData(macd.hist);
       }
+      if (!hover) showLegend(data[data.length - 1]);
       if (fit) {
-        /* fewer visible candles = bigger candles */
-        const visibleBars = isMobile ? 30 : 60;
+        const visibleBars = isMobile ? 38 : 70;
         const from = Math.max(0, data.length - visibleBars);
-        chart.timeScale().setVisibleLogicalRange({
-          from,
-          to: data.length + (isMobile ? 3 : 4),
-        });
+        chart.timeScale().setVisibleLogicalRange({ from, to: data.length + (isMobile ? 4 : 6) });
+        sizePanes();
       }
     };
 
@@ -228,29 +289,27 @@ function Chart({ sym, price }) {
             else candles.push(item);
             if (candles.length > CHART_LIMIT) candles = candles.slice(-CHART_LIMIT);
             applyData(candles, false);
-            setStatus("Live · Binance");
+            setStatus("Live");
           } catch (_) {}
         };
-        socket.onerror = () => { if (alive) setStatus("Live feed reconnecting..."); };
-        socket.onclose = () => {
-          if (alive) retryTimer = setTimeout(connectSocket, 2500);
-        };
+        socket.onerror = () => { if (alive) setStatus("Reconnecting..."); };
+        socket.onclose = () => { if (alive) retryTimer = setTimeout(connectSocket, 2500); };
       } catch (_) { setStatus("Live feed unavailable"); }
     };
 
     const load = async () => {
       if (!supported) { setStatus("Unsupported market symbol"); return; }
-      setStatus("Loading historical candles...");
+      setStatus("Loading...");
       try {
         const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(pair)}&interval=${interval}&limit=${CHART_LIMIT}`;
         const response = await fetch(url);
         if (!response.ok) throw new Error(`Market data error (${response.status})`);
         const rows = await response.json();
         if (!Array.isArray(rows)) throw new Error("Invalid market data");
-        const parsed = rows.map(x => ({ time: Math.floor(x[0] / 1000), open: +x[1], high: +x[2], low: +x[3], close: +x[4], volume: +x[5] }));
+        const parsed = rows.map((x) => ({ time: Math.floor(x[0] / 1000), open: +x[1], high: +x[2], low: +x[3], close: +x[4], volume: +x[5] }));
         if (!alive) return;
         applyData(parsed, true);
-        setStatus("Live · Binance");
+        setStatus("Live");
         connectSocket();
       } catch (error) {
         if (alive) setStatus(error.message || "Could not load market data");
@@ -268,54 +327,103 @@ function Chart({ sym, price }) {
   }, [sym, timeframe, chartType, indicators]);
 
   const toggleFullscreen = async () => {
-    const el = hostRef.current?.parentElement;
+    const el = hostRef.current && hostRef.current.parentElement && hostRef.current.parentElement.parentElement;
     if (!el) return;
     try {
-      if (!document.fullscreenElement) { await el.requestFullscreen(); setFull(true); }
-      else { await document.exitFullscreen(); setFull(false); }
+      if (!document.fullscreenElement) await el.requestFullscreen();
+      else await document.exitFullscreen();
     } catch (_) {}
   };
 
+  const dirCls = legend && legend.ch < 0 ? "dn" : "up";
+  const pairLabel = String(sym || "BTC").toLowerCase() + "usdt";
+
   return (
     <div className="cx-chart-wrap">
+      {/* ---- toolbar: [D ⌄] [candle] [Indicators] ---- */}
       <div className="cx-chart-toolbar">
-        <div className="cx-chart-tfs">
-          {TF.map(tf => <button key={tf} type="button" className={timeframe === tf ? "active" : ""} onClick={() => setTimeframe(tf)}>{tf}</button>)}
-        </div>
-        <div className="cx-chart-tools">
-          <button type="button" className={chartType === "candle" ? "active" : ""} onClick={() => setChartType("candle")} title="Candlestick">Candles</button>
-          <button type="button" className={chartType === "line" ? "active" : ""} onClick={() => setChartType("line")} title="Line chart">Line</button>
-          <button type="button" onClick={toggleFullscreen} title="Fullscreen">⛶</button>
-        </div>
-      </div>
-      <div className="cx-chart-indicators">
-        {[ ["volume","VOL"], ["ma","MA 20"], ["ema","EMA 20"], ["bb","BB"], ["rsi","RSI"], ["macd","MACD"] ].map(([key,label]) =>
-          <button key={key} type="button" className={indicators[key] ? "selected" : ""} onClick={() => toggle(key)}>{label}</button>
-        )}
+        <button type="button" className="cx-tb-cell" onClick={() => setMenu(menu === "tf" ? "" : "tf")}>{tfLabel(timeframe)}</button>
+        <button type="button" className="cx-tb-cell" onClick={() => setMenu(menu === "type" ? "" : "type")} aria-label="chart type">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+            <path d="M7 3v4M7 17v4M17 3v2M17 15v6" />
+            <rect x="4.5" y="7" width="5" height="10" rx="0.5" />
+            <rect x="14.5" y="5" width="5" height="10" rx="0.5" />
+          </svg>
+        </button>
+        <button type="button" className="cx-tb-cell wide" onClick={() => setMenu("ind")}>
+          <svg width="26" height="22" viewBox="0 0 28 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+            <path d="M2 14l5-6 5 5 6-8" />
+            <path d="M20 17v6M17 20h6" />
+          </svg>
+          {tt("ind", "Indicators")}
+        </button>
         <span className="cx-chart-status">{status}</span>
+        <button type="button" className="cx-tb-cell icon" onClick={toggleFullscreen} title="Fullscreen">⛶</button>
+
+        {menu === "tf" && (
+          <div className="cx-pop">
+            {TF.map((tf) => (
+              <button key={tf} type="button" className={timeframe === tf ? "on" : ""} onClick={() => { setTimeframe(tf); setMenu(""); }}>{tfLabel(tf)}{TF_LABEL[tf] ? "" : ""}</button>
+            ))}
+          </div>
+        )}
+        {menu === "type" && (
+          <div className="cx-pop type">
+            <button type="button" className={chartType === "candle" ? "on" : ""} onClick={() => { setChartType("candle"); setMenu(""); }}>Candles</button>
+            <button type="button" className={chartType === "line" ? "on" : ""} onClick={() => { setChartType("line"); setMenu(""); }}>Line</button>
+          </div>
+        )}
       </div>
-      <div className="cx-chart-area">
+
+      {/* ---- chart ---- */}
+      <div className="cx-chart-area" onClick={() => menu !== "ind" && setMenu("")}>
         <div className="cx-chart-canvas" ref={hostRef} />
+        <div className="cx-chart-legend">
+          <div className="l1"><i className="box" />{pairLabel}, {tfLabel(timeframe)} ⌄</div>
+          {legend && (
+            <>
+              <div className={"l2 " + dirCls}>
+                <span>O</span><b>{fmtP(legend.o)}</b>
+                <span>H</span><b>{fmtP(legend.h)}</b>
+                <span>L</span><b>{fmtP(legend.l)}</b>
+                <span>C</span><b>{fmtP(legend.c)}</b>
+              </div>
+              <div className={"l3 " + dirCls}>{legend.ch > 0 ? "+" : ""}{legend.ch.toFixed(2)} ({legend.pct > 0 ? "+" : ""}{legend.pct.toFixed(2)}%)</div>
+              {indicators.ma && legend.ma != null && (
+                <div className="l4">MA (9, close, 0) ⌄ <b>{fmtP(legend.ma)}</b></div>
+              )}
+            </>
+          )}
+        </div>
         <div className="cx-chart-attribution">
           <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView Lightweight Charts™</a> © TradingView, Inc.
         </div>
       </div>
+
+      {/* ---- indicators sheet ---- */}
+      <Sheet open={menu === "ind"} onClose={() => setMenu("")} title={tt("ind", "Indicators")}>
+        <div className="cx-op-grid">
+          {IND_LIST.map(([key, label]) => (
+            <button key={key} type="button" className={"cx-op-opt" + (indicators[key] ? " on" : "")} onClick={() => toggle(key)}>{label}</button>
+          ))}
+        </div>
+      </Sheet>
     </div>
   );
 }
 
-
 /* ---------------- Bottom sheet ---------------- */
 function Sheet({ open, onClose, title, children }) {
   if (!open) return null;
-
   return (
     <div className="cx-op-ov" onClick={onClose}>
       <div className="cx-op-sh" onClick={(e) => e.stopPropagation()}>
-        <div className="cx-op-sh-h">
-          <b>{title}</b>
-          <button type="button" onClick={onClose} aria-label="close">✕</button>
-        </div>
+        {title ? (
+          <div className="cx-op-sh-h">
+            <b>{title}</b>
+            <button type="button" onClick={onClose} aria-label="close">✕</button>
+          </div>
+        ) : null}
         {children}
       </div>
     </div>
@@ -323,176 +431,160 @@ function Sheet({ open, onClose, title, children }) {
 }
 
 const CSS = `
-.cx-op{--cx-nav-h:76px;--cx-bar-h:64px}
+.cx-op{--cx-nav-h:76px;--cx-bar-h:70px;--bd:#e4e7ec;--gray:#8a94a6;--blue:#1a82d6;--grn:#00c087;--red:#d84d5a}
 
-.cx-op{background:#0b1520;color:#fff;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
+.cx-op{background:#fff;color:#1a1a1a;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
 .cx-op,.cx-op *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
-.cx-op button{color:inherit}
-.cx-op-top{display:flex;align-items:center;justify-content:space-between;height:46px;padding:0 14px;background:#0f2030;border-bottom:1px solid #3a4b5e;flex:none}
-.cx-op-top button{display:flex;align-items:center;gap:8px;font-size:14px;background:none;border:0;cursor:pointer}
-.cx-op-pair{font-size:17px!important;font-weight:700}
-.cx-op-info{display:grid;grid-template-columns:1.1fr 1fr;gap:8px;padding:12px 14px;background:#0f2030;border-bottom:1px solid #3a4b5e;flex:none}
-.cx-op-pr b{display:block;font-size:24px;font-weight:600;line-height:1.2}
-.cx-op-pr span{font-size:13px}
-.cx-op-st{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:13px;align-content:center}
-.cx-op-st i{font-style:normal;color:#9fb0c3}
+.cx-op button{color:inherit;font-family:inherit}
+.cx-op-top{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;background:#fff;border-bottom:1px solid #eef0f3;flex:none}
+.cx-op-top button{display:flex;align-items:center;gap:8px;font-size:15px;background:none;border:0;cursor:pointer}
+.cx-op-pair{font-size:19px!important;font-weight:700}
+.cx-op-info{display:grid;grid-template-columns:1.15fr 1fr;gap:6px;padding:16px 16px 14px;background:#fff;flex:none;align-items:center}
+.cx-op-pr b{display:block;font-size:23px;font-weight:600;line-height:1.25;letter-spacing:.2px}
+.cx-op-pr span{font-size:14px}
+.cx-op-st{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:14px;align-content:center;line-height:1.45}
+.cx-op-st i{font-style:normal;color:var(--gray)}
 .cx-op-st b{text-align:right;font-weight:400;overflow-wrap:anywhere}
-.cx-op-body{flex:1;min-height:0;display:flex;flex-direction:column}
+.cx-op-body{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid #c9ced6}
 .cx-op-chart{flex:1;min-height:360px;position:relative;overflow:hidden}
-.cx-chart-wrap{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;background:#0b1520;overflow:hidden}
-.cx-chart-toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:40px;padding:4px 8px;border-bottom:1px solid #1d2d40;background:#0d1927;flex:none}
-.cx-chart-tfs,.cx-chart-tools{display:flex;align-items:center;gap:3px;min-width:0}
-.cx-chart-toolbar button,.cx-chart-indicators button{border:0;background:transparent;color:#9fb0c3;border-radius:4px;padding:5px 7px;font-size:11px;cursor:pointer;white-space:nowrap}
-.cx-chart-toolbar button.active,.cx-chart-indicators button.selected{background:#17304a;color:#60b7ff}
-.cx-chart-indicators{display:flex;align-items:center;gap:3px;min-height:30px;padding:2px 8px;flex:none;overflow-x:auto;border-bottom:1px solid #17283a}
-.cx-chart-indicators button{font-size:10px;padding:4px 6px}
-.cx-chart-status{margin-left:auto;color:#71869b;font-size:10px;white-space:nowrap}
+.cx-chart-wrap{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;background:#fff;overflow:hidden}
 
-/* chart fills all remaining space down to the trade bar */
+/* toolbar */
+.cx-chart-toolbar{position:relative;display:flex;align-items:stretch;min-height:44px;background:#f4f5f7;border-bottom:1px solid #d6dae0;flex:none}
+.cx-tb-cell{display:flex;align-items:center;justify-content:center;gap:6px;min-width:52px;padding:0 14px;background:transparent;border:0;border-right:1px solid #d6dae0;font-size:16px;cursor:pointer;color:#222}
+.cx-tb-cell.wide{padding:0 14px;font-size:17px}
+.cx-tb-cell.icon{border-right:0;border-left:1px solid #d6dae0;min-width:44px;padding:0 10px;font-size:18px}
+.cx-chart-status{margin-left:auto;align-self:center;padding:0 8px;color:var(--gray);font-size:10px;white-space:nowrap}
+.cx-pop{position:absolute;top:100%;left:0;z-index:12;display:flex;flex-wrap:wrap;gap:4px;width:max-content;max-width:100%;padding:8px;background:#fff;border:1px solid #d6dae0;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.14)}
+.cx-pop.type{left:52px}
+.cx-pop button{min-width:46px;height:34px;padding:0 12px;border:1px solid #e1e4e9;border-radius:6px;background:#fff;font-size:14px;cursor:pointer}
+.cx-pop button.on{border-color:var(--blue);background:#eaf4fd;color:var(--blue)}
+
+/* chart area */
 .cx-chart-area{position:relative;flex:1;min-height:0;width:100%}
 .cx-chart-canvas{position:absolute;inset:0;width:100%;height:100%}
-.cx-chart-attribution{position:absolute;left:8px;bottom:24px;z-index:3;font-size:8px;line-height:1;color:rgba(130,148,168,.45);pointer-events:none}
+.cx-chart-legend{position:absolute;left:8px;top:6px;z-index:4;pointer-events:none;font-size:15px;line-height:1.4;max-width:calc(100% - 90px)}
+.cx-chart-legend .l1{display:flex;align-items:center;gap:8px;font-size:18px;color:#222}
+.cx-chart-legend .box{display:inline-block;width:20px;height:20px;border:1.5px solid #666;border-radius:3px;position:relative}
+.cx-chart-legend .box::after{content:"";position:absolute;left:3px;right:3px;top:8px;height:1.5px;background:#666}
+.cx-chart-legend .l2{font-size:14px;color:#222;display:flex;flex-wrap:wrap;gap:0 6px}
+.cx-chart-legend .l2 b{font-weight:400;margin-right:4px}
+.cx-chart-legend .up b,.cx-chart-legend .up.l3{color:${UP}}
+.cx-chart-legend .dn b,.cx-chart-legend .dn.l3{color:${DOWN}}
+.cx-chart-legend .l3{font-size:14px}
+.cx-chart-legend .l4{font-size:14px;color:#444}
+.cx-chart-legend .l4 b{font-weight:400;color:#f57c00}
+.cx-chart-attribution{position:absolute;left:8px;bottom:26px;z-index:3;font-size:8px;line-height:1;color:rgba(100,115,135,.55);pointer-events:none}
 .cx-chart-attribution a{color:inherit;text-decoration:none;pointer-events:auto}
 
 /* Trade bar: fixed ABOVE the bottom navigation */
-.cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#0f2030;border-top:1px solid #3a4b5e}
-.cx-op-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;background:none;border:0;cursor:pointer;line-height:1.4}
-.cx-op-pick span{font-size:14px}
-.cx-op-go{height:44px;border-radius:8px;border:0;font-size:14px;cursor:pointer;color:#fff!important}
-.cx-op-go.up{background:#00c087}
-.cx-op-go.dn{background:#d84d5a}
+.cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.25fr 1.25fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#fff;border-top:1px solid #e4e7ec}
+.cx-op-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;background:none;border:0;cursor:pointer;line-height:1.35}
+.cx-op-pick span{font-size:16px}
+.cx-op-go{height:54px;border-radius:10px;border:0;font-size:16px;line-height:1.15;cursor:pointer;color:#fff!important;padding:0 6px}
+.cx-op-go.up{background:var(--grn)}
+.cx-op-go.dn{background:var(--red)}
 .cx-op-go:disabled{opacity:.6}
-.cx-op-yl{display:none}
-.cx-op-toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:200;max-width:90%;padding:10px 16px;border-radius:8px;font-size:14px;background:#17304f;color:#8fc4ff;box-shadow:0 4px 16px rgba(0,0,0,.4)}
-.cx-op-toast.bad{background:#3b1a20;color:#ff8a95}
-.cx-op-toast.ok{background:#0f3a2c;color:#4be0a8}
-.cx-op-ov{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center}
-.cx-op-sh{width:100%;max-width:520px;max-height:80vh;overflow:auto;background:#0f2030;border-radius:14px 14px 0 0;padding:14px 16px 20px}
-.cx-op-sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:16px}
+.cx-op-toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:300;max-width:90%;padding:10px 16px;border-radius:8px;font-size:14px;background:#e8f2fc;color:#1a6fb8;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.cx-op-toast.bad{background:#fdecee;color:#c8323f}
+.cx-op-toast.ok{background:#e3f7ee;color:#0a8a5f}
+
+/* sheets */
+.cx-op-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.cx-op-sh{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:#fff;border-radius:20px 20px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px));animation:cxup .18s ease-out}
+@keyframes cxup{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.cx-op-sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:18px}
 .cx-op-sh-h button{background:none;border:0;font-size:18px;cursor:pointer}
+.cx-op-sec{margin:6px 0 12px;font-size:19px;color:#222}
+.cx-op-sec.t2{margin-top:20px}
 .cx-op-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.cx-op-opt{height:44px;border-radius:8px;border:1px solid #2a3a50;background:#101c2d;font-size:14px;cursor:pointer}
-.cx-op-opt.on{border-color:#1a82d6;background:#17304f;color:#8fc4ff}
-.cx-op-inp{width:100%;height:44px;margin-top:12px;padding:0 12px;border-radius:8px;border:1px solid #2a3a50;background:#101c2d;color:#fff;font-size:14px;outline:0}
-.cx-op-ok{display:block;width:100%;height:44px;margin-top:12px;border-radius:8px;border:0;background:#1a82d6;color:#fff!important;font-size:14px;cursor:pointer}
-.cx-op-hint{margin-top:8px;font-size:12px;color:#9fb0c3}
-.cx-op-coin{display:flex;align-items:center;gap:10px;width:100%;padding:10px 4px;border:0;border-bottom:1px solid #1d2d42;background:none;font-size:15px;cursor:pointer;text-align:start}
-.cx-op-coin.on{color:#8fc4ff}
-.cx-op-coin small{margin-inline-start:auto;font-size:13px}
-.cx-op-pn{position:fixed;inset:0;z-index:150;background:#0b1520;display:flex;flex-direction:column}
-.cx-op-tabs{display:flex;border-bottom:1px solid #3a4b5e;background:#0f2030;flex:none}
-.cx-op-tabs button{flex:1;height:44px;background:none;border:0;border-bottom:2px solid transparent;font-size:14px;cursor:pointer;color:#9fb0c3!important}
-.cx-op-tabs button.on{color:#fff!important;border-bottom-color:#1a82d6}
-.cx-op-list{flex:1;overflow:auto;padding:12px 14px}
-.cx-op-card{background:#101c2d;border:1px solid #2a3a50;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px}
+.cx-op-row{display:flex;gap:10px}
+.cx-op-row>button{flex:1}
+.cx-op-row.one>button{flex:0 0 31%}
+.cx-op-row.five{gap:8px}
+.cx-op-opt{position:relative;height:44px;border-radius:2px;border:1px solid #cfd3d9;background:#fff;font-size:17px;cursor:pointer;overflow:hidden;padding:0 2px}
+.cx-op-opt.on{border-color:var(--blue)}
+.cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:30px;height:24px;background:linear-gradient(135deg,transparent 50%,#4a86e8 50%);color:#fff;font-size:11px;line-height:30px;text-align:right;padding-right:4px}
+.cx-op-qrow{display:flex;align-items:center;gap:10px;margin:22px 10px 0 12px;border-bottom:1px solid #c9ced6}
+.cx-op-qrow input{flex:1;min-width:0;height:48px;border:0;outline:0;background:none;font-size:20px;color:#222}
+.cx-op-qrow button{background:none;border:0;color:var(--blue)!important;font-size:19px;cursor:pointer;padding:0 8px}
+.cx-op-g{color:var(--grn);font-size:19px;line-height:1.5}
+.cx-op-g.two{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:22px}
+.cx-op-g.three{margin-top:10px}
+.cx-op-sbtn{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:22px;padding:0 14px}
+.cx-op-sbtn .cx-op-go{height:62px;font-size:19px;border-radius:12px}
+.cx-op-hint{margin-top:8px;font-size:12px;color:var(--gray)}
+
+/* left coin drawer */
+.cx-op-dov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.62)}
+.cx-op-dr{position:absolute;left:0;top:0;bottom:0;width:70%;max-width:380px;background:#fff;overflow:auto;animation:cxdr .2s ease-out}
+@keyframes cxdr{from{transform:translateX(-100%)}to{transform:none}}
+.cx-op-dr h2{margin:0;padding:52px 16px 0;font-size:22px;font-weight:400}
+.cx-op-dr .cur{padding:32px 16px 24px;font-size:22px;font-weight:700;color:var(--blue);border-bottom:1px solid #eef0f3}
+.cx-op-coin{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 32px);margin:0 16px;height:48px;padding:0;border:0;border-bottom:1px solid #d9dde3;background:none;font-size:17px;cursor:pointer;text-align:start}
+.cx-op-coin b{font-weight:700}
+.cx-op-coin b small{font-weight:400;color:var(--gray);font-size:14px}
+.cx-op-coin span{font-size:17px}
+.cx-op-coin.on b{color:var(--blue)}
+.cx-op-coin-wrap{padding-bottom:20px}
+
+/* positions panel */
+.cx-op-pn{position:fixed;inset:0;z-index:150;background:#fff;display:flex;flex-direction:column}
+.cx-op-tabs{display:flex;border-bottom:1px solid var(--bd);background:#fff;flex:none}
+.cx-op-tabs button{flex:1;height:46px;background:none;border:0;border-bottom:2px solid transparent;font-size:15px;cursor:pointer;color:var(--gray)!important}
+.cx-op-tabs button.on{color:#111!important;border-bottom-color:var(--blue)}
+.cx-op-list{flex:1;overflow:auto;padding:12px 14px;background:#f4f5f7}
+.cx-op-card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px}
 .cx-op-card .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:15px}
 .cx-op-card .r{display:flex;justify-content:space-between;padding:2px 0}
-.cx-op-card .r i{font-style:normal;color:#9fb0c3}
+.cx-op-card .r i{font-style:normal;color:var(--gray)}
 .cx-op-tag{padding:2px 8px;border-radius:4px;font-size:12px;color:#fff}
-.cx-op-none{text-align:center;color:#9fb0c3;padding:40px 0;font-size:14px}
+.cx-op-none{text-align:center;color:var(--gray);padding:40px 0;font-size:14px}
 
-/* Mobile: tall chart, candles reach the trade bar */
+/* Mobile */
 @media(max-width:600px){
   .cx-op{height:100dvh;min-height:620px;overflow:hidden}
   .cx-op-body{flex:1;min-height:0;overflow:hidden}
   .cx-op-chart{flex:1;min-height:0}
-  .cx-chart-toolbar{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;min-height:68px;padding:4px 7px}
-  .cx-chart-tfs{width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .cx-chart-tfs::-webkit-scrollbar,.cx-chart-indicators::-webkit-scrollbar{display:none}
-  .cx-chart-tools{width:100%;justify-content:flex-end}
-  .cx-chart-toolbar button{font-size:11px;padding:5px 8px;min-height:27px}
-  .cx-chart-indicators{min-height:32px;gap:5px;padding:3px 7px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .cx-chart-indicators button{font-size:10px;padding:5px 8px;min-height:25px}
-  .cx-chart-status{font-size:9px}
   .cx-chart-canvas{touch-action:pan-y}
-  .cx-op-info{padding:9px 12px}
-  .cx-op-pr b{font-size:21px}
+  .cx-chart-legend .l1{font-size:17px}
+  .cx-chart-legend .l2,.cx-chart-legend .l3,.cx-chart-legend .l4{font-size:13px}
 }
 @media(max-width:380px){
-  .cx-chart-toolbar button{padding:4px 6px;font-size:10px}
-  .cx-chart-indicators button{padding:4px 6px}
+  .cx-tb-cell{padding:0 10px}
   .cx-chart-status{display:none}
+  .cx-op-sbtn{gap:14px;padding:0}
+  .cx-op-sec,.cx-op-g{font-size:16px}
 }
 
+/* PC */
 @media(min-width:900px){
-  .cx-op{
-    height:100vh;
-    min-height:680px;
-    padding-bottom:var(--cx-bar-h);
-    overflow:hidden;
-  }
-  .cx-op-top{height:46px;min-height:46px}
-  .cx-op-info{
-    grid-template-columns:minmax(260px,38%) minmax(0,1fr);
-    min-height:84px;
-    padding:12px 14px;
-  }
-  .cx-op-pr b{font-size:20px}
-  .cx-op-st{
-    grid-template-columns:auto minmax(0,1fr);
-    grid-auto-flow:row;
-    align-content:center;
-    gap:2px 12px;
-    line-height:1.25;
-  }
-  .cx-op-st i{display:block;font-size:13px}
-  .cx-op-st b{font-size:13px}
-  .cx-op-body{
-    display:flex;
-    flex:1;
-    min-height:0;
-    height:auto;
-    flex-direction:column;
-    overflow:hidden;
-  }
+  .cx-op{height:100vh;min-height:680px;padding-bottom:var(--cx-bar-h);overflow:hidden}
+  .cx-op-info{grid-template-columns:minmax(260px,38%) minmax(0,1fr)}
+  .cx-op-body{overflow:hidden}
   .cx-op-chart{flex:1;min-height:0;width:100%}
-  .cx-chart-wrap{min-height:0}
-  .cx-chart-toolbar{min-height:36px}
-  .cx-chart-indicators{min-height:28px}
-  .cx-op-bar{
-    position:fixed;
-    left:0;
-    right:0;
-    bottom:0;
-    z-index:60;
-    display:grid;
-    grid-template-columns:1fr 1fr 2fr 2fr;
-    gap:12px;
-    align-items:center;
-    width:100%;
-    height:var(--cx-bar-h);
-    padding:5px 12px;
-    border-top:1px solid #3a4b5e;
-    border-left:0;
-    background:#0f2030;
-  }
-  .cx-op-pick{
-    flex-direction:column;
-    justify-content:center;
-    height:100%;
-    padding:0 8px;
-    border:0;
-    border-radius:0;
-    background:transparent;
-    line-height:1.2;
-  }
-  .cx-op-pick span{font-size:13px}
-  .cx-op-go{height:44px}
-  .cx-op-yl{display:none}
+  .cx-op-bar{position:fixed;left:0;right:0;bottom:0;width:100%;grid-template-columns:1fr 1fr 2fr 2fr;gap:12px}
   .cx-op-ov{align-items:center}
-  .cx-op-sh{border-radius:14px}
-  .cx-op-pn{left:auto;width:420px;border-left:1px solid #3a4b5e}
+  .cx-op-sh{border-radius:16px}
+  .cx-op-pn{left:auto;width:420px;border-left:1px solid var(--bd)}
 }
 `;
 
 export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
   const t = useT();
+  /* translate with fallback when the key does not exist */
+  const tt = (k, fb) => {
+    let v;
+    try { v = t(k); } catch (_) { v = k; }
+    return v && v !== k ? v : fb;
+  };
+
   const [qty, setQty] = useState(QTY[0]);
   const [secs, setSecs] = useState(SECS[0]);
-  const [sh, setSh] = useState(""); /* "", "qty", "time", "coin" */
+  const [sh, setSh] = useState(""); /* "", "trade", "coin" */
   const [panel, setPanel] = useState(false);
   const [tab, setTab] = useState("pos");
-  const [qIn, setQIn] = useState("");
+  const [qIn, setQIn] = useState(String(QTY[0]));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", s: "bad" });
   const [now, setNow] = useState(Date.now());
@@ -514,30 +606,42 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
   const p = (P && P[sym]) || { price: 0, chg: 0, hi: 0, lo: 0, vol: 0 };
   const up = p.chg >= 0;
   const col = up ? CUP : CDN;
+  const bal = W && W.w && W.w.USDT ? W.w.USDT : 0;
 
   const open = async (dir) => {
-    if (busy) return;
-    if (W.guest) return W.needLogin();
-    if (!(qty >= MIN_Q && qty <= MAX_Q)) return flash(t("badQ"));
-    if ((W.w && W.w.USDT ? W.w.USDT : 0) < qty) return flash(t("iB"));
+    if (busy) return false;
+    if (W.guest) { W.needLogin(); return false; }
+    if (!(qty >= MIN_Q && qty <= MAX_Q)) { flash(t("badQ")); return false; }
+    if (bal < qty) { flash(t("iB")); return false; }
     setBusy(true);
-
     try {
       await api(OPEN_PATH, { method: "POST", body: { sym, direction: dir, qty, seconds: secs } });
       flash(t("openMsg"), "ok");
       await W.reload();
+      return true;
     } catch (e) {
       flash(t(e && e.message ? e.message : "err"));
+      return false;
     } finally {
       setBusy(false);
     }
   };
 
-  const applyQty = () => {
-    const v = parseFloat(qIn);
-    if (!(v >= MIN_Q && v <= MAX_Q)) return flash(t("badQ"));
+  const buyFromSheet = async (dir) => {
+    const ok = await open(dir);
+    if (ok) setSh("");
+  };
+
+  const pickQty = (q) => { setQty(q); setQIn(q.toFixed(2)); };
+  const typeQty = (v) => {
+    setQIn(v);
+    const n = parseFloat(v);
+    setQty(isNaN(n) ? 0 : n);
+  };
+  const allQty = () => {
+    const v = Math.min(bal, MAX_Q);
     setQty(v);
-    setSh("");
+    setQIn(String(v));
   };
 
   const left = (end) => {
@@ -547,6 +651,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
 
   const myPos = pos;
   const myOrd = orders;
+  const yieldPct = Math.round(YIELD * 100) + "%";
 
   return (
     <div className="cx-op">
@@ -555,10 +660,10 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
       {/* ---- Header ---- */}
       <div className="cx-op-top">
         <button type="button" className="cx-op-pair" onClick={() => setSh("coin")}>
-          <Ic d={ICON.menu} s={22} />{sym}/USDT
+          <Ic d={ICON.menu} s={24} />{sym}/USDT
         </button>
         <button type="button" onClick={() => setPanel(true)}>
-          {t("pos")} <Ic d={ICON.doc} s={22} />
+          {t("pos")} <Ic d={ICON.doc} s={24} />
         </button>
       </div>
 
@@ -578,22 +683,16 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
       {/* ---- Chart + trade bar ---- */}
       <div className="cx-op-body">
         <div className="cx-op-chart">
-          <Chart sym={sym} price={p.price} />
+          <Chart sym={sym} tt={tt} />
         </div>
 
         <div className="cx-op-bar">
-          <button type="button" className="cx-op-pick" onClick={() => { setQIn(String(qty)); setSh("qty"); }}>
+          <button type="button" className="cx-op-pick" onClick={() => { setQIn(qty ? String(qty) : ""); setSh("trade"); }}>
             <span>{t("qty")} ⌄</span><span>{qty.toFixed(2)}</span>
           </button>
-          <button type="button" className="cx-op-pick" onClick={() => setSh("time")}>
+          <button type="button" className="cx-op-pick" onClick={() => setSh("trade")}>
             <span>{t("time")} ⌄</span><span>{secs}s</span>
           </button>
-          <div className="cx-op-yl">
-            <span>{t("yld")}</span><b>+{(qty * YIELD).toFixed(2)} USDT</b>
-          </div>
-          <div className="cx-op-yl">
-            <span>{t("bal")}</span><span>{(W.w && W.w.USDT ? W.w.USDT : 0).toFixed(2)} USDT</span>
-          </div>
           <button type="button" className="cx-op-go up" disabled={busy} onClick={() => open(DIR.long)}>{t("bl")}</button>
           <button type="button" className="cx-op-go dn" disabled={busy} onClick={() => open(DIR.short)}>{t("ss")}</button>
         </div>
@@ -601,40 +700,63 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
 
       {msg.k && <div className={"cx-op-toast " + msg.s}>{msg.k}</div>}
 
-      {/* ---- Quantity sheet ---- */}
-      <Sheet open={sh === "qty"} onClose={() => setSh("")} title={t("oq")}>
-        <div className="cx-op-grid">
+      {/* ---- Trade sheet (Transaction mode / quantity / time) ---- */}
+      <Sheet open={sh === "trade"} onClose={() => setSh("")}>
+        <div className="cx-op-sec">{tt("tmode", "Transaction mode")}</div>
+        <div className="cx-op-row one">
+          <button type="button" className="cx-op-opt on">USDT</button>
+        </div>
+
+        <div className="cx-op-sec t2">{t("oq")}</div>
+        <div className="cx-op-row">
           {QTY.map((q) => (
-            <button key={q} type="button" className={"cx-op-opt" + (q === qty ? " on" : "")} onClick={() => { setQty(q); setSh(""); }}>{q}</button>
+            <button key={q} type="button" className={"cx-op-opt" + (q === qty ? " on" : "")} onClick={() => pickQty(q)}>{q.toFixed(2)}</button>
           ))}
         </div>
-        <input className="cx-op-inp" type="number" inputMode="decimal" value={qIn} onChange={(e) => setQIn(e.target.value)} placeholder={MIN_Q + " - " + MAX_Q} />
-        <div className="cx-op-hint">{t("badQ")}</div>
-        <button type="button" className="cx-op-ok" onClick={applyQty}>OK</button>
-      </Sheet>
+        <div className="cx-op-qrow">
+          <input type="number" inputMode="decimal" value={qIn} onChange={(e) => typeQty(e.target.value)} placeholder={MIN_Q + " - " + MAX_Q} />
+          <button type="button" onClick={allQty}>{tt("all", "All")}</button>
+        </div>
 
-      {/* ---- Time sheet ---- */}
-      <Sheet open={sh === "time"} onClose={() => setSh("")} title={t("time")}>
-        <div className="cx-op-grid">
+        <div className="cx-op-sec t2">{tt("otime", "Opening time")}</div>
+        <div className="cx-op-row five">
           {SECS.map((s) => (
-            <button key={s} type="button" className={"cx-op-opt" + (s === secs ? " on" : "")} onClick={() => { setSecs(s); setSh(""); }}>{s}s</button>
+            <button key={s} type="button" className={"cx-op-opt" + (s === secs ? " on" : "")} onClick={() => setSecs(s)}>{s}s</button>
           ))}
+        </div>
+
+        <div className="cx-op-g two">
+          <span>{t("bal")} : {bal.toFixed(8)}</span>
+          <span>{t("yld")} : {yieldPct}</span>
+        </div>
+        <div className="cx-op-g three">{t("oq")} : {MIN_Q.toFixed(2)} - {MAX_Q.toFixed(2)}</div>
+
+        <div className="cx-op-sbtn">
+          <button type="button" className="cx-op-go up" disabled={busy} onClick={() => buyFromSheet(DIR.long)}>{t("bl")}</button>
+          <button type="button" className="cx-op-go dn" disabled={busy} onClick={() => buyFromSheet(DIR.short)}>{t("ss")}</button>
         </div>
       </Sheet>
 
-      {/* ---- Coin picker ---- */}
-      <Sheet open={sh === "coin"} onClose={() => setSh("")} title="BTC/USDT">
-        {COINS.map((c) => {
-          const pc = P && P[c] ? P[c] : null;
-          return (
-            <button key={c} type="button" className={"cx-op-coin" + (c === sym ? " on" : "")} onClick={() => { setSym(c); setSh(""); }}>
-              <Coin s={c} size={28} />
-              <b>{c}<small style={{ opacity: 0.6 }}>/USDT</small></b>
-              {pc && <small style={{ color: pc.chg >= 0 ? CUP : CDN }}>{fmt(pc.price)}</small>}
-            </button>
-          );
-        })}
-      </Sheet>
+      {/* ---- Left coin drawer ---- */}
+      {sh === "coin" && (
+        <div className="cx-op-dov" onClick={() => setSh("")}>
+          <div className="cx-op-dr" onClick={(e) => e.stopPropagation()}>
+            <h2>{tt("spot", "Spot trading")}</h2>
+            <div className="cur">USDT</div>
+            <div className="cx-op-coin-wrap">
+              {COINS.map((c) => {
+                const pc = P && P[c] ? P[c] : null;
+                return (
+                  <button key={c} type="button" className={"cx-op-coin" + (c === sym ? " on" : "")} onClick={() => { setSym(c); setSh(""); }}>
+                    <b>{c}<small>/USDT</small></b>
+                    {pc && <span style={{ color: pc.chg >= 0 ? CUP : CDN }}>{fmt(pc.price)}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---- Positions / Order records ---- */}
       {panel && (
