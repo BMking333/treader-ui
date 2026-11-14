@@ -13,6 +13,10 @@ import { Login, Register } from "./pages/Register_Login";
    ভাষা/ডার্ক: লগইন থাকলে সার্ভারে (PATCH /user/settings) সেভ হয়,
    লগইনের সময় সার্ভারের মান বসে। গেস্ট হলে শুধু localStorage।
    ভাষার তালিকা ও অনুবাদ: src/lib/i18n.jsx
+
+   আপডেট:
+   - .cx-logo: পুরনো "C" বক্স সরিয়ে সাদা টাইলে ব্র্যান্ড লোগোর স্টাইল
+   - .cx-bauth / .cx-reg: গেস্টের Login + Register বাটনের স্টাইল
    ===================================================================== */
 
 const AUTH_PATH = { login: "/login", register: "/register", forgot: "/forgot" };
@@ -118,8 +122,11 @@ const CSS = `
 .cx button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:start}
 .cx small{color:#8a8d99;font-size:13px;display:block}
 .cx-pg{width:100%;min-width:0;max-width:520px;background:#fff;min-height:100vh;padding-bottom:90px;box-shadow:0 0 40px rgba(0,0,0,.08);overflow-x:hidden}
-.cx-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;position:relative;z-index:40}
-.cx-logo{width:40px;height:40px;border-radius:12px;border:4px solid #17c3c9!important;color:#17c3c9!important;display:grid;place-items:center;font-weight:900;text-align:center!important;font-size:18px}
+.cx-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;position:relative;z-index:40}
+.cx-logo{width:42px;height:42px;flex:none;padding:0;border-radius:13px;border:0!important;background:#fff!important;display:grid;place-items:center;text-align:center!important;box-shadow:0 4px 14px rgba(25,176,200,.28);transition:transform .15s}
+.cx-logo:active{transform:scale(.94)}
+.cx-logo svg{display:block}
+.cx-bauth{display:flex;align-items:center;gap:8px;margin-inline-start:auto}
 .cx-lang{font-size:17px;display:flex;align-items:center;gap:10px}
 .cx-fl{font-size:22px;line-height:1}
 .cx-lgw{position:relative}
@@ -362,7 +369,9 @@ const CSS = `
 .cx.dark .cx-fm h4,.cx.dark .cx-kv{color:#9aa6bb}
 .cx.dark .cx-msg.bad{background:#3b1a20}
 .cx-cap{text-transform:capitalize}
-.cx-lgin{border:1px solid #1a82d6!important;color:#1a82d6!important;border-radius:20px;padding:8px 20px;font-size:16px;text-transform:capitalize;text-align:center!important}
+.cx-lgin{border:1px solid #1a82d6!important;color:#1a82d6!important;border-radius:20px;padding:8px 18px;font-size:15px;text-transform:capitalize;text-align:center!important;white-space:nowrap}
+.cx-reg{border:0!important;color:#fff!important;background:linear-gradient(110deg,#1fbad0,#2a7de1)!important;border-radius:20px;padding:9px 18px;font-size:15px;font-weight:600;text-transform:capitalize;text-align:center!important;white-space:nowrap;box-shadow:0 4px 12px rgba(40,125,225,.3)}
+.cx-reg:active,.cx-lgin:active{transform:scale(.97)}
 .cx-mp .cx-a1{width:100%;margin:8px 0 0}
 .cx-sq{display:inline-block;width:11px;height:11px;border:1px solid #787b86;margin-right:8px;vertical-align:-1px}
 .cx-pg.od{background:#0d1626;color:#e8ecf3}
@@ -453,6 +462,13 @@ const CSS = `
 .cx.dark .cx-pghost{border-color:#2c3b57!important;color:#b6c0d3}
 .cx.dark .cx-str i{background:#2c3b57}
 .cx.dark .cx-pt2 .cx-lang{background:#17263d;box-shadow:none}
+@media(max-width:400px){
+.cx-bar{padding:10px 12px;gap:6px}
+.cx-bauth{gap:6px}
+.cx-lgin,.cx-reg{padding:7px 12px;font-size:13px}
+.cx-bar .cx-lang{font-size:14px;gap:6px}
+.cx-bar .cx-fl{font-size:18px}
+}
 @media(min-width:768px){
 .cx-pg.cx-au{max-width:560px}
 .cx-csh{max-width:640px}
