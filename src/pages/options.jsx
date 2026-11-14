@@ -336,8 +336,7 @@ function Sheet({ open, onClose, title, children }) {
 }
 
 const CSS = `
-/* Height of the bottom navigation bar (Home / Market / Trade / Options / Assets).
-   Change this value if your nav is taller or shorter. */
+/* Desktop matches the supplied full-width trading-terminal reference. */
 .cx-op{--cx-nav-h:76px;--cx-bar-h:64px}
 
 .cx-op{background:#0b1520;color:#fff;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
@@ -436,13 +435,71 @@ const CSS = `
 }
 
 @media(min-width:900px){
-  .cx-op{height:auto;min-height:100vh;padding-bottom:70px}
-  .cx-op-body{flex-direction:row;height:calc(100vh - 46px - 70px - 70px)}
-  .cx-op-chart{min-height:560px}
-  .cx-op-bar{position:static;bottom:auto;z-index:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;width:340px;flex:none;height:auto;padding:16px;border-top:0;border-left:1px solid #3a4b5e}
-  .cx-op-pick{flex-direction:row;justify-content:space-between;height:46px;padding:0 12px;border:1px solid #2a3a50;border-radius:8px;background:#101c2d}
-  .cx-op-yl{display:flex;justify-content:space-between;font-size:13px;color:#9fb0c3}
-  .cx-op-yl b{color:#4be0a8;font-weight:400}
+  /* Full-width terminal: header, market stats, large chart, bottom trade strip */
+  .cx-op{
+    height:100vh;
+    min-height:680px;
+    padding-bottom:var(--cx-bar-h);
+    overflow:hidden;
+  }
+  .cx-op-top{height:46px;min-height:46px}
+  .cx-op-info{
+    grid-template-columns:minmax(260px,38%) minmax(0,1fr);
+    min-height:84px;
+    padding:12px 14px;
+  }
+  .cx-op-pr b{font-size:20px}
+  .cx-op-st{
+    grid-template-columns:auto minmax(0,1fr);
+    grid-auto-flow:row;
+    align-content:center;
+    gap:2px 12px;
+    line-height:1.25;
+  }
+  .cx-op-st i{display:block;font-size:13px}
+  .cx-op-st b{font-size:13px}
+  .cx-op-body{
+    display:flex;
+    flex:1;
+    min-height:0;
+    height:auto;
+    flex-direction:column;
+    overflow:hidden;
+  }
+  .cx-op-chart{flex:1;min-height:0;width:100%}
+  .cx-chart-wrap{min-height:0}
+  .cx-chart-toolbar{min-height:36px}
+  .cx-chart-indicators{min-height:28px}
+  .cx-op-bar{
+    position:fixed;
+    left:0;
+    right:0;
+    bottom:0;
+    z-index:60;
+    display:grid;
+    grid-template-columns:1fr 1fr 2fr 2fr;
+    gap:12px;
+    align-items:center;
+    width:100%;
+    height:var(--cx-bar-h);
+    padding:5px 12px;
+    border-top:1px solid #3a4b5e;
+    border-left:0;
+    background:#0f2030;
+  }
+  .cx-op-pick{
+    flex-direction:column;
+    justify-content:center;
+    height:100%;
+    padding:0 8px;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    line-height:1.2;
+  }
+  .cx-op-pick span{font-size:13px}
+  .cx-op-go{height:44px}
+  .cx-op-yl{display:none}
   .cx-op-ov{align-items:center}
   .cx-op-sh{border-radius:14px}
   .cx-op-pn{left:auto;width:420px;border-left:1px solid #3a4b5e}
