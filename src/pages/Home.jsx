@@ -9,6 +9,8 @@ import { LANGS, RTL, T, LangCtx, LangPicker, translate, isLang } from "../lib/i1
    ভাষার তালিকা ও সব অনুবাদ এখন src/lib/i18n.jsx এ। এখানে শুধু re-export,
    তাই অন্য পেজের `from "./Home"` ইমপোর্ট ভাঙবে না।
    ছবি: src/assets/Image1.png, Image2.png, Image3.png
+
+   আপডেট: উপরের বারের "C" অক্ষর সরিয়ে লগইন/রেজিস্টার পেজের ব্র্যান্ড লোগো বসানো হয়েছে
    ===================================================================== */
 
 /* পুরনো ইমপোর্টের জন্য re-export (T2/T3 এখন T এর ভেতরেই merge করা, তাই একই অবজেক্ট) */
@@ -106,6 +108,17 @@ export const ICON = {
   gear: "M12 8a4 4 0 100 8 4 4 0 000-8zm9 5v-2l-2.2-.6a7 7 0 00-.7-1.6l1.1-2-1.4-1.4-2 1.1a7 7 0 00-1.6-.7L13 3h-2l-.6 2.2a7 7 0 00-1.6.7l-2-1.1L5.4 6.2l1.1 2a7 7 0 00-.7 1.6L3.6 11v2l2.2.6c.2.6.4 1.1.7 1.6l-1.1 2 1.4 1.4 2-1.1c.5.3 1 .5 1.6.7L11 21h2l.6-2.2c.6-.2 1.1-.4 1.6-.7l2 1.1 1.4-1.4-1.1-2c.3-.5.5-1 .7-1.6z",
 };
 
+/* ---------------- Brand logo (লগইন/রেজিস্টার পেজের লোগো) ---------------- */
+export const BrandMark = ({ size = 26, color = "#19b0c8" }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
+    <g fill="none" stroke={color} strokeWidth="8">
+      <path d="M76 16H50a34 34 0 000 68h26V66" />
+      <path d="M76 33H50a17 17 0 000 34h26V54" />
+      <path d="M76 49H54a3 3 0 000 6h22" />
+    </g>
+  </svg>
+);
+
 /* ---------------- Coin logo (CDN + letter fallback) ---------------- */
 const logoSrc = (s) => {
   const l = s.toLowerCase();
@@ -161,6 +174,22 @@ export function List({ P, go, names }) {
   );
 }
 
+/* লোগো বাটনের স্টাইল: সাদা রাউন্ড টাইল, ভেতরে ব্র্যান্ড লোগো (পুরনো "C" অক্ষর আর নেই) */
+const LOGO_BTN = {
+  width: 42,
+  height: 42,
+  padding: 0,
+  border: 0,
+  borderRadius: 13,
+  background: "#fff",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "0 4px 14px rgba(25,176,200,.28)",
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
 export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askLogin }) {
   const t = useT();
   const [i, setI] = useState(0), [k, setK] = useState(0), [cs, setCs] = useState(false);
@@ -175,7 +204,9 @@ export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askL
   return (
     <>
       <div className="cx-bar">
-        <button className="cx-logo" onClick={onMenu} aria-label="menu">C</button>
+        <button className="cx-logo" style={LOGO_BTN} onClick={onMenu} aria-label="menu">
+          <BrandMark size={28} />
+        </button>
         {guest && <button className="cx-lgin" onClick={() => askLogin("login")}>{t("login")}</button>}
         <LangPicker lang={lang} setLang={setLang} />
       </div>
