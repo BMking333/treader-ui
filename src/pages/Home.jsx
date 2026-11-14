@@ -4,7 +4,20 @@ import img2 from "../assets/Image2.png";
 import img3 from "../assets/Image3.png";
 import { LANGS, RTL, T, LangCtx, LangPicker, translate, isLang } from "../lib/i18n";
 
- 
+/* =====================================================================
+   src/pages/Home.jsx — shared lib (API, আইকন, কয়েন লোগো) + Home পেজ
+   ভাষার তালিকা ও সব অনুবাদ এখন src/lib/i18n.jsx এ। এখানে শুধু re-export,
+   তাই অন্য পেজের `from "./Home"` ইমপোর্ট ভাঙবে না।
+   ছবি: src/assets/Image1.png, Image2.png, Image3.png
+
+   আপডেট:
+   - উপরের বারের "C" অক্ষর সরিয়ে ব্র্যান্ড লোগো (BrandMark) বসানো হয়েছে
+   - গেস্ট ইউজারের জন্য Login + Register দুটো বাটন
+   - Flash swap → /exchangeb, Transfer → /changemoney, Boost loan → /loans
+   - কয়েন (লিস্ট/টিকার) চাপলে → /options?s=COIN
+   ===================================================================== */
+
+/* পুরনো ইমপোর্টের জন্য re-export (T2/T3 এখন T এর ভেতরেই merge করা, তাই একই অবজেক্ট) */
 export { LANGS, RTL, T, LangCtx, LangPicker, translate, isLang };
 export const T2 = T, T3 = T;
 
@@ -152,7 +165,7 @@ export function List({ P, go, names }) {
     <>
       <div className="cx-th"><span>{t("name")}</span><span>{t("lp")}</span><span>{t("chg")}</span></div>
       {COINS.map((s) => (
-        <button key={s} className="cx-row" onClick={() => go("exchange", s)}>
+        <button key={s} className="cx-row" onClick={() => go("options", s)}>
           <span className="cx-nm">
             <Coin s={s} size={names ? 38 : 42} />
             {names ? <span><b>{s}<small>/USDT</small></b><small>24H {P[s].vol}</small></span> : <b>{s}<small>/USDT</small></b>}
@@ -173,8 +186,8 @@ export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askL
   const tick = [0, 1, 2].map((n) => COINS[(k + n) % COINS.length]);
   const grid = [
     [ICON.card, "rech", () => go("deposit")], [ICON.card, "wd", () => go("withdraw")],
-    [ICON.chat, "cs", () => setCs(true)], [ICON.swap, "swap", () => go("exchange")],
-    [ICON.loan, "loan", () => go("loans")], [ICON.card, "tf", () => go("assets")],
+    [ICON.chat, "cs", () => setCs(true)], [ICON.swap, "swap", () => go("exchangeb")],
+    [ICON.loan, "loan", () => go("loans")], [ICON.card, "tf", () => go("changemoney")],
   ];
   const openReg = () => (onRegister ? onRegister() : askLogin("register"));
   return (
@@ -198,7 +211,7 @@ export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askL
       </div>
       <div className="cx-tick">
         {tick.map((s) => (
-          <button key={s} onClick={() => go("exchange", s)}>
+          <button key={s} onClick={() => go("options", s)}>
             <span>{s}/USDT</span>
             <b style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{fmt(P[s].price)}</b>
             <em style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{P[s].chg.toFixed(2)}%</em>
