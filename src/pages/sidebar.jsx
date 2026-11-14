@@ -1,8 +1,9 @@
-import React, { useContext } from "react";
-import { useT, api, Ic, ICON, LangCtx } from "./Home";
+import React from "react";
+import { useT, api, Ic, ICON } from "./Home";
 
 /* =====================================================================
    src/pages/sidebar.jsx — সাইড মেনু (প্রোফাইল, নাইট মোড, লগআউট)
+   নাইট মোড টগল করলে App.jsx সেটা সার্ভারে সেভ করে।
    ===================================================================== */
 
 /* verify_status → none | wait | ok | bad (authentication.jsx এর সাথে একই লজিক) */
@@ -15,28 +16,8 @@ const kind = (s) => {
   return "none";
 };
 
-/* "verified" ও "rejected" লেখা (গ্লোবাল অনুবাদে না থাকলে এখানে থেকে নেবে) */
-const ST = {
-  en: { ok: "Verified", bad: "Rejected" },
-  bn: { ok: "যাচাই হয়েছে", bad: "বাতিল" },
-  hi: { ok: "सत्यापित", bad: "अस्वीकृत" },
-  ur: { ok: "تصدیق شدہ", bad: "مسترد" },
-  ar: { ok: "تم التحقق", bad: "مرفوض" },
-  fr: { ok: "Vérifié", bad: "Refusé" },
-  es: { ok: "Verificado", bad: "Rechazado" },
-  de: { ok: "Verifiziert", bad: "Abgelehnt" },
-  pt: { ok: "Verificado", bad: "Recusado" },
-  ru: { ok: "Подтверждено", bad: "Отклонено" },
-  tr: { ok: "Doğrulandı", bad: "Reddedildi" },
-  zh: { ok: "已认证", bad: "已拒绝" },
-  ja: { ok: "確認済み", bad: "却下" },
-  id: { ok: "Terverifikasi", bad: "Ditolak" },
-};
-
 export default function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify, guest, askLogin }) {
   const t = useT();
-  const { lang } = useContext(LangCtx);
-  const st = (ST[lang] || ST.en);
 
   const share = async () => {
     if (!me) { onClose(); return askLogin("login", "needLogin"); }
@@ -53,7 +34,7 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
 
   /* Authentication row: status অনুযায়ী লেখা, রঙ ও ক্লিক */
   const k = kind(me && me.verify_status);
-  const authLabel = k === "wait" ? t("wait") : k === "ok" ? st.ok : k === "bad" ? st.bad : t("notset");
+  const authLabel = k === "wait" ? t("wait") : k === "ok" ? t("verified") : k === "bad" ? t("rejected") : t("notset");
   const authRed = k !== "ok";
   const authLocked = k === "wait" || k === "ok"; /* under review / verified → কোনো পেজে যাবে না */
   const authFn = authLocked ? null : () => { onClose(); go("auth"); };
