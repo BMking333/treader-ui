@@ -118,23 +118,45 @@ function Chart({ sym, price }) {
     const pair = cleanSymbol.endsWith("USDT") ? cleanSymbol : cleanSymbol + "USDT";
     const interval = BINANCE_INTERVALS[timeframe] || "1m";
     const supported = /^[A-Z0-9]{5,20}$/.test(pair);
+    const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 600px)").matches;
 
     const chart = createChart(host, {
       autoSize: true,
       layout: { background: { type: "solid", color: "#0b1520" }, textColor: "#9fb0c3", fontFamily: "Inter, Arial, sans-serif", attributionLogo: false },
       grid: { vertLines: { color: "rgba(75,95,120,.13)" }, horzLines: { color: "rgba(75,95,120,.18)" } },
       crosshair: { mode: 1, vertLine: { color: "#8294a8", width: 1, style: 2 }, horzLine: { color: "#8294a8", width: 1, style: 2 } },
-      rightPriceScale: { borderColor: "#26384b", scaleMargins: { top: 0.08, bottom: 0.22 } },
-      timeScale: { borderColor: "#26384b", timeVisible: true, secondsVisible: false, rightOffset: 8 },
+      rightPriceScale: {
+        borderColor: "#26384b",
+        scaleMargins: { top: isMobile ? 0.16 : 0.10, bottom: isMobile ? 0.24 : 0.20 },
+        minimumWidth: isMobile ? 58 : 72,
+      },
+      timeScale: {
+        borderColor: "#26384b",
+        timeVisible: true,
+        secondsVisible: false,
+        rightOffset: isMobile ? 10 : 8,
+        barSpacing: isMobile ? 9 : 7,
+        minBarSpacing: 3,
+        lockVisibleTimeRangeOnResize: true,
+      },
       localization: { locale: "en-US" },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
     chartRef.current = chart;
     const candlesSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#00c087", downColor: "#e05260", borderVisible: false,
-      wickUpColor: "#00c087", wickDownColor: "#e05260",
-      priceLineVisible: true, lastValueVisible: true,
+      upColor: "#16c784",
+      downColor: "#ea3943",
+      borderUpColor: "#16c784",
+      borderDownColor: "#ea3943",
+      borderVisible: true,
+      wickUpColor: "#16c784",
+      wickDownColor: "#ea3943",
+      wickVisible: true,
+      priceLineVisible: true,
+      lastValueVisible: true,
+      priceLineColor: "#8b9bad",
+      priceLineStyle: 2,
     });
     candleRef.current = candlesSeries;
     const closeLine = chart.addSeries(LineSeries, { color: "#26a7ff", lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
@@ -188,7 +210,16 @@ function Chart({ sym, price }) {
       const macd = calcMACD(data);
       macdSeries.setData(macd.line); signalSeries.setData(macd.signal); macdHist.setData(macd.hist);
       setLastPrice(data[data.length - 1].close);
-      if (fit) chart.timeScale().fitContent();
+      if (fit) {
+        // Start with a readable number of recent candles instead of squeezing
+        // all 500 candles into a narrow mobile screen.
+        const visibleBars = isMobile ? 48 : 90;
+        const from = Math.max(0, data.length - visibleBars);
+        chart.timeScale().setVisibleLogicalRange({
+          from,
+          to: data.length + (isMobile ? 4 : 6),
+        });
+      }
     };
 
     const connectSocket = () => {
@@ -322,16 +353,16 @@ const CSS = `
 .cx-op-st i{font-style:normal;color:#9fb0c3}
 .cx-op-st b{text-align:right;font-weight:400;overflow-wrap:anywhere}
 .cx-op-body{flex:1;min-height:0;display:flex;flex-direction:column}
-.cx-op-chart{flex:1;min-height:300px;position:relative;overflow:hidden}
+.cx-op-chart{flex:1;min-height:360px;position:relative;overflow:hidden}
 .cx-chart-wrap{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;background:#0b1520;overflow:hidden}
-.cx-chart-toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:38px;padding:3px 8px;border-bottom:1px solid #1d2d40;background:#0d1927;flex:none}
+.cx-chart-toolbar{display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:40px;padding:4px 8px;border-bottom:1px solid #1d2d40;background:#0d1927;flex:none}
 .cx-chart-tfs,.cx-chart-tools{display:flex;align-items:center;gap:3px;min-width:0}
 .cx-chart-toolbar button,.cx-chart-indicators button{border:0;background:transparent;color:#9fb0c3;border-radius:4px;padding:5px 7px;font-size:11px;cursor:pointer;white-space:nowrap}
 .cx-chart-toolbar button.active,.cx-chart-indicators button.selected{background:#17304a;color:#60b7ff}
 .cx-chart-indicators{display:flex;align-items:center;gap:3px;min-height:30px;padding:2px 8px;flex:none;overflow-x:auto;border-bottom:1px solid #17283a}
 .cx-chart-indicators button{font-size:10px;padding:4px 6px}
 .cx-chart-status{margin-left:auto;color:#71869b;font-size:10px;white-space:nowrap}
-.cx-chart-price{position:absolute;z-index:2;top:76px;left:12px;color:#e6edf5;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000}
+.cx-chart-price{position:absolute;z-index:2;top:78px;left:12px;color:#e6edf5;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000;background:rgba(11,21,32,.72);padding:4px 7px;border-radius:5px}
 .cx-chart-price small{font-size:10px;color:#8294a8;font-weight:400}
 .cx-chart-canvas{flex:1;min-height:0;width:100%}
 .cx-chart-attribution{flex:none;text-align:right;padding:3px 8px;color:#62758a;font-size:9px;background:#0b1520}
@@ -375,10 +406,39 @@ const CSS = `
 .cx-op-tag{padding:2px 8px;border-radius:4px;font-size:12px;color:#fff}
 .cx-op-none{text-align:center;color:#9fb0c3;padding:40px 0;font-size:14px}
 
+/* Mobile chart: larger candle area, horizontal timeframe scrolling,
+   separate compact tool row, and enough spacing for readable candle bodies. */
+@media(max-width:600px){
+  .cx-op{height:100dvh;min-height:620px;overflow:hidden}
+  .cx-op-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+  .cx-op-chart{flex:1 0 430px;min-height:430px}
+  .cx-chart-wrap{min-height:430px}
+  .cx-chart-toolbar{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;min-height:68px;padding:4px 7px}
+  .cx-chart-tfs{width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .cx-chart-tfs::-webkit-scrollbar,.cx-chart-indicators::-webkit-scrollbar{display:none}
+  .cx-chart-tools{width:100%;justify-content:flex-end}
+  .cx-chart-toolbar button{font-size:11px;padding:5px 8px;min-height:27px}
+  .cx-chart-indicators{min-height:32px;gap:5px;padding:3px 7px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .cx-chart-indicators button{font-size:10px;padding:5px 8px;min-height:25px}
+  .cx-chart-status{font-size:9px}
+  .cx-chart-price{top:108px;left:9px;font-size:13px;padding:3px 6px}
+  .cx-chart-canvas{min-height:300px;touch-action:pan-y}
+  .cx-chart-attribution{font-size:8px;padding:4px 7px}
+  .cx-op-info{padding:9px 12px}
+  .cx-op-pr b{font-size:21px}
+}
+@media(max-width:380px){
+  .cx-op-chart{flex-basis:410px;min-height:410px}
+  .cx-chart-wrap{min-height:410px}
+  .cx-chart-toolbar button{padding:4px 6px;font-size:10px}
+  .cx-chart-indicators button{padding:4px 6px}
+  .cx-chart-status{display:none}
+}
+
 @media(min-width:900px){
   .cx-op{height:auto;min-height:100vh;padding-bottom:70px}
   .cx-op-body{flex-direction:row;height:calc(100vh - 46px - 70px - 70px)}
-  .cx-op-chart{min-height:520px}
+  .cx-op-chart{min-height:560px}
   .cx-op-bar{position:static;bottom:auto;z-index:auto;display:flex;flex-direction:column;align-items:stretch;gap:12px;width:340px;flex:none;height:auto;padding:16px;border-top:0;border-left:1px solid #3a4b5e}
   .cx-op-pick{flex-direction:row;justify-content:space-between;height:46px;padding:0 12px;border:1px solid #2a3a50;border-radius:8px;background:#101c2d}
   .cx-op-yl{display:flex;justify-content:space-between;font-size:13px;color:#9fb0c3}
