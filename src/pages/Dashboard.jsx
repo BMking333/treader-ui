@@ -10,11 +10,14 @@ import Options from "./options";
 /* =====================================================================
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
    URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication
+
+   আপডেট: Market পেজে কোনো কয়েনে ক্লিক করলে এখন Options পেজ খুলবে (ওই কয়েন সহ)
    ===================================================================== */
 
 const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication" };
 const HAS_SYM = ["exchange", "options"];
-const DARK_PAGES = ["options", "auth"];
+/* Options পেজ এখন লাইট থিম (নিজের ব্যাকগ্রাউন্ড আছে), তাই এখানে আর ডার্ক নয় */
+const DARK_PAGES = ["auth"];
 
 const urlFor = (page, sym) => PATHS[page] + (HAS_SYM.includes(page) ? "?s=" + sym : "");
 
@@ -116,6 +119,9 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
     window.scrollTo(0, 0);
   };
 
+  /* Market পেজ থেকে কয়েনে ক্লিক করলে (exchange/trade এ যেত) → এখন Options পেজে যাবে */
+  const marketGo = (p, s) => go(p === "exchange" ? "options" : p, s);
+
   /* Trade/Options পেজে কয়েন বদলালে URL-এর ?s= বদলায় (নতুন history entry ছাড়াই) */
   const pickSym = (s) => { setSym(s); replaceUrl(urlFor(page, s)); };
 
@@ -124,7 +130,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
     <>
       <div className={"cx-pg" + (DARK_PAGES.includes(page) ? " od" : "")}>
         {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} />}
-        {page === "market" && <Market P={P} go={go} />}
+        {page === "market" && <Market P={P} go={marketGo} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={pickSym} go={go} spot={spot} />}
         {page === "options" && <Options P={P} W={W} sym={sym} setSym={pickSym} pos={pos} orders={orders} />}
         {page === "assets" && <Assets P={P} W={W} />}
