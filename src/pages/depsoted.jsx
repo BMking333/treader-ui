@@ -5,9 +5,8 @@ import { useT, api } from "./Home";
    src/pages/depsoted.jsx — Deposit পেজ + shared (NETS, Chips, TxList)
 
    Flow:
-     Step 1 -> Amount দিয়ে Next
-     Step 2 -> Coin সিলেক্ট -> Network সিলেক্ট -> Address/QR আসে
-               -> Screenshot + TxID দিয়ে Submit
+     Step 1 -> Coin সিলেক্ট -> Network সিলেক্ট -> Address/QR আসে -> Next
+     Step 2 -> Amount + Screenshot + TxID দিয়ে Submit
 
    Backend:
      GET  /deposit/methods -> Admin-এর তৈরি Active payment methods
@@ -359,7 +358,7 @@ export default function Deposit({ W, go }) {
   const [methods, setMethods] = useState([]);
   const [loadingM, setLoadingM] = useState(true);
 
-  const [step, setStep] = useState(1);          // 1 = amount, 2 = coin/network/pay
+  const [step, setStep] = useState(1);          // 1 = coin/network/address, 2 = amount/proof/submit
   const [amt, setAmt] = useState("");
   const [coin, setCoin] = useState("");
   const [methodId, setMethodId] = useState(null);
@@ -419,7 +418,7 @@ export default function Deposit({ W, go }) {
 
   /* ---------- actions ---------- */
   const next = () => {
-    if (!(a > 0)) return say(t("dpBadAmt"));
+    if (!method) return;
     clearMsg();
     setStep(2);
   };
@@ -535,38 +534,10 @@ export default function Deposit({ W, go }) {
           <>
             <div className="dp-prog"><i className="on" /><i className={step === 2 ? "on" : ""} /></div>
 
-            {/* ============ STEP 1 — Amount ============ */}
+            {/* ============ STEP 1 — Coin -> Network -> Address ============ */}
             {step === 1 && (
-              <div className="dp-card">
-                <h2 className="dp-h">{L("dpEnterAmt", "Deposit amount")}</h2>
-                <p className="dp-sub">{L("dpEnterAmtSub", "Enter the amount you want to deposit, then continue.")}</p>
-
-                <div className="dp-amount">
-                  <span>{L("dpDepositLbl", "Deposit")}</span>
-                  <input
-                    value={amt}
-                    onChange={(e) => { setAmt(e.target.value); clearMsg(); }}
-                    placeholder={L("dpQtyPh", "Please enter the quantity")}
-                    inputMode="decimal"
-                    onKeyDown={(e) => e.key === "Enter" && next()}
-                  />
-                </div>
-
-                {msg.text && <div className={"dp-msg " + (msg.ok ? "ok" : "bad")}>{msg.text}</div>}
-
-                <button className="dp-primary" onClick={next} disabled={!(a > 0)}>
-                  {L("dpNext", "Next")}
-                </button>
-              </div>
-            )}
-
-            {/* ============ STEP 2 — Coin / Network / Pay ============ */}
-            {step === 2 && (
               <>
-                <div className="dp-sum">
-                  <div><span>{L("dpDepositLbl", "Deposit")}</span><b>{fmt(a)}</b></div>
-                  <button className="dp-link" onClick={backBtn}>{L("dpEdit", "Edit")}</button>
-                </div>
+                {msg.ok && <div className="dp-msg ok" style={{ marginTop: 0, marginBottom: 16 }}>{msg.text}</div>}
 
                 <div className="dp-card">
                   <h2 className="dp-h">{L("dpCurrency", "Current currency")}</h2>
@@ -600,7 +571,6 @@ export default function Deposit({ W, go }) {
 
                 {method && (
                   <>
-                    {/* Address */}
                     <div className="dp-card dp-pay">
                       <div className="dp-pay-head">
                         <CoinLogo coin={method.coin} url={logoUrl(method.coin)} size={30} />
@@ -626,41 +596,72 @@ export default function Deposit({ W, go }) {
                       {method.instructions && <div className="dp-warn">{method.instructions}</div>}
                     </div>
 
-                    {/* Screenshot + TxID + Submit */}
-                    <div className="dp-card dp-form">
-                      <div className="dp-drop" onClick={() => fileRef.current && fileRef.current.click()}>
-                        {proof ? (
-                          <>
-                            <img src={proof} alt="voucher" />
-                            <button className="dp-rm" aria-label="Remove" onClick={(e) => { e.stopPropagation(); setProof(""); }}>✕</button>
-                          </>
-                        ) : <IcCamera />}
-                      </div>
-                      <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
-                      <div className="dp-cap">{L("dpVoucher", "Payment voucher")}</div>
-
-                      <label className="dp-row">
-                        <span>{L("dpTxid", "TxID")}</span>
-                        <input
-                          value={txid}
-                          onChange={(e) => setTxid(e.target.value)}
-                          placeholder={L("dpTxidPh", "Enter the transaction ID")}
-                          autoComplete="off"
-                          spellCheck={false}
-                        />
-                      </label>
-
-                      {msg.text && <div className={"dp-msg " + (msg.ok ? "ok" : "bad")}>{msg.text}</div>}
-
-                      <button className="dp-primary" onClick={submit} disabled={busy}>
-                        {busy ? t("dpSubmitting") : t("dpSubmit")}
-                      </button>
-                    </div>
+                    <button className="dp-primary" style={{ marginTop: 0 }} onClick={next}>
+                      {L("dpNext", "Next")}
+                    </button>
                   </>
                 )}
               </>
             )}
 
+            {/* ============ STEP 2 — Amount + Screenshot + TxID + Submit ============ */}
+            {step === 2 && method && (
+              <>
+                <div className="dp-sum">
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <CoinLogo coin={method.coin} url={logoUrl(method.coin)} size={30} />
+                    <b style={{ margin: 0 }}>{method.coin}</b>
+                    {method.network && <span className="dp-tag">{method.network}</span>}
+                  </div>
+                  <button className="dp-link" onClick={backBtn}>{L("dpEdit", "Edit")}</button>
+                </div>
+
+                <div className="dp-card dp-form">
+                  <h2 className="dp-h">{L("dpEnterAmt", "Deposit amount")}</h2>
+                  <p className="dp-sub">
+                    {t("dpMin")} {fmt(method.min_amount)} · {t("dpMax")} {fmt(method.max_amount)} {method.currency || method.coin}
+                  </p>
+
+                  <div className="dp-amount">
+                    <span>{L("dpDepositLbl", "Deposit")}</span>
+                    <input
+                      value={amt}
+                      onChange={(e) => { setAmt(e.target.value); clearMsg(); }}
+                      placeholder={L("dpQtyPh", "Please enter the quantity")}
+                      inputMode="decimal"
+                    />
+                  </div>
+
+                  <div className="dp-sec" style={{ marginTop: 26, textAlign: "center" }}>{L("dpVoucher", "Payment voucher")}</div>
+                  <div className="dp-drop" onClick={() => fileRef.current && fileRef.current.click()}>
+                    {proof ? (
+                      <>
+                        <img src={proof} alt="voucher" />
+                        <button className="dp-rm" aria-label="Remove" onClick={(e) => { e.stopPropagation(); setProof(""); }}>✕</button>
+                      </>
+                    ) : <IcCamera />}
+                  </div>
+                  <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+
+                  <label className="dp-row">
+                    <span>{L("dpTxid", "TxID")}</span>
+                    <input
+                      value={txid}
+                      onChange={(e) => setTxid(e.target.value)}
+                      placeholder={L("dpTxidPh", "Enter the transaction ID")}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+
+                  {msg.text && !msg.ok && <div className="dp-msg bad">{msg.text}</div>}
+
+                  <button className="dp-primary" onClick={submit} disabled={busy}>
+                    {busy ? t("dpSubmitting") : t("dpSubmit")}
+                  </button>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
