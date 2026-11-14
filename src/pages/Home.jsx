@@ -4,18 +4,7 @@ import img2 from "../assets/Image2.png";
 import img3 from "../assets/Image3.png";
 import { LANGS, RTL, T, LangCtx, LangPicker, translate, isLang } from "../lib/i18n";
 
-/* =====================================================================
-   src/pages/Home.jsx — shared lib (API, আইকন, কয়েন লোগো) + Home পেজ
-   ভাষার তালিকা ও সব অনুবাদ এখন src/lib/i18n.jsx এ। এখানে শুধু re-export,
-   তাই অন্য পেজের `from "./Home"` ইমপোর্ট ভাঙবে না।
-   ছবি: src/assets/Image1.png, Image2.png, Image3.png
-
-   আপডেট:
-   - উপরের বারের "C" অক্ষর সরিয়ে ব্র্যান্ড লোগো (BrandMark) বসানো হয়েছে
-   - গেস্ট ইউজারের জন্য Login + Register দুটো বাটন
-   ===================================================================== */
-
-/* পুরনো ইমপোর্টের জন্য re-export (T2/T3 এখন T এর ভেতরেই merge করা, তাই একই অবজেক্ট) */
+ 
 export { LANGS, RTL, T, LangCtx, LangPicker, translate, isLang };
 export const T2 = T, T3 = T;
 
@@ -185,7 +174,7 @@ export default function Home({ P, go, lang, setLang, onMenu, notify, guest, askL
   const grid = [
     [ICON.card, "rech", () => go("deposit")], [ICON.card, "wd", () => go("withdraw")],
     [ICON.chat, "cs", () => setCs(true)], [ICON.swap, "swap", () => go("exchange")],
-    [ICON.loan, "loan", () => notify(t("soon"))], [ICON.card, "tf", () => go("assets")],
+    [ICON.loan, "loan", () => go("loans")], [ICON.card, "tf", () => go("assets")],
   ];
   const openReg = () => (onRegister ? onRegister() : askLogin("register"));
   return (
