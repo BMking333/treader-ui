@@ -14,6 +14,11 @@ import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN
    - Tap Quantity / Time -> bottom sheet (Transaction mode, Opening
      quantity, Opening time, balance, yield, Buy Long / Sell Short)
    - Tap pair -> left drawer "Spot trading / USDT" coin list
+
+   Update: chart status (Live / Loading / Reconnecting), chart type
+   (Candles / Line) now use the i18n keys: live, loading, reconn,
+   candles, line. Status is stored as a key and translated at render,
+   so changing language updates it instantly without reloading the chart.
    ===================================================================== */
 
 /* ====== Change these if they don't match your backend ====== */
@@ -31,6 +36,11 @@ const CHART_LIMIT = 500;
 
 const UP = "#1fa67a";
 const DOWN = "#e5101d";
+
+/* status keys (start with "@") are translated at render time */
+const ST_LIVE = "@live";
+const ST_LOADING = "@loading";
+const ST_RECONN = "@reconn";
 
 const fmtP = (v) => {
   const n = Number(v);
@@ -118,6 +128,13 @@ function Chart({ sym, tt }) {
   const [legend, setLegend] = useState(null);
 
   const toggle = (key) => setIndicators((old) => ({ ...old, [key]: !old[key] }));
+
+  /* translate status keys at render time */
+  const statusText =
+    status === ST_LIVE ? tt("live", "Live")
+    : status === ST_LOADING ? tt("loading", "Loading...")
+    : status === ST_RECONN ? tt("reconn", "Reconnecting...")
+    : status;
 
   useEffect(() => {
     const host = hostRef.current;
@@ -289,17 +306,17 @@ function Chart({ sym, tt }) {
             else candles.push(item);
             if (candles.length > CHART_LIMIT) candles = candles.slice(-CHART_LIMIT);
             applyData(candles, false);
-            setStatus("Live");
+            setStatus(ST_LIVE);
           } catch (_) {}
         };
-        socket.onerror = () => { if (alive) setStatus("Reconnecting..."); };
+        socket.onerror = () => { if (alive) setStatus(ST_RECONN); };
         socket.onclose = () => { if (alive) retryTimer = setTimeout(connectSocket, 2500); };
       } catch (_) { setStatus("Live feed unavailable"); }
     };
 
     const load = async () => {
       if (!supported) { setStatus("Unsupported market symbol"); return; }
-      setStatus("Loading...");
+      setStatus(ST_LOADING);
       try {
         const url = `https://api.binance.com/api/v3/klines?symbol=${encodeURIComponent(pair)}&interval=${interval}&limit=${CHART_LIMIT}`;
         const response = await fetch(url);
@@ -309,7 +326,7 @@ function Chart({ sym, tt }) {
         const parsed = rows.map((x) => ({ time: Math.floor(x[0] / 1000), open: +x[1], high: +x[2], low: +x[3], close: +x[4], volume: +x[5] }));
         if (!alive) return;
         applyData(parsed, true);
-        setStatus("Live");
+        setStatus(ST_LIVE);
         connectSocket();
       } catch (error) {
         if (alive) setStatus(error.message || "Could not load market data");
@@ -357,20 +374,20 @@ function Chart({ sym, tt }) {
           </svg>
           {tt("ind", "Indicators")}
         </button>
-        <span className="cx-chart-status">{status}</span>
+        <span className="cx-chart-status">{statusText}</span>
         <button type="button" className="cx-tb-cell icon" onClick={toggleFullscreen} title="Fullscreen">⛶</button>
 
         {menu === "tf" && (
           <div className="cx-pop">
             {TF.map((tf) => (
-              <button key={tf} type="button" className={timeframe === tf ? "on" : ""} onClick={() => { setTimeframe(tf); setMenu(""); }}>{tfLabel(tf)}{TF_LABEL[tf] ? "" : ""}</button>
+              <button key={tf} type="button" className={timeframe === tf ? "on" : ""} onClick={() => { setTimeframe(tf); setMenu(""); }}>{tfLabel(tf)}</button>
             ))}
           </div>
         )}
         {menu === "type" && (
           <div className="cx-pop type">
-            <button type="button" className={chartType === "candle" ? "on" : ""} onClick={() => { setChartType("candle"); setMenu(""); }}>Candles</button>
-            <button type="button" className={chartType === "line" ? "on" : ""} onClick={() => { setChartType("line"); setMenu(""); }}>Line</button>
+            <button type="button" className={chartType === "candle" ? "on" : ""} onClick={() => { setChartType("candle"); setMenu(""); }}>{tt("candles", "Candles")}</button>
+            <button type="button" className={chartType === "line" ? "on" : ""} onClick={() => { setChartType("line"); setMenu(""); }}>{tt("line", "Line")}</button>
           </div>
         )}
       </div>
