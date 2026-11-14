@@ -1,30 +1,31 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useT, api } from "./Home";
 
 /* =====================================================================
-   src/pages/depsoted.jsx — Deposit পেজ (Professional UI) + shared (NETS, Chips, TxList)
+   src/pages/depsoted.jsx — Deposit পেজ + shared (NETS, Chips, TxList)
 
    Backend:
      GET  /deposit/methods   -> Admin-এর তৈরি Active payment methods
      POST /deposit           -> { payment_method_id, amount, txid, sender_info, proof_url }
-     GET  /deposit/history   -> ব্যবহারকারীর deposit request তালিকা
    Deposit approve হলে তবেই Wallet-এ Coin যোগ হয়।
+
+   ভাষা: সব লেখা src/lib/i18n.jsx থেকে t("key") দিয়ে আসে (dp* কী গুলো TR_DEP-এ)।
    ===================================================================== */
 
 export const NETS = { USDT: ["TRC20", "ERC20"], USDC: ["ERC20"], ETH: ["ERC20"], BTC: ["BTC"] };
 
-const TYPE_LABEL = { crypto: "Crypto", bkash: "bKash", nagad: "Nagad", bank: "Bank" };
 const TYPE_ICON = { crypto: "₿", bkash: "৳", nagad: "৳", bank: "🏦" };
 const TYPE_ORDER = ["crypto", "bkash", "nagad", "bank"];
 
-const ERR = {
-  badAmt: "Amount সঠিক নয় বা limit-এর বাইরে।",
-  badTxid: "Transaction ID/TXID সঠিক নয় (কমপক্ষে ৩ অক্ষর)।",
-  duplicateTxid: "এই TXID আগেই জমা দেওয়া হয়েছে।",
-  paymentProofRequired: "Payment proof (screenshot) আপলোড করুন।",
-  paymentUnavailable: "এই payment method এখন পাওয়া যাচ্ছে না।",
-  unauthorized: "আবার Login করুন।",
-  neterr: "সার্ভারের সাথে সংযোগ করা যাচ্ছে না।",
+// Backend error code -> i18n key
+const ERR_KEY = {
+  badAmt: "dpBadAmt",
+  badTxid: "dpBadTxid",
+  duplicateTxid: "dpDup",
+  paymentProofRequired: "dpProof",
+  paymentUnavailable: "dpUnavail",
+  unauthorized: "unauthorized",
+  neterr: "neterr",
 };
 
 const isDone = (x) => x.type === "dep" || /done|success|complete|approved|paid/i.test(x.status || "");
@@ -136,6 +137,7 @@ const CSS = `
   color: var(--text); font-size: 18px; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
 }
+.cx[dir=rtl] .dp-top .dp-icon-btn:first-child { transform: scaleX(-1); }
 
 .dp-wrap { max-width: 640px; margin: 0 auto; padding: 18px 16px 0; }
 
@@ -169,7 +171,7 @@ const CSS = `
   font-size: 13px; font-weight: 600;
 }
 .dp-chip.on { color: #fff; border-color: var(--blue); background: rgba(47,123,255,.16); }
-.dp-chip small { opacity: .75; font-weight: 500; margin-left: 4px; }
+.dp-chip small { opacity: .75; font-weight: 500; margin-inline-start: 4px; display: inline; }
 
 /* card + step header */
 .dp-card {
@@ -213,6 +215,7 @@ const CSS = `
   flex: 1; min-width: 0; word-break: break-all;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px; color: var(--text); line-height: 1.45;
+  direction: ltr; text-align: start;
 }
 .dp-copy {
   flex-shrink: 0; border: 0; cursor: pointer;
@@ -225,7 +228,7 @@ const CSS = `
 .dp-r { display: flex; justify-content: space-between; gap: 12px; padding: 12px 14px; font-size: 13px; background: var(--card2); }
 .dp-r + .dp-r { border-top: 1px solid var(--line); }
 .dp-r span { color: var(--muted); }
-.dp-r b { color: var(--text); text-align: right; word-break: break-word; }
+.dp-r b { color: var(--text); text-align: end; word-break: break-word; }
 
 .dp-warn {
   margin-top: 14px; padding: 12px 14px; border-radius: 12px;
@@ -247,7 +250,7 @@ const CSS = `
   font-family: inherit;
 }
 .dp-in::placeholder { color: #5d6c8c; }
-.dp-suffix { padding-right: 14px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.dp-suffix { padding-inline-end: 14px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .dp-hint { margin-top: 7px; font-size: 12px; color: var(--muted); }
 
 .dp-recv {
@@ -271,7 +274,7 @@ const CSS = `
 .dp-drop .ic { font-size: 28px; }
 .dp-drop img { width: 100%; max-height: 260px; object-fit: contain; display: block; background: #000; }
 .dp-rm {
-  position: absolute; top: 8px; right: 8px; border: 0; cursor: pointer;
+  position: absolute; top: 8px; inset-inline-end: 8px; border: 0; cursor: pointer;
   width: 30px; height: 30px; border-radius: 50%;
   background: rgba(0,0,0,.65); color: #fff; font-size: 14px;
 }
@@ -285,22 +288,11 @@ const CSS = `
   width: 100%; border: 0; cursor: pointer;
   padding: 16px; border-radius: 14px;
   background: linear-gradient(135deg, #2f7bff, #4f8dff);
-  color: #fff; font-size: 16px; font-weight: 700;
+  color: #fff; font-size: 16px; font-weight: 700; text-align: center;
   box-shadow: 0 10px 26px rgba(47,123,255,.35);
 }
 .dp-submit:disabled { opacity: .55; cursor: not-allowed; box-shadow: none; }
 
-/* history */
-.dp-hrow { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 14px 0; }
-.dp-hrow + .dp-hrow { border-top: 1px solid var(--line); }
-.dp-hrow b { color: var(--text); font-size: 14px; }
-.dp-hrow small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.4; }
-.dp-hrow small.rej { color: var(--red); }
-.dp-pill { padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
-.dp-pill.approved { background: rgba(46,204,143,.15); color: var(--green); }
-.dp-pill.rejected { background: rgba(255,107,122,.15); color: var(--red); }
-.dp-pill.pending { background: rgba(245,185,66,.15); color: var(--amber); }
-.dp-empty { text-align: center; color: var(--muted); font-size: 13px; padding: 22px 0 8px; }
 .dp-center { text-align: center; color: var(--muted); padding: 40px 10px; font-size: 14px; }
 
 .dp-note {
@@ -314,7 +306,6 @@ export default function Deposit({ W, go }) {
 
   const [methods, setMethods] = useState([]);
   const [loadingM, setLoadingM] = useState(true);
-  const [history, setHistory] = useState([]);
 
   const [type, setType] = useState("crypto");
   const [methodId, setMethodId] = useState(null);
@@ -330,7 +321,14 @@ export default function Deposit({ W, go }) {
   const fileRef = useRef(null);
 
   const say = (text, ok = false) => setMsg({ text, ok });
-  const errText = (e) => ERR[e?.message] || (e?.message ? t(e.message) : "Something went wrong.");
+  const errText = (e) => {
+    const m = e?.message;
+    if (!m) return t("dpGeneric");
+    return t(ERR_KEY[m] || m);
+  };
+
+  const typeLabel = (tp) =>
+    tp === "crypto" ? "Crypto" : tp === "bkash" ? "bKash" : tp === "nagad" ? "Nagad" : t("dpBank");
 
   /* ---------- load methods ---------- */
   useEffect(() => {
@@ -355,18 +353,6 @@ export default function Deposit({ W, go }) {
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  /* ---------- load history (login থাকলে) ---------- */
-  const loadHistory = useCallback(async () => {
-    if (W.guest) return setHistory([]);
-    try {
-      setHistory(toList(await api("/deposit/history")));
-    } catch {
-      /* history ব্যর্থ হলে পেজ আটকাবে না */
-    }
-  }, [W.guest]);
-
-  useEffect(() => { loadHistory(); }, [loadHistory]);
 
   /* ---------- derived ---------- */
   const types = TYPE_ORDER.filter((tp) => methods.some((m) => m.method_type === tp));
@@ -405,7 +391,7 @@ export default function Deposit({ W, go }) {
       setCopied(key);
       setTimeout(() => setCopied(""), 1600);
     } catch {
-      say("Copy করা যায়নি, হাতে কপি করুন।");
+      say(t("dpCopyFail"));
     }
   };
 
@@ -416,7 +402,7 @@ export default function Deposit({ W, go }) {
     try {
       setProof(await compressImage(f));
     } catch {
-      say("ছবি পড়া যায়নি, অন্য ছবি দিন।");
+      say(t("dpImgFail"));
     }
   };
 
@@ -424,12 +410,17 @@ export default function Deposit({ W, go }) {
     if (busy || !method) return;
     if (W.guest) return W.needLogin();
 
-    if (!(a > 0)) return say(ERR.badAmt);
+    if (!(a > 0)) return say(t("dpBadAmt"));
     if (a < num(method.min_amount) || a > num(method.max_amount)) {
-      return say(`Amount ${fmt(method.min_amount)} – ${fmt(method.max_amount)} ${method.currency}-এর মধ্যে হতে হবে।`);
+      return say(
+        t("dpRange")
+          .replace("{min}", fmt(method.min_amount))
+          .replace("{max}", fmt(method.max_amount))
+          .replace("{cur}", method.currency)
+      );
     }
-    if (txid.trim().length < 3) return say(ERR.badTxid);
-    if (!proof) return say(ERR.paymentProofRequired);
+    if (txid.trim().length < 3) return say(t("dpBadTxid"));
+    if (!proof) return say(t("dpProof"));
 
     setBusy(true);
     setMsg({ text: "", ok: false });
@@ -445,8 +436,7 @@ export default function Deposit({ W, go }) {
         },
       });
       setAmt(""); setTxid(""); setSender(""); setProof("");
-      say("Deposit request জমা হয়েছে। Admin approve করলে Wallet-এ যোগ হবে।", true);
-      loadHistory();
+      say(t("dpOk"), true);
     } catch (e) {
       say(errText(e));
     }
@@ -460,16 +450,16 @@ export default function Deposit({ W, go }) {
 
       <div className="dp-top">
         <button className="dp-icon-btn" onClick={() => go("home")} aria-label="Back">‹</button>
-        <h1>Deposit</h1>
+        <h1>{t("dpTitle")}</h1>
         <button className="dp-icon-btn" aria-label="Support">🎧</button>
       </div>
 
       <div className="dp-wrap">
-        {loadingM && <div className="dp-center">Loading...</div>}
+        {loadingM && <div className="dp-center">{t("dpLoading")}</div>}
 
         {!loadingM && !methods.length && (
           <div className="dp-card dp-center">
-            এখন কোনো deposit method চালু নেই।
+            {t("dpNone")}
             {msg.text && <div className="dp-msg bad" style={{ marginTop: 14 }}>{msg.text}</div>}
           </div>
         )}
@@ -480,7 +470,7 @@ export default function Deposit({ W, go }) {
             <div className="dp-tabs">
               {types.map((tp) => (
                 <button key={tp} className={"dp-tab" + (tp === type ? " on" : "")} onClick={() => pickType(tp)}>
-                  <span>{TYPE_ICON[tp]}</span>{TYPE_LABEL[tp]}
+                  <span>{TYPE_ICON[tp]}</span>{typeLabel(tp)}
                 </button>
               ))}
             </div>
@@ -501,10 +491,8 @@ export default function Deposit({ W, go }) {
               <div className="dp-step">
                 <div className="dp-step-n">1</div>
                 <div>
-                  <div className="dp-step-t">{isCrypto ? "Send your deposit" : "Make the payment"}</div>
-                  <div className="dp-step-s">
-                    {isCrypto ? "নিচের address-এ টাকা পাঠান" : "নিচের নম্বর/অ্যাকাউন্টে টাকা পাঠান"}
-                  </div>
+                  <div className="dp-step-t">{isCrypto ? t("dpS1c") : t("dpS1b")}</div>
+                  <div className="dp-step-s">{isCrypto ? t("dpS1cSub") : t("dpS1bSub")}</div>
                 </div>
               </div>
 
@@ -520,7 +508,7 @@ export default function Deposit({ W, go }) {
               {method.address && (
                 <>
                   <div className="dp-label">
-                    {isCrypto ? "Deposit address" : method.method_type === "bank" ? "Account number" : "Payment number"}
+                    {isCrypto ? t("dpAddr") : method.method_type === "bank" ? t("dpAcctNo") : t("dpPayNo")}
                   </div>
                   <div className="dp-addr">
                     <span>{method.address}</span>
@@ -528,7 +516,7 @@ export default function Deposit({ W, go }) {
                       className={"dp-copy" + (copied === "addr" ? " done" : "")}
                       onClick={() => copy(method.address, "addr")}
                     >
-                      {copied === "addr" ? "Copied ✓" : "Copy"}
+                      {copied === "addr" ? t("dpCopied") : t("dpCopy")}
                     </button>
                   </div>
                 </>
@@ -536,15 +524,15 @@ export default function Deposit({ W, go }) {
 
               {(method.account_name || method.bank_name || method.branch) && (
                 <div className="dp-rows">
-                  {method.account_name && <div className="dp-r"><span>Account name</span><b>{method.account_name}</b></div>}
-                  {method.bank_name && <div className="dp-r"><span>Bank</span><b>{method.bank_name}</b></div>}
-                  {method.branch && <div className="dp-r"><span>Branch</span><b>{method.branch}</b></div>}
+                  {method.account_name && <div className="dp-r"><span>{t("dpAccName")}</span><b>{method.account_name}</b></div>}
+                  {method.bank_name && <div className="dp-r"><span>{t("dpBank")}</span><b>{method.bank_name}</b></div>}
+                  {method.branch && <div className="dp-r"><span>{t("dpBranch")}</span><b>{method.branch}</b></div>}
                 </div>
               )}
 
               {isCrypto && (
                 <div className="dp-warn">
-                  ⚠ শুধুমাত্র {method.coin} ({method.network}) পাঠান। ভুল coin বা network-এ পাঠালে টাকা ফেরত পাওয়া যাবে না।
+                  ⚠ {t("dpWarn").replace("{coin}", method.coin).replace("{net}", method.network || "")}
                 </div>
               )}
 
@@ -556,13 +544,13 @@ export default function Deposit({ W, go }) {
               <div className="dp-step">
                 <div className="dp-step-n">2</div>
                 <div>
-                  <div className="dp-step-t">Submit details</div>
-                  <div className="dp-step-s">পেমেন্ট করার পর তথ্য ও প্রমাণ দিন</div>
+                  <div className="dp-step-t">{t("dpS2")}</div>
+                  <div className="dp-step-s">{t("dpS2Sub")}</div>
                 </div>
               </div>
 
               <div className="dp-field">
-                <div className="dp-label">Amount</div>
+                <div className="dp-label">{t("dpAmount")}</div>
                 <div className="dp-inwrap">
                   <input
                     className="dp-in"
@@ -574,44 +562,44 @@ export default function Deposit({ W, go }) {
                   <span className="dp-suffix">{method.currency}</span>
                 </div>
                 <div className="dp-hint">
-                  Min {fmt(method.min_amount)} · Max {fmt(method.max_amount)} {method.currency}
-                  {!isCrypto && <> · Rate: ১ {method.coin} = ৳{fmt(rate)}</>}
+                  {t("dpMin")} {fmt(method.min_amount)} · {t("dpMax")} {fmt(method.max_amount)} {method.currency}
+                  {!isCrypto && <> · {t("dpRate").replace("{coin}", method.coin).replace("{rate}", fmt(rate))}</>}
                 </div>
               </div>
 
               {receive > 0 && (
                 <div className="dp-recv">
-                  <span>You will receive</span>
+                  <span>{t("dpRecv")}</span>
                   <b>≈ {fmt(receive)} {method.coin}</b>
                 </div>
               )}
 
               <div className="dp-field">
-                <div className="dp-label">{isCrypto ? "TXID" : "Transaction ID"}</div>
+                <div className="dp-label">{isCrypto ? t("dpTxid") : t("dpTxidB")}</div>
                 <div className="dp-inwrap">
                   <input
                     className="dp-in"
                     value={txid}
                     onChange={(e) => setTxid(e.target.value)}
-                    placeholder={isCrypto ? "Paste transaction hash" : "e.g. 8N7A5K2B"}
+                    placeholder={isCrypto ? t("dpTxidPh") : t("dpTxidPhB")}
                   />
                 </div>
               </div>
 
               <div className="dp-field">
-                <div className="dp-label">{isCrypto ? "Sender wallet (optional)" : "Sender number (optional)"}</div>
+                <div className="dp-label">{isCrypto ? t("dpSenderC") : t("dpSenderB")}</div>
                 <div className="dp-inwrap">
                   <input
                     className="dp-in"
                     value={sender}
                     onChange={(e) => setSender(e.target.value)}
-                    placeholder={isCrypto ? "Your wallet address" : "01XXXXXXXXX"}
+                    placeholder={isCrypto ? t("dpSenderPhC") : "01XXXXXXXXX"}
                   />
                 </div>
               </div>
 
               <div className="dp-field">
-                <div className="dp-label">Payment proof (screenshot)</div>
+                <div className="dp-label">{t("dpProofLbl")}</div>
                 <div className="dp-drop" onClick={() => fileRef.current && fileRef.current.click()}>
                   {proof ? (
                     <>
@@ -627,7 +615,7 @@ export default function Deposit({ W, go }) {
                   ) : (
                     <>
                       <span className="ic">📷</span>
-                      <span>Tap to upload screenshot</span>
+                      <span>{t("dpUpload")}</span>
                     </>
                   )}
                 </div>
@@ -637,36 +625,14 @@ export default function Deposit({ W, go }) {
               {msg.text && <div className={"dp-msg " + (msg.ok ? "ok" : "bad")}>{msg.text}</div>}
 
               <button className="dp-submit" onClick={submit} disabled={busy}>
-                {busy ? "Submitting..." : "Submit for review"}
+                {busy ? t("dpSubmitting") : t("dpSubmit")}
               </button>
             </div>
 
             <div className="dp-note">
               <span>🔒</span>
-              <span>Admin যাচাই করার পরই Wallet-এ balance যোগ হবে। সাধারণত কিছুক্ষণ সময় লাগে।</span>
+              <span>{t("dpNote")}</span>
             </div>
-
-            {/* History */}
-            {!W.guest && (
-              <div className="dp-card">
-                <div className="dp-step" style={{ marginBottom: 4 }}>
-                  <div className="dp-step-t">{t("hist")}</div>
-                </div>
-                {history.length ? history.map((x) => {
-                  const st = String(x.status || "pending").toLowerCase();
-                  return (
-                    <div key={x.id} className="dp-hrow">
-                      <span>
-                        <b>{fmt(x.amount)} {x.currency}</b>
-                        <small>→ {fmt(x.credit_amount)} {x.coin} · {new Date(x.created_at).toLocaleString()}</small>
-                        {st === "rejected" && x.admin_note && <small className="rej">Reason: {x.admin_note}</small>}
-                      </span>
-                      <span className={"dp-pill " + st}>{st.toUpperCase()}</span>
-                    </div>
-                  );
-                }) : <div className="dp-empty">{t("norec")}</div>}
-              </div>
-            )}
           </>
         )}
       </div>
