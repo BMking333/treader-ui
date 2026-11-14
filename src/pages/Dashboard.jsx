@@ -15,7 +15,9 @@ import ChangeMoney from "./changemoney";
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
    URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication  /exchangeb  /loans  /changemoney
 
-   আপডেট: Market পেজে কোনো কয়েনে ক্লিক করলে এখন Options পেজ খুলবে (ওই কয়েন সহ)
+   আপডেট:
+   - Market পেজে কোনো কয়েনে ক্লিক করলে Options পেজ খুলবে (ওই কয়েন সহ)
+   - Home এ onRegister পাঠানো হয়েছে (গেস্টের Register বাটন → /register)
    ===================================================================== */
 
 const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney" };
@@ -135,7 +137,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   return (
     <>
       <div className={"cx-pg" + (DARK_PAGES.includes(page) ? " od" : "")}>
-        {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} />}
+        {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} onRegister={() => askLogin("register")} />}
         {page === "market" && <Market P={P} go={marketGo} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={pickSym} go={go} spot={spot} />}
         {page === "options" && <Options P={P} W={W} sym={sym} setSym={pickSym} pos={pos} orders={orders} />}
