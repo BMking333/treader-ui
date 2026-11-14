@@ -4,8 +4,10 @@ import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN
 
 /* =====================================================================
    src/pages/options.jsx — Options (second contract) trading page
-   Props: P (prices), W (wallet), sym, setSym, pos, orders
-   Design: light theme (same as reference site)
+   Props: P (prices), W (wallet), sym, setSym, pos, orders, dark
+   Design: light theme by default, NIGHT MODE when dark = true
+   - dark আসে Dashboard থেকে (সাইড মেনুর Night mode টগল)
+   - dark হলে: পেজ, চার্ট (ব্যাকগ্রাউন্ড/গ্রিড/টেক্সট), শিট, ড্রয়ার, পজিশন প্যানেল সব ডার্ক
    - Header: ☰ BTC/USDT  ........  Positions [icon]
    - Price + High / Low / 24H volume
    - Chart toolbar: [D ⌄] [candle] [Indicators]
@@ -15,10 +17,8 @@ import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN
      quantity, Opening time, balance, yield, Buy Long / Sell Short)
    - Tap pair -> left drawer "Spot trading / USDT" coin list
 
-   Update: chart status (Live / Loading / Reconnecting), chart type
-   (Candles / Line) now use the i18n keys: live, loading, reconn,
-   candles, line. Status is stored as a key and translated at render,
-   so changing language updates it instantly without reloading the chart.
+   Chart status (Live / Loading / Reconnecting) and chart type
+   (Candles / Line) use i18n keys: live, loading, reconn, candles, line.
    ===================================================================== */
 
 /* ====== Change these if they don't match your backend ====== */
@@ -36,6 +36,18 @@ const CHART_LIMIT = 500;
 
 const UP = "#1fa67a";
 const DOWN = "#e5101d";
+
+/* চার্টের রঙ: লাইট / নাইট */
+const THEME = {
+  light: {
+    bg: "#ffffff", text: "#5b6574", grid: "#f1f2f4", border: "#c9ced6",
+    cross: "#8a94a6", sep: "#c9ced6", sepHover: "rgba(26,130,214,.2)",
+  },
+  dark: {
+    bg: "#131a2a", text: "#aab3c5", grid: "#1e2a3f", border: "#2a3548",
+    cross: "#8a93a6", sep: "#2a3548", sepHover: "rgba(74,163,240,.25)",
+  },
+};
 
 /* status keys (start with "@") are translated at render time */
 const ST_LIVE = "@live";
@@ -118,7 +130,7 @@ function calcMACD(data) {
 const IND_LIST = [["volume", "Volume"], ["ma", "MA (9)"], ["ema", "EMA (20)"], ["bb", "BOLL"], ["rsi", "RSI"], ["macd", "MACD"]];
 
 /* ---------------- Independent market chart ---------------- */
-function Chart({ sym, tt }) {
+function Chart({ sym, tt, dark }) {
   const hostRef = useRef(null);
   const [timeframe, setTimeframe] = useState("1d");
   const [chartType, setChartType] = useState("candle");
@@ -146,6 +158,7 @@ function Chart({ sym, tt }) {
     let idxMap = new Map();
     let maMap = new Map();
     let hover = false;
+    const th = dark ? THEME.dark : THEME.light;
     const cleanSymbol = String(sym || "BTC").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const pair = cleanSymbol.endsWith("USDT") ? cleanSymbol : cleanSymbol + "USDT";
     const interval = timeframe;
@@ -155,21 +168,21 @@ function Chart({ sym, tt }) {
     const chart = createChart(host, {
       autoSize: true,
       layout: {
-        background: { type: "solid", color: "#ffffff" },
-        textColor: "#5b6574",
+        background: { type: "solid", color: th.bg },
+        textColor: th.text,
         fontFamily: "Inter, Arial, sans-serif",
         attributionLogo: false,
-        panes: { separatorColor: "#c9ced6", separatorHoverColor: "rgba(26,130,214,.2)", enableResize: true },
+        panes: { separatorColor: th.sep, separatorHoverColor: th.sepHover, enableResize: true },
       },
-      grid: { vertLines: { color: "#f1f2f4" }, horzLines: { color: "#f1f2f4" } },
-      crosshair: { mode: 0, vertLine: { color: "#8a94a6", width: 1, style: 2 }, horzLine: { color: "#8a94a6", width: 1, style: 2 } },
+      grid: { vertLines: { color: th.grid }, horzLines: { color: th.grid } },
+      crosshair: { mode: 0, vertLine: { color: th.cross, width: 1, style: 2 }, horzLine: { color: th.cross, width: 1, style: 2 } },
       rightPriceScale: {
-        borderColor: "#c9ced6",
+        borderColor: th.border,
         scaleMargins: { top: 0.14, bottom: 0.06 },
         minimumWidth: isMobile ? 70 : 80,
       },
       timeScale: {
-        borderColor: "#c9ced6",
+        borderColor: th.border,
         timeVisible: true,
         secondsVisible: false,
         rightOffset: isMobile ? 4 : 6,
@@ -341,7 +354,7 @@ function Chart({ sym, tt }) {
       chart.remove();
     };
     // eslint-disable-next-line
-  }, [sym, timeframe, chartType, indicators]);
+  }, [sym, timeframe, chartType, indicators, dark]);
 
   const toggleFullscreen = async () => {
     const el = hostRef.current && hostRef.current.parentElement && hostRef.current.parentElement.parentElement;
@@ -585,9 +598,43 @@ const CSS = `
   .cx-op-sh{border-radius:16px}
   .cx-op-pn{left:auto;width:420px;border-left:1px solid var(--bd)}
 }
+
+/* ================= NIGHT MODE (dark = true → .cx-op.dk) ================= */
+.cx-op.dk{--bd:#243148;--gray:#8d98ad;background:#0d1626;color:#e8ecf3}
+.cx-op.dk .cx-op-top{background:#0d1626;border-bottom-color:#243148}
+.cx-op.dk .cx-op-info{background:#0d1626}
+.cx-op.dk .cx-op-body{border-top-color:#243148}
+.cx-op.dk .cx-chart-wrap{background:#131a2a}
+.cx-op.dk .cx-chart-toolbar{background:#0d1626;border-bottom-color:#2a3548}
+.cx-op.dk .cx-tb-cell{color:#c1c7d4;border-color:#2a3548}
+.cx-op.dk .cx-pop{background:#1c2639;border-color:#2a3548;box-shadow:0 6px 18px rgba(0,0,0,.5)}
+.cx-op.dk .cx-pop button{background:#131a2a;border-color:#2a3548;color:#e8ecf3}
+.cx-op.dk .cx-pop button.on{background:#17304f;border-color:var(--blue);color:#6cb6f5}
+.cx-op.dk .cx-chart-legend .l1,.cx-op.dk .cx-chart-legend .l2{color:#e8ecf3}
+.cx-op.dk .cx-chart-legend .l4{color:#aab3c5}
+.cx-op.dk .cx-chart-legend .box{border-color:#9aa6bb}
+.cx-op.dk .cx-chart-legend .box::after{background:#9aa6bb}
+.cx-op.dk .cx-chart-attribution{color:rgba(170,179,197,.5)}
+.cx-op.dk .cx-op-bar{background:#0d1626;border-top-color:#243148}
+.cx-op.dk .cx-op-toast{background:#17304f;color:#8fc4ff}
+.cx-op.dk .cx-op-toast.bad{background:#3b1a20;color:#ff8a95}
+.cx-op.dk .cx-op-toast.ok{background:#0f3a2c;color:#4be0a8}
+.cx-op.dk .cx-op-sh,.cx-op.dk .cx-op-dr{background:#17263d;color:#e8ecf3}
+.cx-op.dk .cx-op-sec{color:#e8ecf3}
+.cx-op.dk .cx-op-opt{background:#101c30;border-color:#3a4a66;color:#e8ecf3}
+.cx-op.dk .cx-op-opt.on{border-color:var(--blue)}
+.cx-op.dk .cx-op-qrow{border-bottom-color:#3a4a66}
+.cx-op.dk .cx-op-qrow input{color:#e8ecf3}
+.cx-op.dk .cx-op-dr .cur{border-bottom-color:#243148}
+.cx-op.dk .cx-op-coin{border-bottom-color:#2a3a56}
+.cx-op.dk .cx-op-pn{background:#0d1626}
+.cx-op.dk .cx-op-tabs{background:#0d1626}
+.cx-op.dk .cx-op-tabs button.on{color:#fff!important}
+.cx-op.dk .cx-op-list{background:#0a111f}
+.cx-op.dk .cx-op-card{background:#17263d;border-color:#243148}
 `;
 
-export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
+export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark = false }) {
   const t = useT();
   /* translate with fallback when the key does not exist */
   const tt = (k, fb) => {
@@ -671,7 +718,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
   const yieldPct = Math.round(YIELD * 100) + "%";
 
   return (
-    <div className="cx-op">
+    <div className={"cx-op" + (dark ? " dk" : "")}>
       <style>{CSS}</style>
 
       {/* ---- Header ---- */}
@@ -700,7 +747,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [] }) {
       {/* ---- Chart + trade bar ---- */}
       <div className="cx-op-body">
         <div className="cx-op-chart">
-          <Chart sym={sym} tt={tt} />
+          <Chart sym={sym} tt={tt} dark={dark} />
         </div>
 
         <div className="cx-op-bar">
