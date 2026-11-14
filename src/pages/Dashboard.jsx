@@ -7,15 +7,20 @@ import Authentication from "./authentication";
 import { Market, Exchange } from "./trading";
 import Assets from "./Assets";
 import Options from "./options";
+import Swap from "./exchange";
+import Loans from "./loans";
+import ChangeMoney from "./changemoney";
 
 /* =====================================================================
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
-   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication
+   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication  /exchangeb  /loans  /changemoney
 
    আপডেট: Market পেজে কোনো কয়েনে ক্লিক করলে এখন Options পেজ খুলবে (ওই কয়েন সহ)
    ===================================================================== */
 
-const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication" };
+const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney" };
+/* এই পেজগুলোতে নিচের নেভিগেশন বার লুকানো থাকে (স্ক্রিনশটের মতো) */
+const HIDE_NAV = ["exchangeb", "loans", "changemoney"];
 const HAS_SYM = ["exchange", "options"];
 /* Options পেজ এখন লাইট থিম (নিজের ব্যাকগ্রাউন্ড আছে), তাই এখানে আর ডার্ক নয় */
 const DARK_PAGES = ["auth"];
@@ -138,12 +143,17 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
         {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
         {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
         {page === "auth" && <Authentication W={W} go={go} />}
+        {page === "exchangeb" && <Swap W={W} go={go} />}
+        {page === "loans" && <Loans W={W} go={go} />}
+        {page === "changemoney" && <ChangeMoney W={W} go={go} />}
       </div>
       <SideMenu open={menu} onClose={() => setMenu(false)} me={authed ? me : null} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} guest={!authed} askLogin={askLogin} />
       {toast && <div className="cx-toast">{toast}</div>}
+      {!HIDE_NAV.includes(page) && (
       <nav className="cx-nav">
         {nav.map(([k, l]) => (<button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{t(l)}</button>))}
       </nav>
+      )}
     </>
   );
 }
