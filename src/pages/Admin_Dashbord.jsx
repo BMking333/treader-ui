@@ -1,8 +1,7 @@
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   api,
-  useT,
   BLUE,
   GREEN,
   RED,
@@ -18,385 +17,156 @@ import {
 
 const CSS = `
 .ad-wrap {
-  min-height: 100vh;
-  background: #0b0e11;
-  color: #eaecef;
-  padding: 22px;
-  font-family: Inter, Arial, sans-serif;
+  min-height:100vh;
+  background:#0b0e11;
+  color:#eaecef;
+  padding:22px;
+  font-family:Inter,Arial,sans-serif;
 }
-.ad-container {
-  max-width: 1450px;
-  margin: auto;
-}
+.ad-container {max-width:1450px;margin:auto}
 .ad-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 15px;
-  margin-bottom: 28px;
-  flex-wrap: wrap;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:15px;margin-bottom:28px;flex-wrap:wrap;
 }
-.ad-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.ad-brand {display:flex;align-items:center;gap:12px}
 .ad-brand-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
-  background: linear-gradient(135deg,#1f7acb,#19c5c8);
-  display: grid;
-  place-items: center;
-  color: white;
-  font-size: 22px;
-  font-weight: 900;
+  width:44px;height:44px;border-radius:13px;
+  background:linear-gradient(135deg,#1f7acb,#19c5c8);
+  display:grid;place-items:center;color:white;
+  font-size:22px;font-weight:900;
 }
-.ad-brand h2 {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 800;
-}
-.ad-brand p {
-  margin: 4px 0 0;
-  color: #848e9c;
-  font-size: 12px;
-}
-.ad-top-actions {
-  display: flex;
-  gap: 9px;
-  align-items: center;
-}
+.ad-brand h2 {margin:0;font-size:19px;font-weight:800}
+.ad-brand p {margin:4px 0 0;color:#848e9c;font-size:12px}
+.ad-top-actions {display:flex;gap:9px;align-items:center;flex-wrap:wrap}
 .ad-btn {
-  border: 1px solid #30363d;
-  background: #181c24;
-  color: #eaecef;
-  padding: 10px 14px;
-  border-radius: 9px;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 650;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: .2s;
+  border:1px solid #30363d;background:#181c24;color:#eaecef;
+  padding:10px 14px;border-radius:9px;cursor:pointer;
+  font-size:13px;font-weight:650;display:inline-flex;
+  align-items:center;justify-content:center;gap:8px;transition:.2s;
 }
-.ad-btn:hover {
-  border-color: #1f7acb;
-  background: #202b38;
-}
-.ad-btn.primary {
-  background: #1f7acb;
-  border-color: #1f7acb;
-  color: #fff;
-}
-.ad-btn.primary:hover {
-  background: #1768ad;
-}
-.ad-btn.danger {
-  color: #f6465d;
-  border-color: #63313a;
-}
-.ad-heading {
-  margin-bottom: 23px;
-}
-.ad-heading h1 {
-  font-size: 25px;
-  margin: 0 0 7px;
-  font-weight: 800;
-}
-.ad-heading p {
-  color: #848e9c;
-  font-size: 13px;
-  margin: 0;
-}
+.ad-btn:hover {border-color:#1f7acb;background:#202b38}
+.ad-btn:disabled {opacity:.55;cursor:not-allowed}
+.ad-btn.primary {background:#1f7acb;border-color:#1f7acb;color:#fff}
+.ad-btn.primary:hover {background:#1768ad}
+.ad-btn.danger {color:#f6465d;border-color:#63313a}
+.ad-heading {margin-bottom:23px}
+.ad-heading h1 {font-size:25px;margin:0 0 7px;font-weight:800}
+.ad-heading p {color:#848e9c;font-size:13px;margin:0}
 .ad-grid {
-  display: grid;
-  grid-template-columns: repeat(4,minmax(0,1fr));
-  gap: 15px;
-  margin-bottom: 24px;
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:15px;margin-bottom:24px;
 }
 .ad-card {
-  background: #151a22;
-  border: 1px solid #252b35;
-  border-radius: 14px;
-  padding: 19px;
-  min-width: 0;
+  background:#151a22;border:1px solid #252b35;
+  border-radius:14px;padding:19px;min-width:0;
 }
 .ad-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
+  display:flex;justify-content:space-between;
+  align-items:center;gap:10px;
 }
-.ad-card-label {
-  color: #848e9c;
-  font-size: 12px;
-  font-weight: 600;
-}
+.ad-card-label {color:#848e9c;font-size:12px;font-weight:600}
 .ad-card-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: #1d2b3b;
-  color: #3b9bea;
+  width:38px;height:38px;border-radius:10px;
+  display:grid;place-items:center;background:#1d2b3b;color:#3b9bea;
 }
-.ad-card-value {
-  margin-top: 18px;
-  font-size: 28px;
-  font-weight: 800;
-  color: #fff;
-}
-.ad-card-foot {
-  margin-top: 8px;
-  color: #848e9c;
-  font-size: 11px;
-}
+.ad-card-value {margin-top:18px;font-size:28px;font-weight:800;color:#fff}
+.ad-card-foot {margin-top:8px;color:#848e9c;font-size:11px}
 .ad-main-grid {
-  display: grid;
-  grid-template-columns: minmax(0,1.5fr) minmax(280px,1fr);
-  gap: 16px;
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);
+  gap:16px;
 }
 .ad-panel {
-  background: #151a22;
-  border: 1px solid #252b35;
-  border-radius: 14px;
-  overflow: hidden;
-  min-width: 0;
+  background:#151a22;border:1px solid #252b35;
+  border-radius:14px;overflow:hidden;min-width:0;
 }
 .ad-panel-head {
-  padding: 18px 19px;
-  border-bottom: 1px solid #252b35;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  padding:18px 19px;border-bottom:1px solid #252b35;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
-.ad-panel-head h3 {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 750;
-}
-.ad-panel-body {
-  padding: 18px;
-}
-.ad-quick-list {
-  display: grid;
-  gap: 11px;
-}
+.ad-panel-head h3 {margin:0;font-size:15px;font-weight:750}
+.ad-panel-body {padding:18px}
+.ad-quick-list {display:grid;gap:11px}
 .ad-quick {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 14px;
-  background: #1b222c;
-  border: 1px solid #2b3440;
-  border-radius: 11px;
-  cursor: pointer;
-  text-align: left;
-  color: #eaecef;
-  width: 100%;
-  transition: .2s;
+  display:flex;align-items:center;gap:13px;padding:14px;
+  background:#1b222c;border:1px solid #2b3440;border-radius:11px;
+  cursor:pointer;text-align:left;color:#eaecef;width:100%;transition:.2s;
 }
-.ad-quick:hover {
-  border-color: #1f7acb;
-  background: #202c3a;
-}
+.ad-quick:hover {border-color:#1f7acb;background:#202c3a}
 .ad-quick-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: #23364a;
-  color: #49a8ef;
-  flex-shrink: 0;
+  width:40px;height:40px;border-radius:10px;
+  display:grid;place-items:center;background:#23364a;
+  color:#49a8ef;flex-shrink:0;
 }
-.ad-quick-text {
-  flex: 1;
-  min-width: 0;
-}
-.ad-quick-text b {
-  display: block;
-  font-size: 13px;
-}
+.ad-quick-text {flex:1;min-width:0}
+.ad-quick-text b {display:block;font-size:13px}
 .ad-quick-text small {
-  display: block;
-  margin-top: 5px;
-  color: #848e9c;
-  font-size: 11px;
+  display:block;margin-top:5px;color:#848e9c;font-size:11px;
 }
-.ad-arrow {
-  color: #848e9c;
-  font-size: 21px;
-}
-.ad-status-list {
-  display: grid;
-  gap: 17px;
-}
+.ad-arrow {color:#848e9c;font-size:21px}
+.ad-status-list {display:grid;gap:17px}
 .ad-status-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;font-size:13px;
 }
-.ad-status-left {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: #aeb7c2;
-}
-.ad-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.ad-status-value {
-  font-weight: 800;
-  color: #fff;
-}
+.ad-status-left {display:flex;align-items:center;gap:9px;color:#aeb7c2}
+.ad-dot {width:8px;height:8px;border-radius:50%}
+.ad-status-value {font-weight:800;color:#fff}
 .ad-badge {
-  padding: 5px 9px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 800;
+  display:inline-block;padding:5px 9px;border-radius:20px;
+  font-size:10px;font-weight:800;white-space:nowrap;
 }
-.ad-badge.ok {
-  background: #123d31;
-  color: #00c087;
-}
-.ad-badge.warn {
-  background: #493817;
-  color: #f0b90b;
-}
-.ad-badge.bad {
-  background: #4a2028;
-  color: #f6465d;
-}
-.ad-table-wrap {
-  overflow-x: auto;
-}
-.ad-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 550px;
-}
+.ad-badge.ok {background:#123d31;color:#00c087}
+.ad-badge.warn {background:#493817;color:#f0b90b}
+.ad-badge.bad {background:#4a2028;color:#f6465d}
+.ad-table-wrap {overflow-x:auto}
+.ad-table {width:100%;border-collapse:collapse;min-width:650px}
 .ad-table th {
-  padding: 13px 18px;
-  color: #848e9c;
-  font-size: 11px;
-  font-weight: 700;
-  text-align: left;
-  border-bottom: 1px solid #252b35;
+  padding:13px 18px;color:#848e9c;font-size:11px;
+  font-weight:700;text-align:left;border-bottom:1px solid #252b35;
 }
 .ad-table td {
-  padding: 14px 18px;
-  font-size: 12px;
-  border-bottom: 1px solid #222831;
+  padding:14px 18px;font-size:12px;
+  border-bottom:1px solid #222831;
 }
-.ad-table tr:last-child td {
-  border-bottom: 0;
-}
-.ad-empty {
-  padding: 30px 15px;
-  text-align: center;
-  color: #848e9c;
-  font-size: 13px;
-}
+.ad-table tr:last-child td {border-bottom:0}
+.ad-empty {padding:30px 15px;text-align:center;color:#848e9c;font-size:13px}
 .ad-error {
-  background: #421e25;
-  border: 1px solid #73323d;
-  color: #ff8794;
-  padding: 12px 14px;
-  border-radius: 9px;
-  font-size: 12px;
-  margin-bottom: 18px;
+  background:#421e25;border:1px solid #73323d;color:#ff8794;
+  padding:12px 14px;border-radius:9px;font-size:12px;margin-bottom:18px;
 }
-.ad-loading {
-  padding: 30px;
-  text-align: center;
-  color: #848e9c;
-  font-size: 13px;
-}
+.ad-loading {padding:30px;text-align:center;color:#848e9c;font-size:13px}
 .ad-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  background: #181e27;
-  border: 1px solid #2b3440;
-  border-radius: 10px;
+  display:flex;align-items:center;gap:10px;padding:7px 10px;
+  background:#181e27;border:1px solid #2b3440;border-radius:10px;
 }
 .ad-avatar {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  background: #1f7acb;
-  border-radius: 50%;
-  font-weight: 800;
+  width:34px;height:34px;display:grid;place-items:center;
+  background:#1f7acb;border-radius:50%;font-weight:800;
 }
-.ad-profile-info b {
-  display: block;
-  font-size: 12px;
-}
+.ad-profile-info b {display:block;font-size:12px}
 .ad-profile-info small {
-  display: block;
-  color: #848e9c;
-  margin-top: 3px;
-  font-size: 10px;
+  display:block;color:#848e9c;margin-top:3px;font-size:10px;
 }
-.ad-spin {
-  animation: adspin 1s linear infinite;
-}
-@keyframes adspin {
-  to { transform: rotate(360deg); }
+.ad-spin {animation:adspin 1s linear infinite}
+@keyframes adspin {to{transform:rotate(360deg)}}
+.ad-footer {
+  text-align:center;color:#626d7a;font-size:11px;padding:25px 0 5px;
 }
 @media(max-width:950px) {
-  .ad-grid {
-    grid-template-columns: repeat(2,minmax(0,1fr));
-  }
-  .ad-main-grid {
-    grid-template-columns: 1fr;
-  }
+  .ad-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ad-main-grid {grid-template-columns:1fr}
 }
 @media(max-width:550px) {
-  .ad-wrap {
-    padding: 13px;
-  }
-  .ad-top {
-    align-items: flex-start;
-  }
-  .ad-top-actions {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .ad-top-actions .ad-btn {
-    flex: 1;
-  }
-  .ad-heading h1 {
-    font-size: 22px;
-  }
-  .ad-grid {
-    gap: 9px;
-  }
-  .ad-card {
-    padding: 14px;
-  }
-  .ad-card-value {
-    font-size: 23px;
-  }
-  .ad-card-icon {
-    width: 32px;
-    height: 32px;
-  }
-  .ad-profile {
-    width: 100%;
-  }
+  .ad-wrap {padding:13px}
+  .ad-top {align-items:flex-start}
+  .ad-top-actions {width:100%}
+  .ad-top-actions .ad-btn {flex:1}
+  .ad-profile {width:100%}
+  .ad-heading h1 {font-size:22px}
+  .ad-grid {gap:9px}
+  .ad-card {padding:14px}
+  .ad-card-value {font-size:23px}
+  .ad-card-icon {width:32px;height:32px}
 }
 `;
 
@@ -413,7 +183,12 @@ const statusOf = (item) =>
   String(item?.status || "pending").toLowerCase();
 
 const amountOf = (item) =>
-  Number(item?.amount ?? item?.requested_amount ?? 0);
+  Number(
+    item?.amount ??
+    item?.requested_amount ??
+    item?.amount_bdt ??
+    0
+  );
 
 const money = (value) =>
   Number(value || 0).toLocaleString("en-US", {
@@ -423,21 +198,22 @@ const money = (value) =>
 
 const dateOf = (value) => {
   if (!value) return "—";
-
-  const d = new Date(value);
-
-  if (Number.isNaN(d.getTime())) return "—";
-
-  return d.toLocaleDateString();
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString();
 };
 
-export default function Admin_Dashbord({
-  me,
-  go,
-  logout,
-}) {
-  const t = useT();
+const getErrorMessage = (err) => {
+  if (err?.message === "unauthorized") {
+    return "Admin authorization failed. Please login again.";
+  }
+  if (err?.message === "neterr") {
+    return "Network error. Please check your internet connection.";
+  }
+  return err?.message || "Could not load dashboard data. Please check the API.";
+};
 
+export default function Admin_Dashbord({ me, go, logout }) {
   const [deposits, setDeposits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -452,12 +228,10 @@ export default function Admin_Dashbord({
 
   const adminEmail = me?.email || "Admin Account";
 
-  const initials = String(adminName)
-    .trim()
-    .charAt(0)
-    .toUpperCase() || "A";
+  const initials =
+    String(adminName).trim().charAt(0).toUpperCase() || "A";
 
-  const loadDashboard = async (isRefresh = false) => {
+  const loadDashboard = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
@@ -467,35 +241,21 @@ export default function Admin_Dashbord({
       const result = await api("/admin/deposits");
       setDeposits(getRows(result));
     } catch (err) {
-      setError(
-        err?.message === "unauthorized"
-          ? "Admin authorization failed. Please login again."
-          : err?.message === "neterr"
-            ? "Network error. Please check your connection."
-            : "Could not load deposit statistics. Check your admin API."
-      );
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   const stats = useMemo(() => {
-    const pending = deposits.filter(
-      (x) => statusOf(x) === "pending"
-    );
-
-    const approved = deposits.filter(
-      (x) => statusOf(x) === "approved"
-    );
-
-    const rejected = deposits.filter(
-      (x) => statusOf(x) === "rejected"
-    );
+    const pending = deposits.filter((x) => statusOf(x) === "pending");
+    const approved = deposits.filter((x) => statusOf(x) === "approved");
+    const rejected = deposits.filter((x) => statusOf(x) === "rejected");
 
     const totalAmount = deposits.reduce(
       (sum, item) => sum + amountOf(item),
@@ -514,15 +274,15 @@ export default function Admin_Dashbord({
   const recent = useMemo(() => {
     return [...deposits]
       .sort((a, b) => {
-        const da = new Date(
+        const dateA = new Date(
           a.created_at || a.createdAt || 0
         ).getTime();
 
-        const db = new Date(
+        const dateB = new Date(
           b.created_at || b.createdAt || 0
         ).getTime();
 
-        return db - da;
+        return dateB - dateA;
       })
       .slice(0, 5);
   }, [deposits]);
@@ -545,7 +305,6 @@ export default function Admin_Dashbord({
         <header className="ad-top">
           <div className="ad-brand">
             <div className="ad-brand-icon">C</div>
-
             <div>
               <h2>Trading Admin</h2>
               <p>Management Dashboard</p>
@@ -559,18 +318,12 @@ export default function Admin_Dashbord({
               onClick={() => loadDashboard(true)}
               disabled={refreshing}
             >
-              <Ic
-                d={ICON.trade}
-                s={16}
-              />
+              <Ic d={ICON.trade} s={16} />
               {refreshing ? "Refreshing..." : "Refresh"}
             </button>
 
             <div className="ad-profile">
-              <div className="ad-avatar">
-                {initials}
-              </div>
-
+              <div className="ad-avatar">{initials}</div>
               <div className="ad-profile-info">
                 <b>{adminName}</b>
                 <small>{adminEmail}</small>
@@ -580,7 +333,7 @@ export default function Admin_Dashbord({
             <button
               type="button"
               className="ad-btn danger"
-              onClick={() => logout && logout()}
+              onClick={() => logout?.()}
             >
               <Ic d={ICON.lock} s={15} />
               Logout
@@ -599,6 +352,14 @@ export default function Admin_Dashbord({
         {error && (
           <div className="ad-error">
             {error}
+            <button
+              type="button"
+              className="ad-btn"
+              style={{ marginLeft: 12 }}
+              onClick={() => loadDashboard(true)}
+            >
+              Try Again
+            </button>
           </div>
         )}
 
@@ -614,11 +375,9 @@ export default function Admin_Dashbord({
                 <Ic d={ICON.doc} s={20} />
               </span>
             </div>
-
             <div className="ad-card-value">
               {loading ? "—" : stats.total}
             </div>
-
             <div className="ad-card-foot">
               All deposit submissions
             </div>
@@ -626,24 +385,17 @@ export default function Admin_Dashbord({
 
           <div className="ad-card">
             <div className="ad-card-head">
-              <span className="ad-card-label">
-                Pending Requests
-              </span>
+              <span className="ad-card-label">Pending Requests</span>
               <span
                 className="ad-card-icon"
-                style={{
-                  color: "#f0b90b",
-                  background: "#493817",
-                }}
+                style={{ color: "#f0b90b", background: "#493817" }}
               >
                 <Ic d={ICON.bell} s={20} />
               </span>
             </div>
-
             <div className="ad-card-value">
               {loading ? "—" : stats.pending}
             </div>
-
             <div className="ad-card-foot">
               Waiting for admin review
             </div>
@@ -651,24 +403,17 @@ export default function Admin_Dashbord({
 
           <div className="ad-card">
             <div className="ad-card-head">
-              <span className="ad-card-label">
-                Approved Requests
-              </span>
+              <span className="ad-card-label">Approved Requests</span>
               <span
                 className="ad-card-icon"
-                style={{
-                  color: GREEN,
-                  background: "#123d31",
-                }}
+                style={{ color: GREEN, background: "#123d31" }}
               >
                 <Ic d={ICON.eye} s={20} />
               </span>
             </div>
-
             <div className="ad-card-value">
               {loading ? "—" : stats.approved}
             </div>
-
             <div className="ad-card-foot">
               Successfully approved deposits
             </div>
@@ -676,24 +421,17 @@ export default function Admin_Dashbord({
 
           <div className="ad-card">
             <div className="ad-card-head">
-              <span className="ad-card-label">
-                Rejected Requests
-              </span>
+              <span className="ad-card-label">Rejected Requests</span>
               <span
                 className="ad-card-icon"
-                style={{
-                  color: RED,
-                  background: "#4a2028",
-                }}
+                style={{ color: RED, background: "#4a2028" }}
               >
                 <Ic d={ICON.lock} s={20} />
               </span>
             </div>
-
             <div className="ad-card-value">
               {loading ? "—" : stats.rejected}
             </div>
-
             <div className="ad-card-foot">
               Rejected deposit submissions
             </div>
@@ -708,9 +446,7 @@ export default function Admin_Dashbord({
           <div className="ad-panel">
             <div className="ad-panel-head">
               <h3>Admin Management</h3>
-              <span className="ad-badge ok">
-                ADMIN
-              </span>
+              <span className="ad-badge ok">ADMIN</span>
             </div>
 
             <div className="ad-panel-body">
@@ -724,14 +460,12 @@ export default function Admin_Dashbord({
                   <span className="ad-quick-icon">
                     <Ic d={ICON.doc} s={21} />
                   </span>
-
                   <span className="ad-quick-text">
                     <b>Deposit Requests</b>
                     <small>
                       Review, approve and reject user deposits
                     </small>
                   </span>
-
                   <span className="ad-arrow">›</span>
                 </button>
 
@@ -743,14 +477,12 @@ export default function Admin_Dashbord({
                   <span className="ad-quick-icon">
                     <Ic d={ICON.card} s={21} />
                   </span>
-
                   <span className="ad-quick-text">
                     <b>Payment Methods</b>
                     <small>
                       Manage crypto, bKash, Nagad and bank methods
                     </small>
                   </span>
-
                   <span className="ad-arrow">›</span>
                 </button>
 
@@ -762,14 +494,12 @@ export default function Admin_Dashbord({
                   <span className="ad-quick-icon">
                     <Ic d={ICON.trade} s={21} />
                   </span>
-
                   <span className="ad-quick-text">
                     <b>Refresh Statistics</b>
                     <small>
                       Load the latest deposit request information
                     </small>
                   </span>
-
                   <span className="ad-arrow">›</span>
                 </button>
 
@@ -781,9 +511,7 @@ export default function Admin_Dashbord({
           <div className="ad-panel">
             <div className="ad-panel-head">
               <h3>Deposit Summary</h3>
-              <span className="ad-badge ok">
-                LIVE DATA
-              </span>
+              <span className="ad-badge ok">API DATA</span>
             </div>
 
             <div className="ad-panel-body">
@@ -791,13 +519,9 @@ export default function Admin_Dashbord({
 
                 <div className="ad-status-row">
                   <span className="ad-status-left">
-                    <i
-                      className="ad-dot"
-                      style={{ background: "#f0b90b" }}
-                    />
+                    <i className="ad-dot" style={{ background: "#f0b90b" }} />
                     Pending
                   </span>
-
                   <b className="ad-status-value">
                     {loading ? "—" : stats.pending}
                   </b>
@@ -805,13 +529,9 @@ export default function Admin_Dashbord({
 
                 <div className="ad-status-row">
                   <span className="ad-status-left">
-                    <i
-                      className="ad-dot"
-                      style={{ background: GREEN }}
-                    />
+                    <i className="ad-dot" style={{ background: GREEN }} />
                     Approved
                   </span>
-
                   <b className="ad-status-value">
                     {loading ? "—" : stats.approved}
                   </b>
@@ -819,13 +539,9 @@ export default function Admin_Dashbord({
 
                 <div className="ad-status-row">
                   <span className="ad-status-left">
-                    <i
-                      className="ad-dot"
-                      style={{ background: RED }}
-                    />
+                    <i className="ad-dot" style={{ background: RED }} />
                     Rejected
                   </span>
-
                   <b className="ad-status-value">
                     {loading ? "—" : stats.rejected}
                   </b>
@@ -833,13 +549,9 @@ export default function Admin_Dashbord({
 
                 <div className="ad-status-row">
                   <span className="ad-status-left">
-                    <i
-                      className="ad-dot"
-                      style={{ background: BLUE }}
-                    />
+                    <i className="ad-dot" style={{ background: BLUE }} />
                     Total Requests
                   </span>
-
                   <b className="ad-status-value">
                     {loading ? "—" : stats.total}
                   </b>
@@ -855,7 +567,6 @@ export default function Admin_Dashbord({
                   <div className="ad-card-label">
                     Total Requested Amount
                   </div>
-
                   <div
                     style={{
                       fontSize: 23,
@@ -863,11 +574,8 @@ export default function Admin_Dashbord({
                       marginTop: 9,
                     }}
                   >
-                    {loading
-                      ? "—"
-                      : money(stats.totalAmount)}
+                    {loading ? "—" : money(stats.totalAmount)}
                   </div>
-
                   <div className="ad-card-foot">
                     Sum of request amounts returned by the API
                   </div>
@@ -886,14 +594,12 @@ export default function Admin_Dashbord({
         >
           <div className="ad-panel-head">
             <h3>Recent Deposit Requests</h3>
-
             <button
               type="button"
               className="ad-btn"
               onClick={goDeposits}
             >
-              View All
-              <span>›</span>
+              View All <span>›</span>
             </button>
           </div>
 
@@ -932,9 +638,7 @@ export default function Admin_Dashbord({
 
                     return (
                       <tr key={item.id ?? index}>
-                        <td>
-                          #{item.id ?? "—"}
-                        </td>
+                        <td>#{item.id ?? "—"}</td>
 
                         <td>
                           {item.user_email ||
@@ -944,21 +648,14 @@ export default function Admin_Dashbord({
                             "—"}
                         </td>
 
+                        <td>{money(amountOf(item))}</td>
+
                         <td>
-                          {money(amountOf(item))}
+                          {item.coin || item.currency || "—"}
                         </td>
 
                         <td>
-                          {item.coin ||
-                            item.currency ||
-                            "—"}
-                        </td>
-
-                        <td>
-                          {dateOf(
-                            item.created_at ||
-                            item.createdAt
-                          )}
+                          {dateOf(item.created_at || item.createdAt)}
                         </td>
 
                         <td>
@@ -975,14 +672,7 @@ export default function Admin_Dashbord({
           )}
         </section>
 
-        <div
-          style={{
-            textAlign: "center",
-            color: "#626d7a",
-            fontSize: 11,
-            padding: "25px 0 5px",
-          }}
-        >
+        <div className="ad-footer">
           Trading Admin Panel · Secure Management
         </div>
 
@@ -990,4 +680,3 @@ export default function Admin_Dashbord({
     </div>
   );
 }
-
