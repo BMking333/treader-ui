@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useT, Coin, COINS, CUP, CDN } from "./Home";
+import { useT, Coin, COINS, CUP } from "./Home";
 
 /* =====================================================================
    src/pages/Assets.jsx — Assets (wallet) page
