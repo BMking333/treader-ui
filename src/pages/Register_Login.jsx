@@ -1,9 +1,53 @@
 import React, { useState } from "react";
-import { useT, api, store, AuBar } from "../lib/cex";
+import { useT, api, store, Ic, ICON, CSheet } from "./Home";
 import { LangPicker } from "../lib/i18n";
 
+/* =====================================================================
+   src/pages/Register_Login.jsx — Login + Register + Forgot (এক ফাইলে)
+   export: { Login, Register } (named) + default Login
+   Login    → POST /auth/login
+   Register → POST /auth/register  (mode="register")
+   Forgot   → POST /auth/forgot    (mode="forgot")
+   ===================================================================== */
+
+const mailOk = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+const strength = (p) => {
+  if (!p) return 0;
+  let s = 0;
+  if (p.length >= 6) s++;
+  if (p.length >= 8 && /[A-Za-z]/.test(p) && /\d/.test(p)) s++;
+  if (p.length >= 10 && /[^A-Za-z0-9]/.test(p)) s++;
+  return Math.max(s, 1);
+};
+
+/* ---------------- ছোট টপ বার (Login এর জন্য) ---------------- */
+function AuBar({ title, onBack, onHelp }) {
+  return (
+    <div className="cx-ab">
+      <button onClick={onBack} aria-label="back">‹</button>
+      <h1>{title}</h1>
+      <button onClick={onHelp} aria-label="help">?</button>
+    </div>
+  );
+}
+
+/* ---------------- ইনপুট ফিল্ড (Register/Forgot) ---------------- */
+function Field({ label, icon, type = "text", value, onChange, error, right, onKeyDown, autoComplete, placeholder }) {
+  return (
+    <div className="cx-fd">
+      <label>{label}</label>
+      <div className={"cx-fw" + (error ? " err" : "")}>
+        <span className="cx-fi"><Ic d={icon} s={20} /></span>
+        <input type={type} value={value} onChange={onChange} onKeyDown={onKeyDown} autoComplete={autoComplete} placeholder={placeholder} />
+        {right}
+      </div>
+      {error && <div className="cx-fer">{error}</div>}
+    </div>
+  );
+}
+
 /* ---------------- Login → POST /auth/login ---------------- */
-export default function Login({ onLogin, lang, setLang, go, flash = "" }) {
+export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const t = useT();
   const rem0 = store.get("cx_rem", "");
   const [email, setEmail] = useState(rem0);
@@ -19,7 +63,8 @@ export default function Login({ onLogin, lang, setLang, go, flash = "" }) {
     try {
       const r = await api("/auth/login", { method: "POST", body: { email: mail, password: pw } });
       store.set("cx_rem", rem ? mail : "");
-      onLogin(r);
+      setMsg({ k: "", ok: true });
+      await onLogin(r);
     } catch (e) { setMsg({ k: e.message, ok: false }); }
     setBusy(false);
   };
@@ -28,7 +73,7 @@ export default function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
   return (
     <div className="cx-pg cx-au">
-      <AuBar title={t("login")} onBack={() => go("login")} onHelp={() => setMsg({ k: "demo", ok: true })} />
+      <AuBar title={t("login")} onBack={() => go("app")} onHelp={() => setMsg({ k: "demo", ok: true })} />
       <div className="cx-alogo">
         <i>
           <svg viewBox="0 0 100 100"><g fill="none" stroke="#06c9c9" strokeWidth="6.5">
@@ -51,3 +96,98 @@ export default function Login({ onLogin, lang, setLang, go, flash = "" }) {
     </div>
   );
 }
+
+/* ---------------- Register / Forgot ---------------- */
+export function Register({ mode = "register", onLogin, go, lang, setLang }) {
+  const t = useT();
+  const forgot = mode === "forgot";
+  const [email, setEmail] = useState("");
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState({ k: "", ok: true });
+  const [tried, setTried] = useState(false);
+  const [cs, setCs] = useState(false);
+  const mail = email.trim().toLowerCase();
+  const sc = strength(pw);
+
+  const eMail = tried && !mailOk(mail) ? t("bEmail") : "";
+  const ePw = tried && pw.length < 6 ? t("bPw") : "";
+  const ePw2 = tried && pw2 !== pw ? t("bMatch") : "";
+
+  const submit = async () => {
+    if (busy) return;
+    setTried(true);
+    if (!mailOk(mail) || pw.length < 6 || pw !== pw2) return;
+    setBusy(true); setMsg({ k: "wait2", ok: true });
+    try {
+      const r = await api(forgot ? "/auth/forgot" : "/auth/register", { method: "POST", body: { email: mail, password: pw, password2: pw2 } });
+      if (forgot) { go("login", "resetOk"); setBusy(false); return; }
+      setMsg({ k: "", ok: true });
+      await onLogin(r);
+    } catch (e) { setMsg({ k: e.message, ok: false }); }
+    setBusy(false);
+  };
+  const enter = (e) => { if (e.key === "Enter") submit(); };
+
+  const eye = (
+    <button type="button" className="cx-fe" onClick={() => setShow(!show)} aria-label="toggle password">
+      <Ic d={ICON.eye} s={20} />
+    </button>
+  );
+
+  return (
+    <div className="cx-pg cx-au">
+      <div className="cx-pt">
+        <button onClick={() => go(forgot ? "login" : "app")} aria-label="back">‹</button>
+        <div className="cx-pt2"><LangPicker lang={lang} setLang={setLang} /></div>
+      </div>
+
+      <div className="cx-hero">
+        <div className="cx-plogo">
+          <svg viewBox="0 0 100 100"><g fill="none" stroke="#fff" strokeWidth="7">
+            <path d="M76 16H50a34 34 0 000 68h26V66" /><path d="M76 33H50a17 17 0 000 34h26V54" /><path d="M76 49H54a3 3 0 000 6h22" />
+          </g></svg>
+        </div>
+        <h1>{forgot ? t("reset") : t("createAcc")}</h1>
+        <p>{forgot ? t("resetSub") : t("createSub")}</p>
+      </div>
+
+      <div className="cx-pcard">
+        <Field label={t("email")} icon={ICON.user} type="text" autoComplete="username" placeholder={t("acc")}
+          value={email} onChange={(e) => setEmail(e.target.value)} error={eMail} />
+        <Field label={forgot ? t("newPw") : t("pwLbl")} icon={ICON.lock} type={show ? "text" : "password"} autoComplete="new-password"
+          placeholder={t("pw")} value={pw} onChange={(e) => setPw(e.target.value)} error={ePw} right={eye} />
+        {pw && (
+          <div className="cx-str">
+            <div>{[1, 2, 3].map((n) => <i key={n} className={"s" + sc + (n <= sc ? " on" : "")} />)}</div>
+            <span className={"s" + sc}>{sc === 1 ? t("strWeak") : sc === 2 ? t("strMid") : t("strStrong")}</span>
+          </div>
+        )}
+        <Field label={t("pw2Lbl")} icon={ICON.lock} type={show ? "text" : "password"} autoComplete="new-password"
+          placeholder={t("pw2")} value={pw2} onChange={(e) => setPw2(e.target.value)} onKeyDown={enter} error={ePw2} />
+
+        {msg.k && <p className={"cx-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p>}
+
+        <button className="cx-pbtn" style={{ opacity: busy ? 0.6 : 1 }} onClick={submit}>
+          {forgot ? t("reset") : t("register")}
+        </button>
+
+        <div className="cx-pdiv"><span /></div>
+        <p className="cx-pfoot">
+          {forgot ? "" : t("haveAcc")}
+          <button className="cx-plink" onClick={() => go("login")}>{forgot ? t("backLogin") : t("login")}</button>
+        </p>
+        {!forgot && <button className="cx-pghost" onClick={() => go("app")}>{t("guest")}</button>}
+      </div>
+
+      <button className="cx-pcs" onClick={() => setCs(true)}>
+        <Ic d={ICON.chat} s={18} />{t("csHelp")}
+      </button>
+      <CSheet open={cs} onClose={() => setCs(false)} />
+    </div>
+  );
+}
+
+export default Login;
