@@ -20,7 +20,7 @@ const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 /* ---------------- Independent market chart ----------------
    Uses Lightweight Charts + Binance public market data for crypto pairs.
    No TradingView hosted widget or iframe is loaded.
-   Lightweight Charts license attribution is included in the chart footer.
+   Lightweight Charts license attribution is kept (small, inside chart).
 ----------------------------------------------------------------------- */
 const TF = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
 const BINANCE_INTERVALS = { "1m":"1m", "5m":"5m", "15m":"15m", "30m":"30m", "1h":"1h", "4h":"4h", "1d":"1d", "1w":"1w" };
@@ -95,15 +95,11 @@ function calcMACD(data) {
 
 function Chart({ sym, price }) {
   const hostRef = useRef(null);
-  const chartRef = useRef(null);
-  const candleRef = useRef(null);
   const [timeframe, setTimeframe] = useState("1m");
   const [chartType, setChartType] = useState("candle");
   const [indicators, setIndicators] = useState({ volume: true, ma: false, ema: false, bb: false, rsi: false, macd: false });
   const [status, setStatus] = useState("Loading market data...");
-  const [lastPrice, setLastPrice] = useState(null);
-  const [full, setFull] = useState(false);
-  const seriesRefs = useRef({});
+  const [, setFull] = useState(false);
 
   const toggle = (key) => setIndicators(old => ({ ...old, [key]: !old[key] }));
 
@@ -119,6 +115,7 @@ function Chart({ sym, price }) {
     const interval = BINANCE_INTERVALS[timeframe] || "1m";
     const supported = /^[A-Z0-9]{5,20}$/.test(pair);
     const isMobile = typeof window !== "undefined" && window.matchMedia("(max-width: 600px)").matches;
+    const hasSub = indicators.rsi || indicators.macd;
 
     const chart = createChart(host, {
       autoSize: true,
@@ -127,23 +124,24 @@ function Chart({ sym, price }) {
       crosshair: { mode: 1, vertLine: { color: "#8294a8", width: 1, style: 2 }, horzLine: { color: "#8294a8", width: 1, style: 2 } },
       rightPriceScale: {
         borderColor: "#26384b",
-        scaleMargins: { top: isMobile ? 0.16 : 0.10, bottom: isMobile ? 0.24 : 0.20 },
+        /* candles go almost to the bottom axis */
+        scaleMargins: { top: isMobile ? 0.08 : 0.06, bottom: indicators.volume ? 0.14 : 0.05 },
         minimumWidth: isMobile ? 58 : 72,
       },
       timeScale: {
         borderColor: "#26384b",
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: isMobile ? 10 : 8,
-        barSpacing: isMobile ? 9 : 7,
+        rightOffset: isMobile ? 4 : 5,
+        barSpacing: isMobile ? 15 : 11,
         minBarSpacing: 3,
         lockVisibleTimeRangeOnResize: true,
       },
       localization: { locale: "en-US" },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: true },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
     });
-    chartRef.current = chart;
+
     const candlesSeries = chart.addSeries(CandlestickSeries, {
       upColor: "#16c784",
       downColor: "#ea3943",
@@ -153,48 +151,38 @@ function Chart({ sym, price }) {
       wickUpColor: "#16c784",
       wickDownColor: "#ea3943",
       wickVisible: true,
-      priceLineVisible: true,
+      priceLineVisible: false, /* dotted line removed */
       lastValueVisible: true,
-      priceLineColor: "#8b9bad",
-      priceLineStyle: 2,
     });
-    candleRef.current = candlesSeries;
+    candlesSeries.applyOptions({ visible: chartType === "candle" });
+
     const closeLine = chart.addSeries(LineSeries, { color: "#26a7ff", lineWidth: 2, lastValueVisible: true, priceLineVisible: false });
     closeLine.applyOptions({ visible: chartType === "line" });
-    candlesSeries.applyOptions({ visible: chartType === "candle" });
 
     const volumeSeries = chart.addSeries(HistogramSeries, {
       priceFormat: { type: "volume" }, priceScaleId: "volume",
       priceLineVisible: false, lastValueVisible: false,
     });
-    chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.82, bottom: 0 }, visible: false });
+    chart.priceScale("volume").applyOptions({ scaleMargins: { top: 0.88, bottom: 0 }, visible: false });
+    volumeSeries.applyOptions({ visible: indicators.volume });
 
-    const maSeries = chart.addSeries(LineSeries, { color: "#f6c453", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-    const emaSeries = chart.addSeries(LineSeries, { color: "#42a5f5", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-    const bbUpper = chart.addSeries(LineSeries, { color: "rgba(167,139,250,.8)", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-    const bbMid = chart.addSeries(LineSeries, { color: "rgba(167,139,250,.55)", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-    const bbLower = chart.addSeries(LineSeries, { color: "rgba(167,139,250,.8)", lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
-    const rsiSeries = chart.addSeries(LineSeries, { color: "#c084fc", lineWidth: 2, priceLineVisible: false, lastValueVisible: true }, 1);
-    const macdSeries = chart.addSeries(LineSeries, { color: "#42a5f5", lineWidth: 2, priceLineVisible: false, lastValueVisible: false }, 2);
-    const signalSeries = chart.addSeries(LineSeries, { color: "#f6c453", lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, 2);
-    const macdHist = chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, 2);
-    seriesRefs.current = { closeLine, volumeSeries, maSeries, emaSeries, bbUpper, bbMid, bbLower, rsiSeries, macdSeries, signalSeries, macdHist };
+    const mk = (on, color, w = 1) => on ? chart.addSeries(LineSeries, { color, lineWidth: w, priceLineVisible: false, lastValueVisible: false }) : null;
+    const maSeries = mk(indicators.ma, "#f6c453");
+    const emaSeries = mk(indicators.ema, "#42a5f5");
+    const bbUpper = mk(indicators.bb, "rgba(167,139,250,.8)");
+    const bbMid = mk(indicators.bb, "rgba(167,139,250,.55)");
+    const bbLower = mk(indicators.bb, "rgba(167,139,250,.8)");
 
-    const setSeriesVisibility = () => {
-      const r = seriesRefs.current;
-      if (!r.closeLine) return;
-      r.closeLine.applyOptions({ visible: chartType === "line" });
-      candlesSeries.applyOptions({ visible: chartType === "candle" });
-      r.volumeSeries.applyOptions({ visible: indicators.volume });
-      r.maSeries.applyOptions({ visible: indicators.ma });
-      r.emaSeries.applyOptions({ visible: indicators.ema });
-      [r.bbUpper, r.bbMid, r.bbLower].forEach(x => x.applyOptions({ visible: indicators.bb }));
-      r.rsiSeries.applyOptions({ visible: indicators.rsi });
-      r.macdSeries.applyOptions({ visible: indicators.macd });
-      r.signalSeries.applyOptions({ visible: indicators.macd });
-      r.macdHist.applyOptions({ visible: indicators.macd });
-    };
-    setSeriesVisibility();
+    /* RSI / MACD panes are created ONLY when enabled (no empty panes) */
+    const rsiSeries = indicators.rsi
+      ? chart.addSeries(LineSeries, { color: "#c084fc", lineWidth: 2, priceLineVisible: false, lastValueVisible: true }, 1) : null;
+    const macdPane = indicators.rsi ? 2 : 1;
+    const macdSeries = indicators.macd
+      ? chart.addSeries(LineSeries, { color: "#42a5f5", lineWidth: 2, priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
+    const signalSeries = indicators.macd
+      ? chart.addSeries(LineSeries, { color: "#f6c453", lineWidth: 1, priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
+    const macdHist = indicators.macd
+      ? chart.addSeries(HistogramSeries, { priceLineVisible: false, lastValueVisible: false }, macdPane) : null;
 
     const applyData = (data, fit = false) => {
       if (!alive || !data.length) return;
@@ -202,22 +190,24 @@ function Chart({ sym, price }) {
       candlesSeries.setData(data);
       closeLine.setData(data.map(x => ({ time: x.time, value: x.close })));
       volumeSeries.setData(data.map(x => ({ time: x.time, value: x.volume || 0, color: x.close >= x.open ? "rgba(0,192,135,.35)" : "rgba(224,82,96,.35)" })));
-      maSeries.setData(calcSMA(data, 20));
-      emaSeries.setData(calcEMA(data, 20));
-      const bb = calcBollinger(data);
-      bbUpper.setData(bb.upper); bbMid.setData(bb.mid); bbLower.setData(bb.lower);
-      rsiSeries.setData(calcRSI(data));
-      const macd = calcMACD(data);
-      macdSeries.setData(macd.line); signalSeries.setData(macd.signal); macdHist.setData(macd.hist);
-      setLastPrice(data[data.length - 1].close);
+      if (maSeries) maSeries.setData(calcSMA(data, 20));
+      if (emaSeries) emaSeries.setData(calcEMA(data, 20));
+      if (bbUpper) {
+        const bb = calcBollinger(data);
+        bbUpper.setData(bb.upper); bbMid.setData(bb.mid); bbLower.setData(bb.lower);
+      }
+      if (rsiSeries) rsiSeries.setData(calcRSI(data));
+      if (macdSeries) {
+        const macd = calcMACD(data);
+        macdSeries.setData(macd.line); signalSeries.setData(macd.signal); macdHist.setData(macd.hist);
+      }
       if (fit) {
-        // Start with a readable number of recent candles instead of squeezing
-        // all 500 candles into a narrow mobile screen.
-        const visibleBars = isMobile ? 48 : 90;
+        /* fewer visible candles = bigger candles */
+        const visibleBars = isMobile ? 30 : 60;
         const from = Math.max(0, data.length - visibleBars);
         chart.timeScale().setVisibleLogicalRange({
           from,
-          to: data.length + (isMobile ? 4 : 6),
+          to: data.length + (isMobile ? 3 : 4),
         });
       }
     };
@@ -238,7 +228,7 @@ function Chart({ sym, price }) {
             else candles.push(item);
             if (candles.length > CHART_LIMIT) candles = candles.slice(-CHART_LIMIT);
             applyData(candles, false);
-            setStatus("Live · Binance market data");
+            setStatus("Live · Binance");
           } catch (_) {}
         };
         socket.onerror = () => { if (alive) setStatus("Live feed reconnecting..."); };
@@ -260,7 +250,7 @@ function Chart({ sym, price }) {
         const parsed = rows.map(x => ({ time: Math.floor(x[0] / 1000), open: +x[1], high: +x[2], low: +x[3], close: +x[4], volume: +x[5] }));
         if (!alive) return;
         applyData(parsed, true);
-        setStatus("Live · Binance market data");
+        setStatus("Live · Binance");
         connectSocket();
       } catch (error) {
         if (alive) setStatus(error.message || "Could not load market data");
@@ -273,15 +263,9 @@ function Chart({ sym, price }) {
       clearTimeout(retryTimer);
       if (socket) { socket.onclose = null; socket.close(); }
       chart.remove();
-      chartRef.current = null;
-      candleRef.current = null;
-      seriesRefs.current = {};
     };
+    // eslint-disable-next-line
   }, [sym, timeframe, chartType, indicators]);
-
-  useEffect(() => {
-    if (Number.isFinite(Number(price)) && Number(price) > 0) setLastPrice(Number(price));
-  }, [price]);
 
   const toggleFullscreen = async () => {
     const el = hostRef.current?.parentElement;
@@ -310,9 +294,12 @@ function Chart({ sym, price }) {
         )}
         <span className="cx-chart-status">{status}</span>
       </div>
-      <div className="cx-chart-price">{lastPrice != null ? Number(lastPrice).toLocaleString("en-US", { maximumFractionDigits: 8 }) : "--"} <small>{sym}/USDT</small></div>
-      <div className="cx-chart-canvas" ref={hostRef} />
-      <div className="cx-chart-attribution">TradingView Lightweight Charts™ — Copyright (с) 2025 TradingView, Inc. <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView</a></div>
+      <div className="cx-chart-area">
+        <div className="cx-chart-canvas" ref={hostRef} />
+        <div className="cx-chart-attribution">
+          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView Lightweight Charts™</a> © TradingView, Inc.
+        </div>
+      </div>
     </div>
   );
 }
@@ -336,7 +323,6 @@ function Sheet({ open, onClose, title, children }) {
 }
 
 const CSS = `
-/* Desktop matches the supplied full-width trading-terminal reference. */
 .cx-op{--cx-nav-h:76px;--cx-bar-h:64px}
 
 .cx-op{background:#0b1520;color:#fff;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
@@ -361,12 +347,12 @@ const CSS = `
 .cx-chart-indicators{display:flex;align-items:center;gap:3px;min-height:30px;padding:2px 8px;flex:none;overflow-x:auto;border-bottom:1px solid #17283a}
 .cx-chart-indicators button{font-size:10px;padding:4px 6px}
 .cx-chart-status{margin-left:auto;color:#71869b;font-size:10px;white-space:nowrap}
-.cx-chart-price{position:absolute;z-index:2;top:78px;left:12px;color:#e6edf5;font-size:15px;font-weight:700;pointer-events:none;text-shadow:0 1px 3px #000;background:rgba(11,21,32,.72);padding:4px 7px;border-radius:5px}
-.cx-chart-price small{font-size:10px;color:#8294a8;font-weight:400}
-.cx-chart-canvas{flex:1;min-height:0;width:100%}
-.cx-chart-attribution{flex:none;text-align:right;padding:3px 8px;color:#62758a;font-size:9px;background:#0b1520}
-.cx-chart-attribution a{color:#8294a8;text-decoration:none}
-.cx-chart-attribution a:hover{color:#60b7ff}
+
+/* chart fills all remaining space down to the trade bar */
+.cx-chart-area{position:relative;flex:1;min-height:0;width:100%}
+.cx-chart-canvas{position:absolute;inset:0;width:100%;height:100%}
+.cx-chart-attribution{position:absolute;left:8px;bottom:24px;z-index:3;font-size:8px;line-height:1;color:rgba(130,148,168,.45);pointer-events:none}
+.cx-chart-attribution a{color:inherit;text-decoration:none;pointer-events:auto}
 
 /* Trade bar: fixed ABOVE the bottom navigation */
 .cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#0f2030;border-top:1px solid #3a4b5e}
@@ -405,13 +391,11 @@ const CSS = `
 .cx-op-tag{padding:2px 8px;border-radius:4px;font-size:12px;color:#fff}
 .cx-op-none{text-align:center;color:#9fb0c3;padding:40px 0;font-size:14px}
 
-/* Mobile chart: larger candle area, horizontal timeframe scrolling,
-   separate compact tool row, and enough spacing for readable candle bodies. */
+/* Mobile: tall chart, candles reach the trade bar */
 @media(max-width:600px){
   .cx-op{height:100dvh;min-height:620px;overflow:hidden}
-  .cx-op-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
-  .cx-op-chart{flex:1 0 430px;min-height:430px}
-  .cx-chart-wrap{min-height:430px}
+  .cx-op-body{flex:1;min-height:0;overflow:hidden}
+  .cx-op-chart{flex:1;min-height:0}
   .cx-chart-toolbar{display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;min-height:68px;padding:4px 7px}
   .cx-chart-tfs{width:100%;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .cx-chart-tfs::-webkit-scrollbar,.cx-chart-indicators::-webkit-scrollbar{display:none}
@@ -420,22 +404,17 @@ const CSS = `
   .cx-chart-indicators{min-height:32px;gap:5px;padding:3px 7px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   .cx-chart-indicators button{font-size:10px;padding:5px 8px;min-height:25px}
   .cx-chart-status{font-size:9px}
-  .cx-chart-price{top:108px;left:9px;font-size:13px;padding:3px 6px}
-  .cx-chart-canvas{min-height:300px;touch-action:pan-y}
-  .cx-chart-attribution{font-size:8px;padding:4px 7px}
+  .cx-chart-canvas{touch-action:pan-y}
   .cx-op-info{padding:9px 12px}
   .cx-op-pr b{font-size:21px}
 }
 @media(max-width:380px){
-  .cx-op-chart{flex-basis:410px;min-height:410px}
-  .cx-chart-wrap{min-height:410px}
   .cx-chart-toolbar button{padding:4px 6px;font-size:10px}
   .cx-chart-indicators button{padding:4px 6px}
   .cx-chart-status{display:none}
 }
 
 @media(min-width:900px){
-  /* Full-width terminal: header, market stats, large chart, bottom trade strip */
   .cx-op{
     height:100vh;
     min-height:680px;
