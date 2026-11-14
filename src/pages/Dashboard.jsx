@@ -4,7 +4,8 @@ import SideMenu from "./sidebar";
 import Deposit from "./depsoted";
 import Withdraw from "./withdrew";
 import Authentication from "./authentication";
-import { Market, Exchange, Assets } from "./trading";
+import { Market, Exchange } from "./trading";
+import Assets from "./Assets";
 import Options from "./options";
 
 /* =====================================================================
@@ -133,7 +134,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
         {page === "market" && <Market P={P} go={marketGo} />}
         {page === "exchange" && <Exchange P={P} W={W} sym={sym} setSym={pickSym} go={go} spot={spot} />}
         {page === "options" && <Options P={P} W={W} sym={sym} setSym={pickSym} pos={pos} orders={orders} />}
-        {page === "assets" && <Assets P={P} W={W} />}
+        {page === "assets" && <Assets P={P} W={W} go={go} />}
         {page === "deposit" && <Deposit W={W} go={go} txs={txs} />}
         {page === "withdraw" && <Withdraw W={W} go={go} txs={txs} />}
         {page === "auth" && <Authentication W={W} go={go} />}
