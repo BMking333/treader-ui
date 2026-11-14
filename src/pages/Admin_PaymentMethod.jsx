@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "./Home";
 
@@ -18,6 +17,8 @@ const NETWORKS = {
   PYUSD: ["ERC20"],
 };
 
+const DEFAULT_BDT_RATE = "122";
+
 const EMPTY_FORM = {
   method_type: "crypto",
   name: "USDT",
@@ -30,7 +31,7 @@ const EMPTY_FORM = {
   branch: "",
   qr_image_url: "",
   instructions: "",
-  rate_bdt_per_coin: "122",
+  rate_bdt_per_coin: DEFAULT_BDT_RATE,
   min_amount: "1",
   max_amount: "10000",
   is_active: true,
@@ -42,16 +43,28 @@ function unwrap(res) {
   return res;
 }
 
+const ERROR_MESSAGES = {
+  unauthorized: "আপনার Admin session শেষ হয়েছে। আবার Login করুন।",
+  forbidden: "আপনার এই কাজ করার অনুমতি নেই।",
+  neterr: "সার্ভারের সাথে সংযোগ করা যাচ্ছে না।",
+  err: "Request failed. Please try again.",
+  notFound: "Payment method পাওয়া যায়নি।",
+  badPaymentMethod: "Payment method type সঠিক নয়।",
+  badCoin: "Coin সঠিক নয়।",
+  badNetwork: "এই Coin-এর জন্য Network সঠিক নয়।",
+  badAmount: "Minimum/Maximum amount সঠিক নয়।",
+  badRate: "Exchange rate শূন্যের বেশি হতে হবে।",
+  badCurrency: "Currency সঠিক নয়।",
+  nameRequired: "Display name আবশ্যক।",
+  paymentNumberRequired: "Payment number আবশ্যক।",
+  bankNameRequired: "Bank name আবশ্যক।",
+  cryptoAddressRequired: "Crypto wallet address আবশ্যক।",
+};
+
 function getErrorMessage(err) {
   const message = err?.message || "";
 
-  const messages = {
-    unauthorized: "আপনার Admin session শেষ হয়েছে। আবার Login করুন।",
-    neterr: "সার্ভারের সাথে সংযোগ করা যাচ্ছে না।",
-    err: "Request failed. Please try again.",
-  };
-
-  return messages[message] || message || "Something went wrong.";
+  return ERROR_MESSAGES[message] || message || "Something went wrong.";
 }
 
 function money(value) {
@@ -82,6 +95,7 @@ export default function Admin_PaymentMethod() {
   const [editingId, setEditingId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState(null);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -139,9 +153,9 @@ export default function Admin_PaymentMethod() {
         coin: "USDT",
         network: "TRC20",
         currency: "USDT",
-        rate_bdt_per_coin: prev.method_type === "crypto"
-          ? prev.rate_bdt_per_coin
-          : "122",
+        rate_bdt_per_coin: DEFAULT_BDT_RATE,
+        min_amount: "1",
+        max_amount: "10000",
         address: "",
         bank_name: "",
         account_name: "",
@@ -155,6 +169,9 @@ export default function Admin_PaymentMethod() {
           ? "Nagad"
           : "Bank Transfer";
 
+      // bKash / Nagad / Bank: ব্যবহারকারী BDT জমা দেন,
+      // Wallet-এ Coin (default USDT) যোগ হয় = BDT ÷ rate.
+      // তাই rate কখনো 1 হওয়া উচিত নয় (১ BDT = ১ USDT হয়ে যাবে)।
       setForm((prev) => ({
         ...prev,
         method_type: type,
@@ -162,7 +179,9 @@ export default function Admin_PaymentMethod() {
         coin: "USDT",
         network: "",
         currency: "BDT",
-        rate_bdt_per_coin: "1",
+        rate_bdt_per_coin: DEFAULT_BDT_RATE,
+        min_amount: "100",
+        max_amount: "500000",
         address: "",
         bank_name: "",
         account_name: "",
@@ -174,6 +193,7 @@ export default function Admin_PaymentMethod() {
     setSuccess("");
   };
 
+  // Crypto: coin বদলালে name/currency/network বদলায়
   const selectCoin = (coin) => {
     setForm((prev) => ({
       ...prev,
@@ -181,6 +201,14 @@ export default function Admin_PaymentMethod() {
       name: coin,
       currency: coin,
       network: NETWORKS[coin]?.[0] || "",
+    }));
+  };
+
+  // bKash/Nagad/Bank: শুধু কোন Coin Wallet-এ জমা হবে সেটা বদলায়
+  const selectCreditCoin = (coin) => {
+    setForm((prev) => ({
+      ...prev,
+      coin,
     }));
   };
 
@@ -203,9 +231,7 @@ export default function Admin_PaymentMethod() {
       branch: item.branch || "",
       qr_image_url: item.qr_image_url || "",
       instructions: item.instructions || "",
-      rate_bdt_per_coin: String(
-        item.rate_bdt_per_coin ?? "1"
-      ),
+      rate_bdt_per_coin: String(item.rate_bdt_per_coin ?? DEFAULT_BDT_RATE),
       min_amount: String(item.min_amount ?? "1"),
       max_amount: String(item.max_amount ?? "10000"),
       is_active: Boolean(item.is_active),
@@ -221,6 +247,37 @@ export default function Admin_PaymentMethod() {
   };
 
   // =====================================================
+  // QUICK ENABLE / DISABLE
+  // =====================================================
+
+  const toggleActive = async (item) => {
+    if (togglingId !== null) return;
+
+    setTogglingId(item.id);
+    setError("");
+    setSuccess("");
+
+    try {
+      await api(`/admin/payment-methods/${item.id}`, {
+        method: "PATCH",
+        body: { is_active: !item.is_active },
+      });
+
+      setSuccess(
+        item.is_active
+          ? `"${item.name}" disabled.`
+          : `"${item.name}" enabled.`
+      );
+
+      await loadMethods();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  // =====================================================
   // VALIDATE FORM
   // =====================================================
 
@@ -229,8 +286,10 @@ export default function Admin_PaymentMethod() {
       return "Payment method name is required.";
     }
 
-    if (!Number.isFinite(payload.min_amount) ||
-        !Number.isFinite(payload.max_amount)) {
+    if (
+      !Number.isFinite(payload.min_amount) ||
+      !Number.isFinite(payload.max_amount)
+    ) {
       return "Please enter valid deposit limits.";
     }
 
@@ -249,11 +308,11 @@ export default function Admin_PaymentMethod() {
       return "Exchange rate must be greater than zero.";
     }
 
-    if (isCrypto) {
-      if (!payload.coin) {
-        return "Please select a coin.";
-      }
+    if (!payload.coin) {
+      return "Please select a coin.";
+    }
 
+    if (isCrypto) {
       if (!payload.network) {
         return "Please select a network.";
       }
@@ -268,6 +327,10 @@ export default function Admin_PaymentMethod() {
 
       if (form.method_type === "bank" && !payload.bank_name) {
         return "Bank name is required.";
+      }
+
+      if (payload.rate_bdt_per_coin === 1 && payload.coin !== "BDT") {
+        return "Rate 1 হলে ১ BDT = ১ " + payload.coin + " জমা হবে। সঠিক rate দিন (যেমন 122).";
       }
     }
 
@@ -600,6 +663,12 @@ export default function Admin_PaymentMethod() {
           background: #3a1c28;
         }
 
+        .apm-row-actions {
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+        }
+
         .apm-edit {
           background: #203d70;
           color: #b8d2ff;
@@ -608,6 +677,31 @@ export default function Admin_PaymentMethod() {
           padding: 8px 11px;
           cursor: pointer;
           font-weight: 700;
+        }
+
+        .apm-toggle {
+          background: #2a3450;
+          color: #d3dcef;
+          border: 0;
+          border-radius: 7px;
+          padding: 8px 11px;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .apm-toggle.disable {
+          background: #3a1c28;
+          color: #ff9ba1;
+        }
+
+        .apm-toggle.enable {
+          background: #12372d;
+          color: #69e5ae;
+        }
+
+        .apm-toggle:disabled {
+          opacity: .55;
+          cursor: not-allowed;
         }
 
         .apm-empty {
@@ -691,7 +785,7 @@ export default function Admin_PaymentMethod() {
           </div>
 
           <div className="apm-grid">
-            {/* COIN */}
+            {/* CRYPTO: COIN + NETWORK */}
             {isCrypto && (
               <>
                 <div className="apm-field">
@@ -726,6 +820,24 @@ export default function Admin_PaymentMethod() {
               </>
             )}
 
+            {/* FIAT: CREDIT COIN */}
+            {!isCrypto && (
+              <div className="apm-field">
+                <label>Credit Coin (Wallet-এ যে Coin যোগ হবে)</label>
+                <select
+                  className="apm-select"
+                  value={form.coin}
+                  onChange={(e) => selectCreditCoin(e.target.value)}
+                >
+                  {COINS.map((coin) => (
+                    <option key={coin} value={coin}>
+                      {coin}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {/* NAME */}
             <div className="apm-field">
               <label>Display Name</label>
@@ -743,7 +855,9 @@ export default function Admin_PaymentMethod() {
               <label>
                 {isCrypto
                   ? "Wallet Address"
-                  : "Payment Number / Account"}
+                  : form.method_type === "bank"
+                  ? "Account Number (optional)"
+                  : "Payment Number"}
               </label>
 
               <input
@@ -828,9 +942,7 @@ export default function Admin_PaymentMethod() {
 
             {/* RATE */}
             <div className="apm-field">
-              <label>
-                Rate (BDT per 1 {isCrypto ? form.coin : "BDT"})
-              </label>
+              <label>Rate (BDT per 1 {form.coin})</label>
 
               <input
                 className="apm-input"
@@ -847,7 +959,7 @@ export default function Admin_PaymentMethod() {
               <small className="apm-muted">
                 {isCrypto
                   ? "Enter the BDT value of one unit of this coin."
-                  : "BDT payment methods use a conversion rate of 1."}
+                  : `ব্যবহারকারী BDT জমা দেবে; Wallet-এ ${form.coin} যোগ হবে = BDT ÷ rate। (১ ${form.coin} = কত BDT)`}
               </small>
             </div>
 
@@ -995,13 +1107,30 @@ export default function Admin_PaymentMethod() {
                     </td>
 
                     <td>
-                      <button
-                        type="button"
-                        className="apm-edit"
-                        onClick={() => editMethod(item)}
-                      >
-                        Edit
-                      </button>
+                      <div className="apm-row-actions">
+                        <button
+                          type="button"
+                          className="apm-edit"
+                          onClick={() => editMethod(item)}
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          type="button"
+                          className={`apm-toggle ${
+                            item.is_active ? "disable" : "enable"
+                          }`}
+                          onClick={() => toggleActive(item)}
+                          disabled={togglingId !== null}
+                        >
+                          {togglingId === item.id
+                            ? "..."
+                            : item.is_active
+                            ? "Disable"
+                            : "Enable"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
