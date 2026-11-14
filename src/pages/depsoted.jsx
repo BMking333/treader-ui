@@ -98,9 +98,6 @@ function compressImage(file) {
   });
 }
 
-// ইউজার txid না দিলে প্রতিটি ডিপোজিটের জন্য ইউনিক রেফারেন্স
-const makeRef = () => "DP-" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 6).toUpperCase();
-
 /* ---------- styles ---------- */
 const CSS = `
 .dp, .dp * { box-sizing: border-box; }
@@ -277,6 +274,7 @@ export default function Deposit({ W, go }) {
   const [methodId, setMethodId] = useState(null);
 
   const [amt, setAmt] = useState("");
+  const [txid, setTxid] = useState("");
   const [proof, setProof] = useState("");
 
   const [busy, setBusy] = useState(false);
@@ -386,6 +384,7 @@ export default function Deposit({ W, go }) {
           .replace("{cur}", method.currency || method.coin)
       );
     }
+    if (txid.trim().length < 3) return say(t("dpBadTxid"));
     if (!proof) return say(t("dpProof"));
 
     setBusy(true);
@@ -396,12 +395,13 @@ export default function Deposit({ W, go }) {
         body: {
           payment_method_id: method.id,
           amount: a,
-          txid: makeRef(),
+          txid: txid.trim(),
           sender_info: null,
           proof_url: proof,
         },
       });
       setAmt("");
+      setTxid("");
       setProof("");
       say(t("dpOk"), true);
     } catch (e) {
@@ -484,6 +484,17 @@ export default function Deposit({ W, go }) {
               <div className="dp-hint">
                 {t("dpMin")} {fmt(method.min_amount)} · {t("dpMax")} {fmt(method.max_amount)} {method.currency || method.coin}
               </div>
+
+              <label className="dp-row" style={{ marginTop: 26 }}>
+                <span>{L("dpTxid", "TxID")}</span>
+                <input
+                  value={txid}
+                  onChange={(e) => setTxid(e.target.value)}
+                  placeholder={L("dpTxidPh", "Enter the transaction ID")}
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+              </label>
 
               {msg.text && <div className={"dp-msg " + (msg.ok ? "ok" : "bad")}>{msg.text}</div>}
 
