@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from "react";
 import {
-  BLUE, GREEN, RED, LANGS, RTL, T, T2, T3, LangCtx,
+  BLUE, GREEN, RED,
   store, TOKEN, setToken, setOn401, api,
 } from "./pages/Home";
+import { RTL, LangCtx, isLang, translate } from "./lib/i18n";
 import Dashboard from "./pages/Dashboard";
 import { Login, Register } from "./pages/Register_Login";
 
 /* =====================================================================
    src/App.jsx — Root: ভাষা, ডার্ক মোড, লগইন স্টেট, পেজ রাউটিং + CSS
    URL: /login /register /forgot  → auth পেজ, বাকি সব → Dashboard
+   ভাষা/ডার্ক: লগইন থাকলে সার্ভারে (PATCH /user/settings) সেভ হয়,
+   লগইনের সময় সার্ভারের মান বসে। গেস্ট হলে শুধু localStorage।
+   ভাষার তালিকা ও অনুবাদ: src/lib/i18n.jsx
    ===================================================================== */
 
 const AUTH_PATH = { login: "/login", register: "/register", forgot: "/forgot" };
@@ -19,16 +23,25 @@ const pushUrl = (url) => { if (url !== window.location.pathname + window.locatio
 const replaceUrl = (url) => { if (url !== window.location.pathname + window.location.search) window.history.replaceState(null, "", url); };
 
 export default function App() {
-  const [lang, setLangS] = useState(() => store.get("cx_lang", "en"));
+  const [lang, setLangS] = useState(() => {
+    const l = store.get("cx_lang", "en");
+    return isLang(l) ? l : "en";
+  });
   const [dark, setDarkS] = useState(() => store.get("cx_dark", true));
   const [me, setMe] = useState(null);
   const [view, setView] = useState(() => (TOKEN ? "boot" : pathToView(cleanPath())));
   const [flash, setFlash] = useState("");
 
   const patchSettings = (b) => { if (TOKEN) api("/user/settings", { method: "PATCH", body: b }).catch(() => {}); };
-  const setLang = (l) => { setLangS(l); store.set("cx_lang", l); patchSettings({ lang: l }); };
+  const setLang = (l) => { if (!isLang(l)) return; setLangS(l); store.set("cx_lang", l); patchSettings({ lang: l }); };
   const setDark = (v) => { setDarkS(v); store.set("cx_dark", v); patchSettings({ dark: v }); };
-  const t = (k) => (T[lang]?.[k] ?? T2[lang]?.[k] ?? T3[lang]?.[k] ?? T.en[k] ?? T2.en[k] ?? T3.en[k] ?? k);
+  const t = (k) => translate(lang, k);
+
+  /* html ট্যাগেও ভাষা ও দিক বসে */
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = RTL.includes(lang) ? "rtl" : "ltr";
+  }, [lang]);
 
   /* পেজ বদলালে URL-ও বদলায় */
   const go = (v, f = "") => {
@@ -44,16 +57,23 @@ export default function App() {
   /* সার্ভারে সেভ করা lang/dark ইউজারের সেটিং হিসেবে বসায় */
   const applyMe = (u) => {
     if (!u) return;
-    if (u.lang && LANGS.some((l) => l[0] === u.lang)) { setLangS(u.lang); store.set("cx_lang", u.lang); }
+    if (u.lang && isLang(u.lang)) { setLangS(u.lang); store.set("cx_lang", u.lang); }
     if (typeof u.dark === "boolean") { setDarkS(u.dark); store.set("cx_dark", u.dark); }
   };
 
-  /* login/register রেসপন্স = {access_token, token_type, email, uid} → তারপর /auth/me দিয়ে পুরো প্রোফাইল */
+  /* login/register রেসপন্স = {access_token, token_type, email, uid, lang, dark} */
   const onLogin = async (r) => {
     const tok = r && (r.token || r.access_token);
     if (tok) setToken(tok);
+    const isNew = view === "register";
+    if (isNew) {
+      /* নতুন অ্যাকাউন্ট: গেস্ট অবস্থায় বাছা ভাষা/থিম সার্ভারে সেভ হবে */
+      await api("/user/settings", { method: "PATCH", body: { lang, dark } }).catch(() => {});
+    } else {
+      applyMe(r); /* লগইন রেসপন্সেই lang/dark আসে */
+    }
     let u = { email: r?.email, uid: r?.uid, vip: 0, reputation: 0 };
-    try { u = await api("/auth/me"); applyMe(u); } catch {}
+    try { u = await api("/auth/me"); if (!isNew) applyMe(u); } catch {}
     setMe(u);
     setView("app");
     replaceUrl("/");
