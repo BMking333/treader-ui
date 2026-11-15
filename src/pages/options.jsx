@@ -3,8 +3,9 @@ import { createChart, CandlestickSeries, LineSeries, HistogramSeries } from "lig
 import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN } from "./Home";
 
 const OPEN_PATH = "/options/open"; /* POST {sym, direction, qty, seconds} */
+const STATUS_PATH = "/options/status"; /* GET -> {enabled, disabled_syms, yield, qty_min, qty_max, blocked} */
 const DIR = { long: "long", short: "short" };
-const MIN_Q = 10, MAX_Q = 1000000;
+const MIN_Q = 10, MAX_Q = 1000000; /* server থেকে না এলে ডিফল্ট */
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 
@@ -455,6 +456,7 @@ const CSS = `
 .cx-op-st{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;font-size:14px;align-content:center;line-height:1.45}
 .cx-op-st i{font-style:normal;color:var(--gray)}
 .cx-op-st b{text-align:right;font-weight:400;overflow-wrap:anywhere}
+.cx-op-off{padding:8px 12px;text-align:center;font-size:13px;background:#fdecee;color:#c8323f;flex:none}
 .cx-op-body{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid #c9ced6}
 .cx-op-chart{flex:1;min-height:360px;position:relative;overflow:hidden}
 .cx-chart-wrap{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;background:#fff;overflow:hidden}
@@ -583,6 +585,7 @@ const CSS = `
 .cx-op.dk{--bd:#243148;--gray:#8d98ad;background:#0d1626;color:#e8ecf3}
 .cx-op.dk .cx-op-top{background:#0d1626;border-bottom-color:#243148}
 .cx-op.dk .cx-op-info{background:#0d1626}
+.cx-op.dk .cx-op-off{background:#3b1a20;color:#ff8a95}
 .cx-op.dk .cx-op-body{border-top-color:#243148}
 .cx-op.dk .cx-chart-wrap{background:#131a2a}
 .cx-op.dk .cx-chart-toolbar{background:#0d1626;border-bottom-color:#2a3548}
@@ -632,6 +635,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", s: "bad" });
   const [now, setNow] = useState(Date.now());
+  const [st, setSt] = useState(null); /* অ্যাডমিন সেটিংস: enabled, disabled_syms, yield, qty_min, qty_max, blocked */
   const tm = useRef(null);
 
   useEffect(() => {
@@ -640,6 +644,22 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   }, []);
 
   useEffect(() => () => clearTimeout(tm.current), []);
+
+  /* অ্যাডমিন সেটিংস: প্রথমে একবার, তারপর প্রতি ১৫ সেকেন্ডে */
+  useEffect(() => {
+    if (W && W.guest) { setSt(null); return undefined; }
+    let on = true;
+    const load = async () => {
+      try {
+        const r = await api(STATUS_PATH);
+        if (on) setSt(r);
+      } catch (_) {}
+    };
+    load();
+    const id = setInterval(load, 15000);
+    return () => { on = false; clearInterval(id); };
+    // eslint-disable-next-line
+  }, [W && W.guest]);
 
   const flash = (k, s = "bad") => {
     setMsg({ k, s });
@@ -652,10 +672,22 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const col = up ? CUP : CDN;
   const bal = W && W.w && W.w.USDT ? W.w.USDT : 0;
 
+  /* পজ অবস্থা: সব ট্রেড বন্ধ / এই কয়েন বন্ধ / ইউজার ব্লক */
+  const pausedMsg = !st ? ""
+    : !st.enabled ? tt("optionsOff", "Options trading is paused")
+    : st.blocked ? tt("userBlocked", "Trading is disabled for your account")
+    : (st.disabled_syms || []).includes(sym) ? tt("symOff", "This coin is paused")
+    : "";
+  const paused = !!pausedMsg;
+  const minQ = st && st.qty_min > 0 ? st.qty_min : MIN_Q;
+  const maxQ = st && st.qty_max > 0 ? st.qty_max : MAX_Q;
+  const yld = st && st.yield > 0 ? st.yield : YIELD;
+
   const open = async (dir) => {
     if (busy) return false;
     if (W.guest) { W.needLogin(); return false; }
-    if (!(qty >= MIN_Q && qty <= MAX_Q)) { flash(t("badQ")); return false; }
+    if (paused) { flash(pausedMsg); return false; }
+    if (!(qty >= minQ && qty <= maxQ)) { flash(t("badQ")); return false; }
     if (bal < qty) { flash(t("iB")); return false; }
     setBusy(true);
     try {
@@ -683,7 +715,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     setQty(isNaN(n) ? 0 : n);
   };
   const allQty = () => {
-    const v = Math.min(bal, MAX_Q);
+    const v = Math.min(bal, maxQ);
     setQty(v);
     setQIn(String(v));
   };
@@ -695,7 +727,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
 
   const myPos = pos;
   const myOrd = orders;
-  const yieldPct = Math.round(YIELD * 100) + "%";
+  const yieldPct = Math.round(yld * 100) + "%";
 
   return (
     <div className={"cx-op" + (dark ? " dk" : "")}>
@@ -724,6 +756,9 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         </div>
       </div>
 
+      {/* ---- Paused banner (অ্যাডমিন বন্ধ করলে) ---- */}
+      {paused && <div className="cx-op-off">{pausedMsg}</div>}
+
       {/* ---- Chart + trade bar ---- */}
       <div className="cx-op-body">
         <div className="cx-op-chart">
@@ -737,8 +772,8 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
           <button type="button" className="cx-op-pick" onClick={() => setSh("trade")}>
             <span>{t("time")} ⌄</span><span>{secs}s</span>
           </button>
-          <button type="button" className="cx-op-go up" disabled={busy} onClick={() => open(DIR.long)}>{t("bl")}</button>
-          <button type="button" className="cx-op-go dn" disabled={busy} onClick={() => open(DIR.short)}>{t("ss")}</button>
+          <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => open(DIR.long)}>{t("bl")}</button>
+          <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => open(DIR.short)}>{t("ss")}</button>
         </div>
       </div>
 
@@ -758,7 +793,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
           ))}
         </div>
         <div className="cx-op-qrow">
-          <input type="number" inputMode="decimal" value={qIn} onChange={(e) => typeQty(e.target.value)} placeholder={MIN_Q + " - " + MAX_Q} />
+          <input type="number" inputMode="decimal" value={qIn} onChange={(e) => typeQty(e.target.value)} placeholder={minQ + " - " + maxQ} />
           <button type="button" onClick={allQty}>{tt("all", "All")}</button>
         </div>
 
@@ -773,11 +808,13 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
           <span>{t("bal")} : {bal.toFixed(8)}</span>
           <span>{t("yld")} : {yieldPct}</span>
         </div>
-        <div className="cx-op-g three">{t("oq")} : {MIN_Q.toFixed(2)} - {MAX_Q.toFixed(2)}</div>
+        <div className="cx-op-g three">{t("oq")} : {Number(minQ).toFixed(2)} - {Number(maxQ).toFixed(2)}</div>
+
+        {paused && <div className="cx-op-off" style={{ marginTop: 14, borderRadius: 8 }}>{pausedMsg}</div>}
 
         <div className="cx-op-sbtn">
-          <button type="button" className="cx-op-go up" disabled={busy} onClick={() => buyFromSheet(DIR.long)}>{t("bl")}</button>
-          <button type="button" className="cx-op-go dn" disabled={busy} onClick={() => buyFromSheet(DIR.short)}>{t("ss")}</button>
+          <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => buyFromSheet(DIR.long)}>{t("bl")}</button>
+          <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => buyFromSheet(DIR.short)}>{t("ss")}</button>
         </div>
       </Sheet>
 
@@ -846,4 +883,4 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
       )}
     </div>
   );
-}
+          }
