@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useT, api, COINS } from "./Home";
 import { TopBar, Picker, useToast, SUB_CSS, num, goBack } from "./subpage";
 
@@ -8,7 +8,8 @@ import { TopBar, Picker, useToast, SUB_CSS, num, goBack } from "./subpage";
    ===================================================================== */
 
 /* ====== backend অনুযায়ী বদলান ====== */
-const EXCHANGE_PATH = "/exchange/swap"; /* POST {from, to, amount, account} */
+const EXCHANGE_PATH = "/exchange/swap";   /* POST {from, to, amount, account} */
+const QUOTE_PATH = "/exchange/quote";     /* GET ?from_coin=&to_coin=&amount= */
 
 const ACCOUNTS = [
   { value: "options", label: "Options account" },
@@ -31,8 +32,17 @@ const CSS = `
 .cx-ex2-form .cx-sp-lab{display:block;margin:26px 0 4px;font-size:20px}
 .cx-ex2-form .cx-sp-inp{padding-inline-start:44px}
 .cx-ex2-form .cx-sp-btn{margin-top:46px}
+.cx-ex2-rcv{margin-top:26px;padding:18px 20px;border-radius:14px;background:rgba(26,130,214,.08)}
+.cx-ex2-rcv .r1{display:flex;justify-content:space-between;align-items:center;font-size:18px}
+.cx-ex2-rcv .r1 b{font-size:22px;color:#00c087;word-break:break-all;text-align:end;padding-inline-start:12px}
+.cx-ex2-rcv .r2{margin-top:8px;font-size:15px;opacity:.7}
 @media(max-width:380px){.cx-sp .cx-ex2-pair>button.c{font-size:26px}.cx-ex2-form{padding:26px 20px 30px}}
 `;
+
+const fmt = (v, d = 8) => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n.toFixed(d) : "--";
+};
 
 export default function Exchange({ W, go }) {
   const t = useT();
@@ -43,17 +53,44 @@ export default function Exchange({ W, go }) {
   };
 
   const [from, setFrom] = useState("USDT");
-  const [to, setTo] = useState("USDC");
+  const [to, setTo] = useState("BTC");
   const [acc, setAcc] = useState("options");
   const [amt, setAmt] = useState("");
   const [pk, setPk] = useState(""); /* "", "from", "to", "acc" */
   const [busy, setBusy] = useState(false);
+  const [quote, setQuote] = useState(null); /* { receive, rate } */
+  const [qBusy, setQBusy] = useState(false);
   const [toast, flash] = useToast();
 
   const avail = num(W && W.w && W.w[from]);
   const accLabel = (ACCOUNTS.find((a) => a.value === acc) || ACCOUNTS[0]).label;
 
-  const swap = () => { setFrom(to); setTo(from); setAmt(""); };
+  /* ---- লাইভ quote (debounce 350ms, পুরনো response বাতিল) ---- */
+  useEffect(() => {
+    const a = parseFloat(amt);
+    if (!(a > 0) || from === to) {
+      setQuote(null);
+      setQBusy(false);
+      return;
+    }
+    let dead = false;
+    setQBusy(true);
+    const id = setTimeout(async () => {
+      try {
+        const q = await api(
+          `${QUOTE_PATH}?from_coin=${encodeURIComponent(from)}&to_coin=${encodeURIComponent(to)}&amount=${encodeURIComponent(amt)}`
+        );
+        if (!dead) setQuote(q);
+      } catch (_) {
+        if (!dead) setQuote(null);
+      } finally {
+        if (!dead) setQBusy(false);
+      }
+    }, 350);
+    return () => { dead = true; clearTimeout(id); };
+  }, [amt, from, to]);
+
+  const swap = () => { setFrom(to); setTo(from); setAmt(""); setQuote(null); };
 
   const pickCoin = (side, v) => {
     if (side === "from") {
@@ -64,6 +101,7 @@ export default function Exchange({ W, go }) {
       setTo(v);
     }
     setAmt("");
+    setQuote(null);
     setPk("");
   };
 
@@ -76,9 +114,13 @@ export default function Exchange({ W, go }) {
     if (from === to) return flash(tt("sameCoin", "Choose two different coins"));
     setBusy(true);
     try {
-      await api(EXCHANGE_PATH, { method: "POST", body: { from, to, amount: a, account: acc } });
+      await api(EXCHANGE_PATH, {
+        method: "POST",
+        body: { from, to, amount: amt, account: acc }, /* string পাঠানো হচ্ছে, float precision সমস্যা এড়াতে */
+      });
       flash(tt("exOk", "Exchange successful"), "ok");
       setAmt("");
+      setQuote(null);
       if (W && W.reload) await W.reload();
     } catch (e) {
       flash(tt(e && e.message ? e.message : "err", (e && e.message) || "Failed"));
@@ -127,7 +169,18 @@ export default function Exchange({ W, go }) {
           <button type="button" onClick={() => setAmt(avail > 0 ? String(avail) : "")}>{tt("all", "All")}</button>
         </div>
 
-        <button type="button" className="cx-sp-btn" disabled={busy} onClick={submit}>{tt("exchange", "Exchange")}</button>
+        {/* ---- You will receive ---- */}
+        <div className="cx-ex2-rcv">
+          <div className="r1">
+            <span>{tt("receive", "You will receive")}</span>
+            <b>{qBusy ? "..." : quote ? `${fmt(quote.receive)} ${to}` : `-- ${to}`}</b>
+          </div>
+          <div className="r2">
+            {quote ? `1 ${from} ≈ ${fmt(quote.rate, 8)} ${to}` : tt("rateHint", "Enter quantity to see the rate")}
+          </div>
+        </div>
+
+        <button type="button" className="cx-sp-btn" disabled={busy || qBusy || !quote} onClick={submit}>{tt("exchange", "Exchange")}</button>
       </div>
 
       {toast}
@@ -138,4 +191,3 @@ export default function Exchange({ W, go }) {
     </div>
   );
 }
-
