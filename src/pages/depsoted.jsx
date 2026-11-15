@@ -5,8 +5,9 @@ import { useT, api } from "./Home";
    src/pages/depsoted.jsx — Deposit পেজ + shared (NETS, Chips, TxList)
 
    Flow:
+     ডিফল্ট: USDT + TRC20 আগে থেকেই সিলেক্ট থাকে
      Step 1 -> Coin + Amount সিলেক্ট -> Next
-     Step 2 -> Network সিলেক্ট -> Address/QR আসে -> Screenshot + TxID দিয়ে Submit
+     Step 2 -> (TRC20 অটো) Address/QR দেখায় -> Screenshot + TxID দিয়ে Submit
 
    Backend:
      GET  /deposit/methods -> Admin-এর তৈরি Active payment methods
@@ -57,6 +58,9 @@ export function Chips({ list, v, set }) {
 }
 
 /* ---------- helpers ---------- */
+// কয়েনের নেটওয়ার্কগুলোর মধ্যে TRC20 থাকলে সেটা, না থাকলে প্রথমটা
+const preferNet = (list) => list.find((m) => /trc ?-?20/i.test(m.network || "")) || list[0] || null;
+
 function unwrap(res) {
   if (res?.data !== undefined) return res.data;
   if (res?.result !== undefined) return res.result;
@@ -162,39 +166,47 @@ function CoinLogo({ coin, size = 40, url }) {
 
 /* ---------- styles ---------- */
 const CSS = `
-.dp, .dp * { box-sizing: border-box; }
+.dp, .dp * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 .dp {
-  --bg: #08101d;
-  --panel: #0f1b2d;
-  --panel2: #0b1626;
-  --line: #1a2b43;
-  --text: #f2f6fc;
-  --muted: #8393ad;
-  --blue: #1677ff;
-  --blue2: #3d93ff;
+  --bg: #070e1a;
+  --panel: #0e1a2c;
+  --panel2: #0a1424;
+  --line: #1a2b44;
+  --line2: #243955;
+  --text: #f3f7fd;
+  --muted: #8494ae;
+  --blue: #1a73ff;
+  --blue2: #4a9bff;
   --green: #2ecc8f;
   --red: #ff6b7a;
   --amber: #f5b942;
   background:
-    radial-gradient(1200px 380px at 50% -120px, rgba(22,119,255,.16), transparent 70%),
+    radial-gradient(900px 340px at 50% -140px, rgba(26,115,255,.22), transparent 70%),
+    radial-gradient(500px 300px at 100% 40%, rgba(74,155,255,.06), transparent 70%),
     var(--bg);
   color: var(--text);
   min-height: 100vh;
-  padding-bottom: 56px;
+  padding-bottom: 60px;
   font-family: Inter, "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-.dp button { font-family: inherit; }
+.dp button { font-family: inherit; outline: none; }
+.dp input, .dp input:focus, .dp input:focus-visible { outline: none; box-shadow: none; -webkit-appearance: none; appearance: none; }
+.dp input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 100px var(--panel2) inset;
+  caret-color: var(--text);
+}
 
 /* top bar */
 .dp-top {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
   height: 60px; padding: 0 12px;
-  background: rgba(15,27,45,.92); backdrop-filter: blur(10px);
+  background: rgba(14,26,44,.9); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
-.dp-top h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+.dp-top h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .3px; }
 .dp-ibtn {
   width: 42px; height: 42px; border: 0; background: transparent; color: var(--text);
   cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 12px;
@@ -211,20 +223,23 @@ const CSS = `
 .dp-st i {
   width: 28px; height: 28px; border-radius: 50%; font-style: normal; font-size: 13px; font-weight: 700;
   display: flex; align-items: center; justify-content: center;
-  background: var(--panel); border: 1.5px solid var(--line); color: var(--muted);
+  background: var(--panel); border: 1.5px solid var(--line2); color: var(--muted);
 }
 .dp-st.on { color: var(--text); }
-.dp-st.on i { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 4px 14px rgba(22,119,255,.4); }
-.dp-st.done i { background: rgba(46,204,143,.16); border-color: var(--green); color: var(--green); }
+.dp-st.on i { background: linear-gradient(135deg, #3b8bff, #1457e8); border-color: transparent; color: #fff; box-shadow: 0 4px 14px rgba(26,115,255,.45); }
+.dp-st.done i { background: rgba(46,204,143,.14); border-color: var(--green); color: var(--green); }
 .dp-line { flex: 1; height: 2px; margin: 0 12px; background: var(--line); border-radius: 2px; }
-.dp-line.on { background: var(--blue); }
+.dp-line.on { background: linear-gradient(90deg, var(--green), var(--blue)); }
 
 /* cards */
 .dp-card {
-  background: var(--panel); border: 1px solid var(--line);
-  border-radius: 20px; padding: 20px 18px 22px; margin-bottom: 16px;
+  position: relative;
+  background: linear-gradient(180deg, #112038 0%, #0d192b 100%);
+  border: 1px solid var(--line);
+  border-radius: 22px; padding: 20px 18px 22px; margin-bottom: 16px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);
 }
-.dp-h { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+.dp-h { margin: 0 0 4px; font-size: 17px; font-weight: 700; letter-spacing: .2px; }
 .dp-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
 /* coin grid */
@@ -233,89 +248,115 @@ const CSS = `
   position: relative; display: flex; align-items: center; gap: 12px; text-align: start;
   background: var(--panel2); border: 1.5px solid var(--line); border-radius: 16px;
   padding: 14px 12px; cursor: pointer; color: var(--text);
-  transition: border-color .15s, background .15s;
+  transition: border-color .15s, background .15s, transform .12s;
 }
-.dp-coin:hover { border-color: #2a4468; }
-.dp-coin.on { border-color: var(--blue); background: rgba(22,119,255,.1); }
+.dp-coin:active { transform: scale(.98); }
+.dp-coin.on { border-color: #2f7fff; background: linear-gradient(135deg, rgba(26,115,255,.18), rgba(26,115,255,.06)); }
 .dp-coin b { display: block; font-size: 16px; font-weight: 700; }
 .dp-coin small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
 .dp-tick {
   position: absolute; top: 8px; inset-inline-end: 8px; width: 18px; height: 18px; border-radius: 50%;
-  background: var(--blue); display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #3b8bff, #1457e8); display: flex; align-items: center; justify-content: center;
 }
 .dp-tick svg { width: 11px; height: 11px; color: #fff; stroke-width: 3.2; }
 
-/* amount */
+/* amount field — কোনো ফোকাস গ্লো/বক্স নেই */
 .dp-amount {
   display: flex; align-items: center; gap: 10px;
   background: var(--panel2); border: 1.5px solid var(--line); border-radius: 16px;
-  padding: 0 16px; height: 70px; transition: border-color .15s, box-shadow .15s;
+  padding: 0 16px; height: 68px; transition: border-color .15s;
 }
-.dp-amount:focus-within { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(22,119,255,.14); }
+.dp-amount:focus-within { border-color: var(--blue2); }
 .dp-amount input {
-  flex: 1; min-width: 0; background: transparent; border: 0; outline: none;
+  flex: 1; min-width: 0; background: transparent; border: 0; border-radius: 0; padding: 0;
   color: var(--text); font-size: 26px; font-weight: 700; font-family: inherit;
 }
-.dp-amount input::placeholder { color: #51627f; font-weight: 400; font-size: 16px; }
+.dp-amount input::placeholder { color: #50617d; font-weight: 400; font-size: 16px; }
 .dp-amount em {
-  font-style: normal; font-size: 14px; font-weight: 700; color: var(--blue2);
-  background: rgba(22,119,255,.12); padding: 6px 12px; border-radius: 999px; flex-shrink: 0;
+  font-style: normal; font-size: 13px; font-weight: 700; letter-spacing: .4px; color: #cfe2ff;
+  background: rgba(255,255,255,.06); border: 1px solid var(--line2);
+  padding: 6px 12px; border-radius: 999px; flex-shrink: 0;
 }
 .dp-hint { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
 
-/* buttons */
+/* premium buttons */
 .dp-primary {
-  width: 100%; height: 56px; border: 0; border-radius: 16px; cursor: pointer;
-  background: linear-gradient(135deg, #1677ff, #3d93ff); color: #fff;
-  font-size: 17px; font-weight: 700; box-shadow: 0 10px 24px rgba(22,119,255,.32);
+  position: relative; overflow: hidden; isolation: isolate;
+  width: 100%; height: 60px; border: 0; border-radius: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  background: linear-gradient(135deg, #3d90ff 0%, #1a6bff 45%, #1347d6 100%);
+  color: #fff; font-size: 17px; font-weight: 700; letter-spacing: .4px;
+  box-shadow:
+    0 14px 30px rgba(26,107,255,.42),
+    0 2px 0 rgba(255,255,255,.22) inset,
+    0 -3px 0 rgba(0,0,0,.18) inset;
+  transition: transform .12s, box-shadow .15s, filter .15s;
 }
-.dp-primary:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+.dp-primary svg { width: 22px; height: 22px; transition: transform .15s; }
+.dp-primary:hover svg { transform: translateX(3px); }
+.dp-primary:active { transform: translateY(1px) scale(.992); box-shadow: 0 8px 18px rgba(26,107,255,.4), 0 2px 0 rgba(255,255,255,.2) inset; }
+.dp-primary::before {
+  content: ""; position: absolute; inset: 0 0 50% 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,0));
+}
+.dp-primary::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 60px; left: -90px; z-index: -1;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.32), transparent);
+  transform: skewX(-18deg); animation: dpSheen 3.6s ease-in-out infinite;
+}
+@keyframes dpSheen { 0%, 55% { left: -90px; } 100% { left: 120%; } }
+.dp-primary:disabled { filter: grayscale(.55) brightness(.75); cursor: not-allowed; box-shadow: none; }
+.dp-primary:disabled::after { animation: none; }
+@media (prefers-reduced-motion: reduce) { .dp-primary::after { animation: none; } }
 
 /* summary strip */
 .dp-sum {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  background: linear-gradient(180deg, #112038, #0d192b); border: 1px solid var(--line); border-radius: 18px;
   padding: 12px 14px; margin-bottom: 16px;
 }
 .dp-sum-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .dp-sum b { display: block; font-size: 17px; }
 .dp-sum small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-.dp-link { border: 0; background: transparent; color: var(--blue2); font-size: 14px; font-weight: 700; cursor: pointer; padding: 8px 4px; }
+.dp-link {
+  border: 1px solid var(--line2); background: rgba(255,255,255,.04); color: var(--blue2);
+  font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 14px; border-radius: 999px;
+}
 
 /* network */
-.dp-nets { display: flex; gap: 8px; }
+.dp-nets { display: flex; gap: 6px; padding: 5px; background: var(--panel2); border: 1px solid var(--line); border-radius: 16px; }
 .dp-net {
-  flex: 1; height: 50px; border-radius: 14px; cursor: pointer;
-  background: var(--panel2); border: 1.5px solid var(--line); color: var(--text);
-  font-size: 15px; font-weight: 600;
+  flex: 1; height: 46px; border-radius: 12px; cursor: pointer; border: 0;
+  background: transparent; color: var(--muted); font-size: 15px; font-weight: 700; transition: all .15s;
 }
-.dp-net.on { background: var(--blue); border-color: var(--blue); }
+.dp-net.on { background: linear-gradient(135deg, #3b8bff, #1457e8); color: #fff; box-shadow: 0 6px 16px rgba(26,115,255,.38); }
 
 /* pay details */
 .dp-pay { text-align: center; }
 .dp-qr {
   width: 100%; max-width: 232px; aspect-ratio: 1 / 1; margin: 4px auto 0;
-  background: #fff; border-radius: 18px; padding: 10px; overflow: hidden;
-  box-shadow: 0 12px 30px rgba(0,0,0,.35);
+  background: #fff; border-radius: 20px; padding: 10px; overflow: hidden;
+  box-shadow: 0 14px 34px rgba(0,0,0,.4), 0 0 0 6px rgba(255,255,255,.04);
 }
 .dp-qr img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .dp-lbl { margin-top: 20px; font-size: 13px; color: var(--muted); font-weight: 600; text-align: start; }
 .dp-addr {
   margin-top: 8px; display: flex; align-items: center; gap: 10px; text-align: start;
-  background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 12px 12px 14px;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 10px 10px 14px;
 }
 .dp-addr span {
   flex: 1; min-width: 0; word-break: break-all; direction: ltr;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5;
 }
 .dp-copy {
-  flex-shrink: 0; border: 0; cursor: pointer; padding: 10px 16px; border-radius: 10px;
-  background: var(--blue); color: #fff; font-size: 13px; font-weight: 700;
+  flex-shrink: 0; border: 0; cursor: pointer; padding: 10px 16px; border-radius: 11px;
+  background: linear-gradient(135deg, #3b8bff, #1457e8); color: #fff; font-size: 13px; font-weight: 700;
+  box-shadow: 0 6px 14px rgba(26,115,255,.3);
 }
-.dp-copy.done { background: var(--green); color: #052a1d; }
+.dp-copy.done { background: linear-gradient(135deg, #3fe0a2, #1fb67a); color: #052a1d; box-shadow: none; }
 .dp-warn {
   margin-top: 14px; padding: 12px 14px; border-radius: 12px; text-align: start;
-  background: rgba(245,185,66,.09); border: 1px solid rgba(245,185,66,.28);
+  background: rgba(245,185,66,.08); border: 1px solid rgba(245,185,66,.26);
   color: var(--amber); font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
 }
 
@@ -329,7 +370,7 @@ const CSS = `
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   color: var(--muted); font-size: 13px; transition: border-color .15s;
 }
-.dp-drop:hover { border-color: var(--blue); }
+.dp-drop:hover { border-color: var(--blue2); }
 .dp-drop svg { width: 34px; height: 34px; }
 .dp-drop img { width: 100%; max-height: 280px; object-fit: contain; display: block; background: #000; }
 .dp-rm {
@@ -337,12 +378,13 @@ const CSS = `
   border-radius: 50%; background: rgba(0,0,0,.7); color: #fff; font-size: 13px; cursor: pointer;
 }
 .dp-in {
-  width: 100%; height: 54px; background: var(--panel2); border: 1.5px solid var(--line); border-radius: 14px;
-  color: var(--text); font-size: 15px; padding: 0 14px; outline: none; font-family: inherit;
-  transition: border-color .15s, box-shadow .15s;
+  display: block; width: 100%; height: 54px; background: var(--panel2);
+  border: 1.5px solid var(--line); border-radius: 14px;
+  color: var(--text); font-size: 15px; padding: 0 14px; font-family: inherit;
+  transition: border-color .15s;
 }
-.dp-in::placeholder { color: #51627f; }
-.dp-in:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(22,119,255,.14); }
+.dp-in::placeholder { color: #50617d; }
+.dp-in:focus { border-color: var(--blue2); }
 
 .dp-msg { margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
 .dp-msg.ok { background: rgba(46,204,143,.12); color: var(--green); border: 1px solid rgba(46,204,143,.3); }
@@ -351,10 +393,10 @@ const CSS = `
 .dp-center { text-align: center; color: var(--muted); padding: 60px 10px; font-size: 15px; }
 
 /* support sheet */
-.dp-ov { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; }
+.dp-ov { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.62); display: flex; align-items: flex-end; justify-content: center; }
 .dp-sheet {
-  width: 100%; max-width: 640px; background: var(--panel);
-  border-radius: 24px 24px 0 0; padding: 18px 20px 28px; animation: dpUp .2s ease-out;
+  width: 100%; max-width: 640px; background: #0e1a2c;
+  border-radius: 26px 26px 0 0; padding: 18px 20px 28px; animation: dpUp .2s ease-out;
 }
 @keyframes dpUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .dp-sheet { animation: none; } }
@@ -377,6 +419,8 @@ const Svg = ({ children, ...p }) => (
 const IcBack = () => <Svg><polyline points="15 5 8 12 15 19" /></Svg>;
 const IcRight = () => <Svg><polyline points="9 5 16 12 9 19" /></Svg>;
 const IcCheck = () => <Svg><polyline points="5 12.5 10 17.5 19 7.5" /></Svg>;
+const IcArrow = () => <Svg><line x1="5" y1="12" x2="19" y2="12" /><polyline points="13 6 19 12 13 18" /></Svg>;
+const IcLock = () => <Svg><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>;
 const IcClose = () => <Svg><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></Svg>;
 const IcHeadset = () => (
   <svg viewBox="0 0 24 24" fill="#2bb4ff">
@@ -430,7 +474,14 @@ export default function Deposit({ W, go }) {
     (async () => {
       try {
         const list = toList(await api("/deposit/methods")).filter((m) => m.method_type === "crypto");
-        if (alive) setMethods(list);
+        if (!alive) return;
+        setMethods(list);
+        const startCoin = list.some((m) => m.coin === "USDT") ? "USDT" : (list[0] && list[0].coin) || "";
+        if (startCoin) {
+          setCoin(startCoin);
+          const pm = preferNet(list.filter((m) => m.coin === startCoin));
+          setMethodId(pm ? pm.id : null);
+        }
       } catch (e) {
         if (alive) say(errText(e));
       } finally {
@@ -471,7 +522,8 @@ export default function Deposit({ W, go }) {
     clearMsg();
     setCopied(false);
     const list = methods.filter((m) => m.coin === c);
-    setMethodId(list.length === 1 ? list[0].id : null);   // একটাই নেটওয়ার্ক হলে অটো সিলেক্ট
+    const pm = preferNet(list);                           // USDT -> TRC20 অটো
+    setMethodId(pm ? pm.id : null);
   };
 
   const pickNet = (id) => {
@@ -638,7 +690,7 @@ export default function Deposit({ W, go }) {
                 </div>
 
                 <button className="dp-primary" onClick={next} disabled={!coin || !(a > 0)}>
-                  {L("dpNext", "Next")}
+                  <span>{L("dpNext", "Next")}</span><IcArrow />
                 </button>
               </>
             )}
@@ -728,7 +780,7 @@ export default function Deposit({ W, go }) {
                       {msg.text && !msg.ok && <div className="dp-msg bad">{msg.text}</div>}
 
                       <button className="dp-primary" style={{ marginTop: 20 }} onClick={submit} disabled={busy}>
-                        {busy ? t("dpSubmitting") : t("dpSubmit")}
+                        {busy ? <span>{t("dpSubmitting")}</span> : <><IcLock /><span>{t("dpSubmit")}</span></>}
                       </button>
                     </div>
                   </>
