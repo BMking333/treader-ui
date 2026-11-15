@@ -1,13 +1,19 @@
-import React, { useState } from "react";
-import { useT, Coin, COINS, CUP } from "./Home";
+import React, { useState, useEffect } from "react";
+import { useT, api, Coin, COINS, CUP } from "./Home";
 
 /* =====================================================================
    src/pages/Assets.jsx — Assets (wallet) page
    Props: P (prices), W (wallet), go (page navigation)
    W = { w: {COIN: available}, fz: {COIN: frozen}, total, reload, guest, needLogin }
+   Accounts: GET /wallet/accounts -> { options: {COIN:{available,frozen}}, funds: {COIN:{available}} }
    ===================================================================== */
 
-const num = (v) => (typeof v === "number" && isFinite(v) ? v : 0);
+const ACCOUNTS_PATH = "/wallet/accounts";
+
+const num = (v) => {
+  const n = typeof v === "string" ? parseFloat(v) : v;
+  return typeof n === "number" && isFinite(n) ? n : 0;
+};
 
 const fmtAmt = (v) => {
   const n = num(v);
@@ -30,6 +36,10 @@ const CSS = `
 .cx-as-act{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
 .cx-as-act button{height:44px;border-radius:10px;background:rgba(255,255,255,.2);color:#fff!important;font-size:16px;font-weight:600;text-align:center}
 .cx-as-act button:active{background:rgba(255,255,255,.32)}
+.cx-as-tabs{display:flex;gap:8px;padding:0 12px 10px}
+.cx-as-tabs button{flex:1;height:38px;border-radius:10px;background:#fff;font-size:14px;font-weight:600;color:#6b7183!important}
+.cx-as-tabs button.on{background:#1a82d6;color:#fff!important}
+.cx-as-tabs button small{display:block;font-size:11px;font-weight:400;opacity:.85}
 .cx-as-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 8px;font-size:15px;color:#6b7183}
 .cx-as-bar label{display:flex;align-items:center;gap:8px;cursor:pointer}
 .cx-as-bar input{width:18px;height:18px;accent-color:#1a82d6}
@@ -50,7 +60,8 @@ const CSS = `
 .cx-as-guest button{padding:12px 34px;border-radius:12px;background:#1a82d6!important;color:#fff!important;font-size:16px;font-weight:600}
 
 .cx.dark .cx-as{background:#0b1424;color:#e8ecf3}
-.cx.dark .cx-as-top,.cx.dark .cx-as-c,.cx.dark .cx-as-guest{background:#17263d;border-color:#22304a}
+.cx.dark .cx-as-top,.cx.dark .cx-as-c,.cx.dark .cx-as-guest,.cx.dark .cx-as-tabs button{background:#17263d;border-color:#22304a}
+.cx.dark .cx-as-tabs button.on{background:#1a82d6}
 .cx.dark .cx-as-bar,.cx.dark .cx-as-guest p{color:#9aa6bb}
 .cx.dark .cx-as-g span small,.cx.dark .cx-as-h b i{color:#8d98ad!important}
 `;
@@ -64,22 +75,54 @@ export default function Assets({ P, W, go }) {
   };
 
   const [hideZero, setHideZero] = useState(false);
+  const [tab, setTab] = useState("all"); /* all | options | funds */
+  const [accs, setAccs] = useState(null); /* null = এখনো লোড হয়নি */
 
-  const w = (W && W.w) || {};
-  const fz = (W && W.fz) || {};
-  const priceOf = (c) => (c === "USDT" ? 1 : num(P && P[c] && P[c].price));
+  const loadAccs = async () => {
+    try {
+      const r = await api(ACCOUNTS_PATH);
+      setAccs({ options: (r && r.options) || {}, funds: (r && r.funds) || {} });
+    } catch (_) {}
+  };
+
+  /* প্রথমবার এবং W.w বদলালে (reload/transfer-এর পর) আবার আনা */
+  useEffect(() => {
+    if (!(W && W.guest)) loadAccs();
+  }, [W && W.w]);
+
+  const refresh = async () => {
+    if (W && W.reload) await W.reload();
+    await loadAccs();
+  };
+
+  /* Options: accs থেকে, না এলে W থেকে। Funds: শুধু accs থেকে */
+  const optA = (c) => num(accs ? accs.options[c] && accs.options[c].available : W && W.w && W.w[c]);
+  const optF = (c) => num(accs ? accs.options[c] && accs.options[c].frozen : W && W.fz && W.fz[c]);
+  const funA = (c) => num(accs && accs.funds[c] && accs.funds[c].available);
+
+  const priceOf = (c) => (c === "USDT" || c === "USDC" ? 1 : num(P && P[c] && P[c].price));
 
   const coins = ["USDT", ...COINS.filter((c) => c !== "USDT")];
+
+  const calc = (c) => {
+    let a = 0, f = 0;
+    if (tab === "options") { a = optA(c); f = optF(c); }
+    else if (tab === "funds") { a = funA(c); }
+    else { a = optA(c) + funA(c); f = optF(c); }
+    return { c, a, f, usd: (a + f) * priceOf(c) };
+  };
+
   const rows = coins
-    .map((c) => {
-      const a = num(w[c]), f = num(fz[c]);
-      return { c, a, f, usd: (a + f) * priceOf(c) };
-    })
+    .map(calc)
     .filter((r) => !hideZero || r.a + r.f > 0)
     .sort((x, y) => y.usd - x.usd || (x.c === "USDT" ? -1 : 0));
 
-  const computedTotal = coins.reduce((s, c) => s + (num(w[c]) + num(fz[c])) * priceOf(c), 0);
-  const total = W && typeof W.total === "number" ? W.total : computedTotal;
+  /* মোট হিসাব (Options + Funds), প্রতিটি tab-এর জন্য আলাদা */
+  const sumOf = (fn) => coins.reduce((s, c) => s + fn(c) * priceOf(c), 0);
+  const totOptions = sumOf((c) => optA(c) + optF(c));
+  const totFunds = sumOf(funA);
+  const totAll = totOptions + totFunds;
+  const total = tab === "options" ? totOptions : tab === "funds" ? totFunds : totAll;
 
   const toPage = (p) => { if (typeof go === "function") go(p); };
 
@@ -89,7 +132,7 @@ export default function Assets({ P, W, go }) {
 
       <div className="cx-as-top">
         <h1>{tt("assets", "Assets")}</h1>
-        {W && !W.guest && <button type="button" onClick={() => W.reload && W.reload()}>↻</button>}
+        {W && !W.guest && <button type="button" onClick={refresh}>↻</button>}
       </div>
 
       {W && W.guest ? (
@@ -109,6 +152,18 @@ export default function Assets({ P, W, go }) {
               <button type="button" onClick={() => toPage("changemoney")}>{tt("transfer", "Transfer")}</button>
               <button type="button" onClick={() => toPage("exchangeb")}>{tt("exchange", "Exchange")}</button>
             </div>
+          </div>
+
+          <div className="cx-as-tabs">
+            <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>
+              {tt("all", "All")}<small>{fmtUsd(totAll)}</small>
+            </button>
+            <button type="button" className={tab === "options" ? "on" : ""} onClick={() => setTab("options")}>
+              {tt("optionsAcc", "Options")}<small>{fmtUsd(totOptions)}</small>
+            </button>
+            <button type="button" className={tab === "funds" ? "on" : ""} onClick={() => setTab("funds")}>
+              {tt("fundsAcc", "Funds")}<small>{fmtUsd(totFunds)}</small>
+            </button>
           </div>
 
           <div className="cx-as-bar">
