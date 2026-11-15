@@ -1,21 +1,6 @@
-import React, { useState, useRef, useEffect, useMemo, useContext } from "react";
-import { useT, api, LangCtx } from "./Home";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useT, api } from "./Home";
 
-/* =====================================================================
-   src/pages/depsoted.jsx — Deposit পেজ + shared (NETS, Chips, TxList)
-
-   Flow:
-     ডিফল্ট: USDT + TRC20 আগে থেকেই সিলেক্ট থাকে, Minimum deposit দেখায়
-     থিম: App-এর .cx.dark ক্লাস অনুযায়ী Light / Dark মোড অটো বদলায়
-     ভাষা: t("key") আগে; না থাকলে নিচের EXTRA টেবিল; তাও না থাকলে ইংরেজি
-     Step 1 -> Coin + Amount সিলেক্ট -> Next
-     Step 2 -> (TRC20 অটো) Address/QR দেখায় -> Screenshot + TxID দিয়ে Submit
-
-   Backend:
-     GET  /deposit/methods -> Admin-এর তৈরি Active payment methods
-     POST /deposit         -> { payment_method_id, amount, txid, sender_info, proof_url }
-   Deposit approve হলে তবেই Wallet-এ Coin যোগ হয়।
-   ===================================================================== */
 
 export const NETS = { USDT: ["TRC20", "ERC20"], USDC: ["ERC20"], ETH: ["ERC20"], BTC: ["BTC"] };
 
@@ -24,15 +9,6 @@ const SUPPORT = [
   { name: "Customer service-1", url: "https://t.me/Michaelgwebb" },
   { name: "Customer service-2", url: "https://t.me/Michaelgwebb1" },
 ];
-
-// i18n.jsx-এ কী না থাকলে এই লোকাল অনুবাদ ব্যবহার হয় (ভাষার প্রথম ২ অক্ষর দিয়ে মেলে)
-const EXTRA = {
-  bn: { dpCurrency: "বর্তমান মুদ্রা", dpPickCoin: "যে কয়েন পাঠাবেন সেটি বেছে নিন।", dpEnterAmt: "জমার পরিমাণ", dpEnterAmtSub: "আপনি যত জমা করতে চান তা লিখুন।", dpQtyPh: "পরিমাণ লিখুন", dpNext: "পরবর্তী", dpEdit: "এডিট", dpNetwork: "নেটওয়ার্ক", dpPickNet: "যে নেটওয়ার্কে পাঠাবেন সেটি বেছে নিন।", dpAddr: "ডিপোজিট ঠিকানা", dpVoucher: "পেমেন্ট ভাউচার", dpUpload: "স্ক্রিনশট আপলোড করুন", dpTxid: "TxID", dpTxidPh: "ট্রানজেকশন আইডি লিখুন", dpSupport: "কাস্টমার সার্ভিস", dpStepA: "কয়েন ও পরিমাণ", dpStepB: "পেমেন্ট", dpMinDeposit: "সর্বনিম্ন ডিপোজিট" },
-  hi: { dpCurrency: "मौजूदा मुद्रा", dpPickCoin: "जो कॉइन भेजेंगे उसे चुनें।", dpEnterAmt: "जमा राशि", dpEnterAmtSub: "जितना जमा करना है वह दर्ज करें।", dpQtyPh: "मात्रा दर्ज करें", dpNext: "आगे", dpEdit: "बदलें", dpNetwork: "नेटवर्क", dpPickNet: "जिस नेटवर्क से भेजेंगे उसे चुनें।", dpAddr: "डिपॉज़िट पता", dpVoucher: "भुगतान वाउचर", dpUpload: "स्क्रीनशॉट अपलोड करें", dpTxid: "TxID", dpTxidPh: "ट्रांज़ैक्शन आईडी दर्ज करें", dpSupport: "कस्टमर सर्विस", dpStepA: "कॉइन और राशि", dpStepB: "भुगतान", dpMinDeposit: "न्यूनतम डिपॉज़िट" },
-  ar: { dpCurrency: "العملة الحالية", dpPickCoin: "اختر العملة التي سترسلها.", dpEnterAmt: "مبلغ الإيداع", dpEnterAmtSub: "أدخل المبلغ الذي تريد إيداعه.", dpQtyPh: "الرجاء إدخال الكمية", dpNext: "التالي", dpEdit: "تعديل", dpNetwork: "الشبكة", dpPickNet: "اختر الشبكة التي سترسل عليها.", dpAddr: "عنوان الإيداع", dpVoucher: "إيصال الدفع", dpUpload: "رفع لقطة الشاشة", dpTxid: "معرّف المعاملة", dpTxidPh: "أدخل معرّف المعاملة", dpSupport: "خدمة العملاء", dpStepA: "العملة والمبلغ", dpStepB: "الدفع", dpMinDeposit: "الحد الأدنى للإيداع" },
-  zh: { dpCurrency: "当前币种", dpPickCoin: "请选择您要转账的币种。", dpEnterAmt: "充值数量", dpEnterAmtSub: "请输入您要充值的数量。", dpQtyPh: "请输入数量", dpNext: "下一步", dpEdit: "修改", dpNetwork: "网络", dpPickNet: "请选择转账网络。", dpAddr: "充值地址", dpVoucher: "付款凭证", dpUpload: "上传截图", dpTxid: "交易ID", dpTxidPh: "请输入交易ID", dpSupport: "客服", dpStepA: "币种与数量", dpStepB: "付款", dpMinDeposit: "最低充值" },
-  es: { dpCurrency: "Moneda actual", dpPickCoin: "Elige la moneda que enviarás.", dpEnterAmt: "Monto del depósito", dpEnterAmtSub: "Ingresa el monto que deseas depositar.", dpQtyPh: "Ingresa la cantidad", dpNext: "Siguiente", dpEdit: "Editar", dpNetwork: "Red", dpPickNet: "Selecciona la red de envío.", dpAddr: "Dirección de depósito", dpVoucher: "Comprobante de pago", dpUpload: "Subir captura", dpTxid: "TxID", dpTxidPh: "Ingresa el ID de transacción", dpSupport: "Servicio al cliente", dpStepA: "Moneda y monto", dpStepB: "Pago", dpMinDeposit: "Depósito mínimo" },
-};
 
 // Backend error code -> i18n key
 const ERR_KEY = {
@@ -508,13 +484,10 @@ const IcCamera = () => (
 
 export default function Deposit({ W, go }) {
   const t = useT();
-  const ctx = useContext(LangCtx) || {};
-  const lc = String(ctx.lang || "en").slice(0, 2).toLowerCase();
-  // 1) i18n.jsx  2) লোকাল EXTRA  3) ইংরেজি fallback
+  // সব অনুবাদ i18n.jsx থেকে আসে। কী না পাওয়া গেলে ইংরেজি fb দেখায়।
   const L = (key, fb) => {
     const s = t(key);
-    if (s && s !== key) return s;
-    return (EXTRA[lc] && EXTRA[lc][key]) || fb;
+    return s && s !== key ? s : fb;
   };
 
   const [methods, setMethods] = useState([]);
