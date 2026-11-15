@@ -10,6 +10,12 @@ const qs = (o) => {
 };
 const isLong = (d) => d === "long";
 
+/* ট্রেডের নিয়ম: proportional -> ×leverage, fixed -> yield% */
+const ruleOf = (x) => {
+  if (x.mode === "proportional") return "×" + Number(x.leverage || 1);
+  return x.yield_rate != null ? Math.round(x.yield_rate * 100) + "%" : "--";
+};
+
 const CSS = `
 .ao{font-family:Inter,Arial,sans-serif;color:#1a1a1a;background:#f3f5fa;min-height:100vh;padding:16px;box-sizing:border-box}
 .ao *{box-sizing:border-box}
@@ -35,7 +41,7 @@ const CSS = `
 .ao-chip.off{border-color:#d84d5a;background:#fdecee;color:#c8323f;text-decoration:line-through}
 .ao-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
 .ao-row label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6b7183}
-.ao-row input,.ao-row select{height:34px;padding:0 10px;border:1px solid #cfd3d9;border-radius:8px;min-width:110px;font:inherit}
+.ao-row input,.ao-row select{height:34px;padding:0 10px;border:1px solid #cfd3d9;border-radius:8px;min-width:110px;font:inherit;background:#fff}
 .ao-tabs{display:flex;gap:8px;margin-bottom:10px}
 .ao-tabs button{height:36px;padding:0 18px;border-radius:8px;border:1px solid #cfd3d9;background:#fff}
 .ao-tabs button.on{background:#1a82d6;border-color:#1a82d6;color:#fff}
@@ -47,12 +53,24 @@ const CSS = `
 .ao-tag{padding:2px 8px;border-radius:4px;color:#fff;font-size:12px}
 .ao-err{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#fdecee;color:#c8323f;font-size:14px}
 .ao-none{text-align:center;color:#9aa0ad;padding:30px}
+.ao-note{margin-top:8px;font-size:12px;color:#8a94a6;line-height:1.5}
 `;
+
+const EMPTY_FORM = { yield: "", qty_min: "", qty_max: "", max_open: "", mode: "proportional", leverage: "1" };
+
+const formFrom = (c) => ({
+  yield: String(c.yield),
+  qty_min: String(c.qty_min),
+  qty_max: String(c.qty_max),
+  max_open: String(c.max_open),
+  mode: c.mode || "proportional",
+  leverage: String(c.leverage != null ? c.leverage : 1),
+});
 
 export default function AdminOptions({ api }) {
   const [sum, setSum] = useState(null);
   const [cfg, setCfg] = useState(null);
-  const [form, setForm] = useState({ yield: "", qty_min: "", qty_max: "", max_open: "" });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [tab, setTab] = useState("pos");
   const [rows, setRows] = useState([]);
   const [users, setUsers] = useState([]);
@@ -70,7 +88,7 @@ export default function AdminOptions({ api }) {
     try {
       const c = await api("/admin/options/settings");
       setCfg(c);
-      setForm({ yield: String(c.yield), qty_min: String(c.qty_min), qty_max: String(c.qty_max), max_open: String(c.max_open) });
+      setForm(formFrom(c));
     } catch (e) { setErr((e && e.message) || "Failed"); }
   }, [api]);
   const loadRows = useCallback(async () => {
@@ -93,7 +111,7 @@ export default function AdminOptions({ api }) {
   const saveCfg = (changes) => run(async () => {
     const c = await api("/admin/options/settings", { method: "PUT", body: changes });
     setCfg(c);
-    setForm({ yield: String(c.yield), qty_min: String(c.qty_min), qty_max: String(c.qty_max), max_open: String(c.max_open) });
+    setForm(formFrom(c));
   });
 
   const toggleMaster = () => {
@@ -109,7 +127,12 @@ export default function AdminOptions({ api }) {
   };
 
   const saveLimits = () => saveCfg({
-    yield: form.yield, qty_min: form.qty_min, qty_max: form.qty_max, max_open: parseInt(form.max_open || "0", 10),
+    yield: form.yield,
+    qty_min: form.qty_min,
+    qty_max: form.qty_max,
+    max_open: parseInt(form.max_open || "0", 10),
+    mode: form.mode,
+    leverage: form.leverage,
   });
 
   const cancelOne = (x) => {
@@ -140,6 +163,7 @@ export default function AdminOptions({ api }) {
   };
 
   const platPnl = sum ? sum.today_platform_pnl : 0;
+  const isProp = form.mode === "proportional";
 
   return (
     <div className="ao">
@@ -195,15 +219,31 @@ export default function AdminOptions({ api }) {
               <button key={c} type="button" disabled={busy} className={"ao-chip" + (cfg.disabled_syms.includes(c) ? " off" : "")} onClick={() => toggleCoin(c)}>{c}</button>
             ))}
           </div>
-          <h3>Limits</h3>
+
+          <h3>Trading rules &amp; limits</h3>
           <div className="ao-row">
-            <label>Yield (0.85 = 85%)<input value={form.yield} onChange={(e) => setForm({ ...form, yield: e.target.value })} /></label>
+            <label>Mode
+              <select value={form.mode} onChange={(e) => setForm({ ...form, mode: e.target.value })}>
+                <option value="proportional">Proportional (real P&amp;L)</option>
+                <option value="fixed">Fixed yield (all-or-nothing)</option>
+              </select>
+            </label>
+            <label>Leverage (×) {isProp ? "" : "· proportional only"}
+              <input value={form.leverage} disabled={!isProp} onChange={(e) => setForm({ ...form, leverage: e.target.value })} />
+            </label>
+            <label>Yield (0.85 = 85%) {isProp ? "· fixed only" : ""}
+              <input value={form.yield} disabled={isProp} onChange={(e) => setForm({ ...form, yield: e.target.value })} />
+            </label>
             <label>Min stake<input value={form.qty_min} onChange={(e) => setForm({ ...form, qty_min: e.target.value })} /></label>
             <label>Max stake<input value={form.qty_max} onChange={(e) => setForm({ ...form, qty_max: e.target.value })} /></label>
             <label>Max open / user (0 = ∞)<input value={form.max_open} onChange={(e) => setForm({ ...form, max_open: e.target.value })} /></label>
             <button type="button" className="ao-btn pri" disabled={busy} onClick={saveLimits}>Save</button>
           </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: "#8a94a6" }}>New yield applies to new trades only. Open trades keep their original yield.</div>
+          <div className="ao-note">
+            Proportional: profit/loss = stake × price change % × leverage (loss never exceeds the stake; equal price = stake back).
+            Fixed: win = stake × yield, loss = whole stake.<br />
+            Changes apply to new trades only. Open trades keep the rules they were opened with.
+          </div>
         </div>
       )}
 
@@ -243,10 +283,13 @@ export default function AdminOptions({ api }) {
         <div className="ao-tw">
           <table>
             <thead>
-              <tr><th>ID</th><th>User</th><th>Pair</th><th>Side</th><th>Stake</th><th>Open</th><th>Close</th><th>P&amp;L (user)</th><th>Yield</th><th>Time</th><th>Status</th><th /></tr>
+              <tr>
+                <th>ID</th><th>User</th><th>Pair</th><th>Side</th><th>Stake</th><th>Open</th><th>Close</th>
+                <th>P&amp;L (user)</th><th>Live P&amp;L</th><th>Rule</th><th>Time</th><th>Status</th><th />
+              </tr>
             </thead>
             <tbody>
-              {rows.length === 0 && <tr><td colSpan={12} className="ao-none">No trades</td></tr>}
+              {rows.length === 0 && <tr><td colSpan={13} className="ao-none">No trades</td></tr>}
               {rows.map((x) => (
                 <tr key={x.id}>
                   <td>{x.id}</td>
@@ -257,7 +300,8 @@ export default function AdminOptions({ api }) {
                   <td>{x.open_price}</td>
                   <td>{x.close_price != null ? x.close_price : "--"}</td>
                   <td className={x.pnl > 0 ? "up" : x.pnl < 0 ? "dn" : ""}>{x.pnl != null ? n2(x.pnl) : "--"}</td>
-                  <td>{x.yield_rate != null ? Math.round(x.yield_rate * 100) + "%" : "--"}</td>
+                  <td className={x.floating_pnl > 0 ? "up" : x.floating_pnl < 0 ? "dn" : ""}>{x.floating_pnl != null ? n2(x.floating_pnl) : "--"}</td>
+                  <td>{ruleOf(x)}</td>
                   <td>{x.status === "open" ? "ends " + dt(x.end_at) : dt(x.end_at)}</td>
                   <td>{x.status}{x.admin_note ? <><br /><small style={{ color: "#8a94a6" }}>{x.admin_note}</small></> : null}</td>
                   <td>{x.status === "open" && <button type="button" className="ao-btn red sm" disabled={busy} onClick={() => cancelOne(x)}>Cancel</button>}</td>
@@ -296,4 +340,4 @@ export default function AdminOptions({ api }) {
       )}
     </div>
   );
-                           }
+                  }
