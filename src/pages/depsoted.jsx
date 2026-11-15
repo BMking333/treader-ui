@@ -1,11 +1,13 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
-import { useT, api } from "./Home";
+import React, { useState, useRef, useEffect, useMemo, useContext } from "react";
+import { useT, api, LangCtx } from "./Home";
 
 /* =====================================================================
    src/pages/depsoted.jsx — Deposit পেজ + shared (NETS, Chips, TxList)
 
    Flow:
-     ডিফল্ট: USDT + TRC20 আগে থেকেই সিলেক্ট থাকে
+     ডিফল্ট: USDT + TRC20 আগে থেকেই সিলেক্ট থাকে, Minimum deposit দেখায়
+     থিম: App-এর .cx.dark ক্লাস অনুযায়ী Light / Dark মোড অটো বদলায়
+     ভাষা: t("key") আগে; না থাকলে নিচের EXTRA টেবিল; তাও না থাকলে ইংরেজি
      Step 1 -> Coin + Amount সিলেক্ট -> Next
      Step 2 -> (TRC20 অটো) Address/QR দেখায় -> Screenshot + TxID দিয়ে Submit
 
@@ -22,6 +24,15 @@ const SUPPORT = [
   { name: "Customer service-1", url: "https://t.me/Michaelgwebb" },
   { name: "Customer service-2", url: "https://t.me/Michaelgwebb1" },
 ];
+
+// i18n.jsx-এ কী না থাকলে এই লোকাল অনুবাদ ব্যবহার হয় (ভাষার প্রথম ২ অক্ষর দিয়ে মেলে)
+const EXTRA = {
+  bn: { dpCurrency: "বর্তমান মুদ্রা", dpPickCoin: "যে কয়েন পাঠাবেন সেটি বেছে নিন।", dpEnterAmt: "জমার পরিমাণ", dpEnterAmtSub: "আপনি যত জমা করতে চান তা লিখুন।", dpQtyPh: "পরিমাণ লিখুন", dpNext: "পরবর্তী", dpEdit: "এডিট", dpNetwork: "নেটওয়ার্ক", dpPickNet: "যে নেটওয়ার্কে পাঠাবেন সেটি বেছে নিন।", dpAddr: "ডিপোজিট ঠিকানা", dpVoucher: "পেমেন্ট ভাউচার", dpUpload: "স্ক্রিনশট আপলোড করুন", dpTxid: "TxID", dpTxidPh: "ট্রানজেকশন আইডি লিখুন", dpSupport: "কাস্টমার সার্ভিস", dpStepA: "কয়েন ও পরিমাণ", dpStepB: "পেমেন্ট", dpMinDeposit: "সর্বনিম্ন ডিপোজিট" },
+  hi: { dpCurrency: "मौजूदा मुद्रा", dpPickCoin: "जो कॉइन भेजेंगे उसे चुनें।", dpEnterAmt: "जमा राशि", dpEnterAmtSub: "जितना जमा करना है वह दर्ज करें।", dpQtyPh: "मात्रा दर्ज करें", dpNext: "आगे", dpEdit: "बदलें", dpNetwork: "नेटवर्क", dpPickNet: "जिस नेटवर्क से भेजेंगे उसे चुनें।", dpAddr: "डिपॉज़िट पता", dpVoucher: "भुगतान वाउचर", dpUpload: "स्क्रीनशॉट अपलोड करें", dpTxid: "TxID", dpTxidPh: "ट्रांज़ैक्शन आईडी दर्ज करें", dpSupport: "कस्टमर सर्विस", dpStepA: "कॉइन और राशि", dpStepB: "भुगतान", dpMinDeposit: "न्यूनतम डिपॉज़िट" },
+  ar: { dpCurrency: "العملة الحالية", dpPickCoin: "اختر العملة التي سترسلها.", dpEnterAmt: "مبلغ الإيداع", dpEnterAmtSub: "أدخل المبلغ الذي تريد إيداعه.", dpQtyPh: "الرجاء إدخال الكمية", dpNext: "التالي", dpEdit: "تعديل", dpNetwork: "الشبكة", dpPickNet: "اختر الشبكة التي سترسل عليها.", dpAddr: "عنوان الإيداع", dpVoucher: "إيصال الدفع", dpUpload: "رفع لقطة الشاشة", dpTxid: "معرّف المعاملة", dpTxidPh: "أدخل معرّف المعاملة", dpSupport: "خدمة العملاء", dpStepA: "العملة والمبلغ", dpStepB: "الدفع", dpMinDeposit: "الحد الأدنى للإيداع" },
+  zh: { dpCurrency: "当前币种", dpPickCoin: "请选择您要转账的币种。", dpEnterAmt: "充值数量", dpEnterAmtSub: "请输入您要充值的数量。", dpQtyPh: "请输入数量", dpNext: "下一步", dpEdit: "修改", dpNetwork: "网络", dpPickNet: "请选择转账网络。", dpAddr: "充值地址", dpVoucher: "付款凭证", dpUpload: "上传截图", dpTxid: "交易ID", dpTxidPh: "请输入交易ID", dpSupport: "客服", dpStepA: "币种与数量", dpStepB: "付款", dpMinDeposit: "最低充值" },
+  es: { dpCurrency: "Moneda actual", dpPickCoin: "Elige la moneda que enviarás.", dpEnterAmt: "Monto del depósito", dpEnterAmtSub: "Ingresa el monto que deseas depositar.", dpQtyPh: "Ingresa la cantidad", dpNext: "Siguiente", dpEdit: "Editar", dpNetwork: "Red", dpPickNet: "Selecciona la red de envío.", dpAddr: "Dirección de depósito", dpVoucher: "Comprobante de pago", dpUpload: "Subir captura", dpTxid: "TxID", dpTxidPh: "Ingresa el ID de transacción", dpSupport: "Servicio al cliente", dpStepA: "Moneda y monto", dpStepB: "Pago", dpMinDeposit: "Depósito mínimo" },
+};
 
 // Backend error code -> i18n key
 const ERR_KEY = {
@@ -167,22 +178,38 @@ function CoinLogo({ coin, size = 40, url }) {
 /* ---------- styles ---------- */
 const CSS = `
 .dp, .dp * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+/* ---------- Light (ডিফল্ট) ---------- */
 .dp {
-  --bg: #070e1a;
-  --panel: #0e1a2c;
-  --panel2: #0a1424;
-  --line: #1a2b44;
-  --line2: #243955;
-  --text: #f3f7fd;
-  --muted: #8494ae;
+  --bg: #f1f4fa;
+  --panel: #ffffff;
+  --panel2: #f4f6fb;
+  --line: #e2e8f2;
+  --line2: #d3dcea;
+  --text: #0f1b2e;
+  --muted: #66758c;
+  --ph: #9aa7bb;
   --blue: #1a73ff;
-  --blue2: #4a9bff;
-  --green: #2ecc8f;
-  --red: #ff6b7a;
-  --amber: #f5b942;
+  --blue2: #1a6bea;
+  --green: #12a870;
+  --red: #e5484d;
+  --amber: #a86a00;
+  --warnbg: rgba(245,185,66,.14);
+  --warnline: rgba(214,150,20,.4);
+  --cardA: #ffffff;
+  --cardB: #f8faff;
+  --topbg: rgba(255,255,255,.9);
+  --chip: rgba(26,115,255,.08);
+  --chiptext: #1a5fd0;
+  --ghost: rgba(15,27,46,.04);
+  --shadow: 0 10px 28px rgba(30,60,110,.1);
+  --inset: rgba(255,255,255,.8);
+  --glow: rgba(26,115,255,.12);
+  --sheet: #ffffff;
+  --dash: #b9c6da;
+  color-scheme: light;
   background:
-    radial-gradient(900px 340px at 50% -140px, rgba(26,115,255,.22), transparent 70%),
-    radial-gradient(500px 300px at 100% 40%, rgba(74,155,255,.06), transparent 70%),
+    radial-gradient(900px 320px at 50% -140px, var(--glow), transparent 70%),
     var(--bg);
   color: var(--text);
   min-height: 100vh;
@@ -190,6 +217,37 @@ const CSS = `
   font-family: Inter, "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ---------- Dark (App-এর .cx.dark) ---------- */
+.cx.dark .dp {
+  --bg: #070e1a;
+  --panel: #0e1a2c;
+  --panel2: #0a1424;
+  --line: #1a2b44;
+  --line2: #243955;
+  --text: #f3f7fd;
+  --muted: #8494ae;
+  --ph: #50617d;
+  --blue2: #4a9bff;
+  --green: #2ecc8f;
+  --red: #ff6b7a;
+  --amber: #f5b942;
+  --warnbg: rgba(245,185,66,.08);
+  --warnline: rgba(245,185,66,.26);
+  --cardA: #112038;
+  --cardB: #0d192b;
+  --topbg: rgba(14,26,44,.9);
+  --chip: rgba(255,255,255,.06);
+  --chiptext: #cfe2ff;
+  --ghost: rgba(255,255,255,.04);
+  --shadow: 0 14px 34px rgba(0,0,0,.28);
+  --inset: rgba(255,255,255,.04);
+  --glow: rgba(26,115,255,.22);
+  --sheet: #0e1a2c;
+  --dash: #2f4468;
+  color-scheme: dark;
+}
+
 .dp button { font-family: inherit; outline: none; }
 .dp input, .dp input:focus, .dp input:focus-visible { outline: none; box-shadow: none; -webkit-appearance: none; appearance: none; }
 .dp input:-webkit-autofill {
@@ -203,15 +261,15 @@ const CSS = `
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
   height: 60px; padding: 0 12px;
-  background: rgba(14,26,44,.9); backdrop-filter: blur(12px);
+  background: var(--topbg); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
-.dp-top h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .3px; }
+.dp-top h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .3px; color: var(--text); }
 .dp-ibtn {
   width: 42px; height: 42px; border: 0; background: transparent; color: var(--text);
   cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 12px;
 }
-.dp-ibtn:active { background: rgba(255,255,255,.06); }
+.dp-ibtn:active { background: var(--ghost); }
 .dp-ibtn svg { width: 26px; height: 26px; }
 .cx[dir=rtl] .dp-ibtn.back { transform: scaleX(-1); }
 
@@ -234,12 +292,12 @@ const CSS = `
 /* cards */
 .dp-card {
   position: relative;
-  background: linear-gradient(180deg, #112038 0%, #0d192b 100%);
+  background: linear-gradient(180deg, var(--cardA) 0%, var(--cardB) 100%);
   border: 1px solid var(--line);
   border-radius: 22px; padding: 20px 18px 22px; margin-bottom: 16px;
-  box-shadow: 0 14px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);
+  box-shadow: var(--shadow), inset 0 1px 0 var(--inset);
 }
-.dp-h { margin: 0 0 4px; font-size: 17px; font-weight: 700; letter-spacing: .2px; }
+.dp-h { margin: 0 0 4px; font-size: 17px; font-weight: 700; letter-spacing: .2px; color: var(--text); }
 .dp-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
 
 /* coin grid */
@@ -251,7 +309,7 @@ const CSS = `
   transition: border-color .15s, background .15s, transform .12s;
 }
 .dp-coin:active { transform: scale(.98); }
-.dp-coin.on { border-color: #2f7fff; background: linear-gradient(135deg, rgba(26,115,255,.18), rgba(26,115,255,.06)); }
+.dp-coin.on { border-color: #2f7fff; background: linear-gradient(135deg, rgba(26,115,255,.16), rgba(26,115,255,.05)); }
 .dp-coin b { display: block; font-size: 16px; font-weight: 700; }
 .dp-coin small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
 .dp-tick {
@@ -260,7 +318,7 @@ const CSS = `
 }
 .dp-tick svg { width: 11px; height: 11px; color: #fff; stroke-width: 3.2; }
 
-/* amount field — কোনো ফোকাস গ্লো/বক্স নেই */
+/* amount field */
 .dp-amount {
   display: flex; align-items: center; gap: 10px;
   background: var(--panel2); border: 1.5px solid var(--line); border-radius: 16px;
@@ -271,13 +329,22 @@ const CSS = `
   flex: 1; min-width: 0; background: transparent; border: 0; border-radius: 0; padding: 0;
   color: var(--text); font-size: 26px; font-weight: 700; font-family: inherit;
 }
-.dp-amount input::placeholder { color: #50617d; font-weight: 400; font-size: 16px; }
+.dp-amount input::placeholder { color: var(--ph); font-weight: 400; font-size: 16px; }
 .dp-amount em {
-  font-style: normal; font-size: 13px; font-weight: 700; letter-spacing: .4px; color: #cfe2ff;
-  background: rgba(255,255,255,.06); border: 1px solid var(--line2);
+  font-style: normal; font-size: 13px; font-weight: 700; letter-spacing: .4px; color: var(--chiptext);
+  background: var(--chip); border: 1px solid var(--line2);
   padding: 6px 12px; border-radius: 999px; flex-shrink: 0;
 }
-.dp-hint { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+
+/* minimum deposit */
+.dp-min {
+  margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 11px 14px; border-radius: 14px; text-align: start;
+  background: rgba(46,204,143,.1); border: 1px solid rgba(46,204,143,.3);
+}
+.dp-min span { font-size: 13px; color: var(--muted); font-weight: 600; }
+.dp-min div { display: flex; gap: 6px 14px; flex-wrap: wrap; }
+.dp-min b { font-size: 14.5px; font-weight: 700; color: var(--green); }
 
 /* premium buttons */
 .dp-primary {
@@ -293,7 +360,9 @@ const CSS = `
   transition: transform .12s, box-shadow .15s, filter .15s;
 }
 .dp-primary svg { width: 22px; height: 22px; transition: transform .15s; }
+.cx[dir=rtl] .dp-primary svg { transform: scaleX(-1); }
 .dp-primary:hover svg { transform: translateX(3px); }
+.cx[dir=rtl] .dp-primary:hover svg { transform: scaleX(-1) translateX(3px); }
 .dp-primary:active { transform: translateY(1px) scale(.992); box-shadow: 0 8px 18px rgba(26,107,255,.4), 0 2px 0 rgba(255,255,255,.2) inset; }
 .dp-primary::before {
   content: ""; position: absolute; inset: 0 0 50% 0; z-index: -1;
@@ -305,21 +374,21 @@ const CSS = `
   transform: skewX(-18deg); animation: dpSheen 3.6s ease-in-out infinite;
 }
 @keyframes dpSheen { 0%, 55% { left: -90px; } 100% { left: 120%; } }
-.dp-primary:disabled { filter: grayscale(.55) brightness(.75); cursor: not-allowed; box-shadow: none; }
+.dp-primary:disabled { filter: grayscale(.55) brightness(.85); cursor: not-allowed; box-shadow: none; }
 .dp-primary:disabled::after { animation: none; }
 @media (prefers-reduced-motion: reduce) { .dp-primary::after { animation: none; } }
 
 /* summary strip */
 .dp-sum {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: linear-gradient(180deg, #112038, #0d192b); border: 1px solid var(--line); border-radius: 18px;
-  padding: 12px 14px; margin-bottom: 16px;
+  background: linear-gradient(180deg, var(--cardA), var(--cardB)); border: 1px solid var(--line); border-radius: 18px;
+  padding: 12px 14px; margin-bottom: 16px; box-shadow: var(--shadow);
 }
 .dp-sum-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .dp-sum b { display: block; font-size: 17px; }
 .dp-sum small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .dp-link {
-  border: 1px solid var(--line2); background: rgba(255,255,255,.04); color: var(--blue2);
+  border: 1px solid var(--line2); background: var(--ghost); color: var(--blue2);
   font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 14px; border-radius: 999px;
 }
 
@@ -327,7 +396,7 @@ const CSS = `
 .dp-nets { display: flex; gap: 6px; padding: 5px; background: var(--panel2); border: 1px solid var(--line); border-radius: 16px; }
 .dp-net {
   flex: 1; height: 46px; border-radius: 12px; cursor: pointer; border: 0;
-  background: transparent; color: var(--muted); font-size: 15px; font-weight: 700; transition: all .15s;
+  background: transparent; color: var(--muted); font-size: 15px; font-weight: 700; transition: all .15s; text-align: center;
 }
 .dp-net.on { background: linear-gradient(135deg, #3b8bff, #1457e8); color: #fff; box-shadow: 0 6px 16px rgba(26,115,255,.38); }
 
@@ -336,7 +405,8 @@ const CSS = `
 .dp-qr {
   width: 100%; max-width: 232px; aspect-ratio: 1 / 1; margin: 4px auto 0;
   background: #fff; border-radius: 20px; padding: 10px; overflow: hidden;
-  box-shadow: 0 14px 34px rgba(0,0,0,.4), 0 0 0 6px rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+  box-shadow: 0 14px 34px rgba(0,0,0,.18), 0 0 0 6px var(--ghost);
 }
 .dp-qr img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .dp-lbl { margin-top: 20px; font-size: 13px; color: var(--muted); font-weight: 600; text-align: start; }
@@ -344,19 +414,20 @@ const CSS = `
   margin-top: 8px; display: flex; align-items: center; gap: 10px; text-align: start;
   background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 10px 10px 14px;
 }
+.cx[dir=rtl] .dp-addr { padding: 10px 14px 10px 10px; }
 .dp-addr span {
-  flex: 1; min-width: 0; word-break: break-all; direction: ltr;
+  flex: 1; min-width: 0; word-break: break-all; direction: ltr; text-align: start;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5;
 }
 .dp-copy {
   flex-shrink: 0; border: 0; cursor: pointer; padding: 10px 16px; border-radius: 11px;
   background: linear-gradient(135deg, #3b8bff, #1457e8); color: #fff; font-size: 13px; font-weight: 700;
-  box-shadow: 0 6px 14px rgba(26,115,255,.3);
+  box-shadow: 0 6px 14px rgba(26,115,255,.3); text-align: center;
 }
 .dp-copy.done { background: linear-gradient(135deg, #3fe0a2, #1fb67a); color: #052a1d; box-shadow: none; }
 .dp-warn {
   margin-top: 14px; padding: 12px 14px; border-radius: 12px; text-align: start;
-  background: rgba(245,185,66,.08); border: 1px solid rgba(245,185,66,.26);
+  background: var(--warnbg); border: 1px solid var(--warnline);
   color: var(--amber); font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
 }
 
@@ -366,7 +437,7 @@ const CSS = `
 .dp-flbl { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
 .dp-drop {
   position: relative; cursor: pointer; width: 100%; min-height: 150px;
-  background: var(--panel2); border: 1.5px dashed #2f4468; border-radius: 16px; overflow: hidden;
+  background: var(--panel2); border: 1.5px dashed var(--dash); border-radius: 16px; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   color: var(--muted); font-size: 13px; transition: border-color .15s;
 }
@@ -375,7 +446,7 @@ const CSS = `
 .dp-drop img { width: 100%; max-height: 280px; object-fit: contain; display: block; background: #000; }
 .dp-rm {
   position: absolute; top: 8px; inset-inline-end: 8px; width: 30px; height: 30px; border: 0;
-  border-radius: 50%; background: rgba(0,0,0,.7); color: #fff; font-size: 13px; cursor: pointer;
+  border-radius: 50%; background: rgba(0,0,0,.7); color: #fff; font-size: 13px; cursor: pointer; text-align: center;
 }
 .dp-in {
   display: block; width: 100%; height: 54px; background: var(--panel2);
@@ -383,7 +454,7 @@ const CSS = `
   color: var(--text); font-size: 15px; padding: 0 14px; font-family: inherit;
   transition: border-color .15s;
 }
-.dp-in::placeholder { color: #50617d; }
+.dp-in::placeholder { color: var(--ph); }
 .dp-in:focus { border-color: var(--blue2); }
 
 .dp-msg { margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
@@ -393,9 +464,9 @@ const CSS = `
 .dp-center { text-align: center; color: var(--muted); padding: 60px 10px; font-size: 15px; }
 
 /* support sheet */
-.dp-ov { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.62); display: flex; align-items: flex-end; justify-content: center; }
+.dp-ov { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
 .dp-sheet {
-  width: 100%; max-width: 640px; background: #0e1a2c;
+  width: 100%; max-width: 640px; background: var(--sheet); color: var(--text);
   border-radius: 26px 26px 0 0; padding: 18px 20px 28px; animation: dpUp .2s ease-out;
 }
 @keyframes dpUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -437,10 +508,13 @@ const IcCamera = () => (
 
 export default function Deposit({ W, go }) {
   const t = useT();
-  // i18n key না থাকলে ইংরেজি fallback
+  const ctx = useContext(LangCtx) || {};
+  const lc = String(ctx.lang || "en").slice(0, 2).toLowerCase();
+  // 1) i18n.jsx  2) লোকাল EXTRA  3) ইংরেজি fallback
   const L = (key, fb) => {
     const s = t(key);
-    return s && s !== key ? s : fb;
+    if (s && s !== key) return s;
+    return (EXTRA[lc] && EXTRA[lc][key]) || fb;
   };
 
   const [methods, setMethods] = useState([]);
@@ -680,9 +754,16 @@ export default function Deposit({ W, go }) {
                     {coin && <em>{coin}</em>}
                   </div>
 
-                  {coin && ofCoin.length === 1 && (
-                    <div className="dp-hint">
-                      {t("dpMin")} {fmt(ofCoin[0].min_amount)} · {t("dpMax")} {fmt(ofCoin[0].max_amount)} {ofCoin[0].currency || coin}
+                  {coin && ofCoin.length > 0 && (
+                    <div className="dp-min">
+                      <span>{L("dpMinDeposit", "Minimum deposit")}</span>
+                      <div>
+                        {ofCoin.map((m) => (
+                          <b key={m.id}>
+                            {ofCoin.length > 1 && m.network ? m.network + ": " : ""}{fmt(m.min_amount)} {m.currency || m.coin}
+                          </b>
+                        ))}
+                      </div>
                     </div>
                   )}
 
@@ -726,6 +807,11 @@ export default function Deposit({ W, go }) {
                 {method && (
                   <>
                     <div className="dp-card dp-pay">
+                      <div className="dp-min" style={{ marginTop: 0, marginBottom: 16 }}>
+                        <span>{L("dpMinDeposit", "Minimum deposit")}</span>
+                        <div><b>{fmt(method.min_amount)} {method.currency || method.coin}</b></div>
+                      </div>
+
                       {qrSrc && <div className="dp-qr"><img src={qrSrc} alt="QR code" /></div>}
 
                       {method.address && (
