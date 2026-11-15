@@ -2,26 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries } from "lightweight-charts";
 import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN } from "./Home";
 
-/* =====================================================================
-   src/pages/options.jsx — Options (second contract) trading page
-   Props: P (prices), W (wallet), sym, setSym, pos, orders, dark
-   Design: light theme by default, NIGHT MODE when dark = true
-   - dark আসে Dashboard থেকে (সাইড মেনুর Night mode টগল)
-   - dark হলে: পেজ, চার্ট (ব্যাকগ্রাউন্ড/গ্রিড/টেক্সট), শিট, ড্রয়ার, পজিশন প্যানেল সব ডার্ক
-   - Header: ☰ BTC/USDT  ........  Positions [icon]
-   - Price + High / Low / 24H volume
-   - Chart toolbar: [D ⌄] [candle] [Indicators]
-   - Chart with OHLC legend, MA(9), separate volume pane
-   - Bottom bar (above nav): Quantity / Time / Buy Long / Sell Short
-   - Tap Quantity / Time -> bottom sheet (Transaction mode, Opening
-     quantity, Opening time, balance, yield, Buy Long / Sell Short)
-   - Tap pair -> left drawer "Spot trading / USDT" coin list
-
-   Chart status (Live / Loading / Reconnecting) and chart type
-   (Candles / Line) use i18n keys: live, loading, reconn, candles, line.
-   ===================================================================== */
-
-/* ====== Change these if they don't match your backend ====== */
 const OPEN_PATH = "/options/open"; /* POST {sym, direction, qty, seconds} */
 const DIR = { long: "long", short: "short" };
 const MIN_Q = 10, MAX_Q = 1000000;
