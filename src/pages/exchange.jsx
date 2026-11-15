@@ -10,6 +10,8 @@ import { TopBar, Picker, useToast, SUB_CSS, num, goBack } from "./subpage";
 /* ====== backend অনুযায়ী বদলান ====== */
 const EXCHANGE_PATH = "/exchange/swap";   /* POST {from, to, amount, account} */
 const QUOTE_PATH = "/exchange/quote";     /* GET ?from_coin=&to_coin=&amount= */
+const ACCOUNTS_PATH = "/wallet/accounts"; /* GET -> { options: {...}, funds: {...} } */
+const FEE_PCT = "0.1";                    /* backend EX_FEE-এর সাথে মিল রাখুন */
 
 const ACCOUNTS = [
   { value: "options", label: "Options account" },
@@ -60,9 +62,23 @@ export default function Exchange({ W, go }) {
   const [busy, setBusy] = useState(false);
   const [quote, setQuote] = useState(null); /* { receive, rate } */
   const [qBusy, setQBusy] = useState(false);
+  const [accs, setAccs] = useState({ options: {}, funds: {} });
   const [toast, flash] = useToast();
 
-  const avail = num(W && W.w && W.w[from]);
+  /* ---- নির্বাচিত account-এর ব্যালেন্স ---- */
+  const loadAccs = async () => {
+    try {
+      const r = await api(ACCOUNTS_PATH);
+      setAccs({ options: (r && r.options) || {}, funds: (r && r.funds) || {} });
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    if (!(W && W.guest)) loadAccs();
+  }, []);
+
+  const rawAvail = accs[acc] && accs[acc][from] ? accs[acc][from].available : 0;
+  const avail = num(rawAvail);
   const accLabel = (ACCOUNTS.find((a) => a.value === acc) || ACCOUNTS[0]).label;
 
   /* ---- লাইভ quote (debounce 350ms, পুরনো response বাতিল) ---- */
@@ -121,6 +137,7 @@ export default function Exchange({ W, go }) {
       flash(tt("exOk", "Exchange successful"), "ok");
       setAmt("");
       setQuote(null);
+      await loadAccs();
       if (W && W.reload) await W.reload();
     } catch (e) {
       flash(tt(e && e.message ? e.message : "err", (e && e.message) || "Failed"));
@@ -166,7 +183,7 @@ export default function Exchange({ W, go }) {
         <div className="cx-sp-inp">
           <input type="number" inputMode="decimal" value={amt} placeholder="0.00000000" onChange={(e) => setAmt(e.target.value)} />
           <span>{from}</span><i />
-          <button type="button" onClick={() => setAmt(avail > 0 ? String(avail) : "")}>{tt("all", "All")}</button>
+          <button type="button" onClick={() => setAmt(avail > 0 ? String(rawAvail) : "")}>{tt("all", "All")}</button>
         </div>
 
         {/* ---- You will receive ---- */}
@@ -178,6 +195,7 @@ export default function Exchange({ W, go }) {
           <div className="r2">
             {quote ? `1 ${from} ≈ ${fmt(quote.rate, 8)} ${to}` : tt("rateHint", "Enter quantity to see the rate")}
           </div>
+          <div className="r2">{tt("feeLbl", "Fee")}: {FEE_PCT}%</div>
         </div>
 
         <button type="button" className="cx-sp-btn" disabled={busy || qBusy || !quote} onClick={submit}>{tt("exchange", "Exchange")}</button>
@@ -187,7 +205,7 @@ export default function Exchange({ W, go }) {
 
       <Picker open={pk === "from"} options={coinOpts} value={from} onCancel={() => setPk("")} onConfirm={(v) => pickCoin("from", v)} />
       <Picker open={pk === "to"} options={coinOpts} value={to} onCancel={() => setPk("")} onConfirm={(v) => pickCoin("to", v)} />
-      <Picker open={pk === "acc"} options={ACCOUNTS} value={acc} onCancel={() => setPk("")} onConfirm={(v) => { setAcc(v); setPk(""); }} />
+      <Picker open={pk === "acc"} options={ACCOUNTS} value={acc} onCancel={() => setPk("")} onConfirm={(v) => { setAcc(v); setAmt(""); setQuote(null); setPk(""); }} />
     </div>
   );
 }
