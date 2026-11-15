@@ -1,11 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries } from "lightweight-charts";
-import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, SECS, YIELD, CUP, CDN } from "./Home";
+import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, YIELD, CUP, CDN } from "./Home";
 
 const OPEN_PATH = "/options/open"; /* POST {sym, direction, qty, seconds} */
-const STATUS_PATH = "/options/status"; /* GET -> {enabled, disabled_syms, yield, qty_min, qty_max, blocked} */
+const STATUS_PATH = "/options/status"; /* GET -> {enabled, disabled_syms, yield, qty_min, qty_max, secs, blocked} */
 const DIR = { long: "long", short: "short" };
 const MIN_Q = 10, MAX_Q = 1000000; /* server থেকে না এলে ডিফল্ট */
+/* সময় (সেকেন্ড): 30s, 5m, 10m, 30m, 1h, 1d — server থেকে "secs" এলে সেটাই ব্যবহার হয় */
+const DEFAULT_SECS = [30, 300, 600, 1800, 3600, 86400];
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 
@@ -497,7 +499,7 @@ const CSS = `
 .cx-op-go.up{background:var(--grn)}
 .cx-op-go.dn{background:var(--red)}
 .cx-op-go:disabled{opacity:.6}
-.cx-op-toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:300;max-width:90%;padding:10px 16px;border-radius:8px;font-size:14px;background:#e8f2fc;color:#1a6fb8;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.cx-op-toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:500;max-width:90%;padding:10px 16px;border-radius:8px;font-size:14px;background:#e8f2fc;color:#1a6fb8;box-shadow:0 4px 16px rgba(0,0,0,.2)}
 .cx-op-toast.bad{background:#fdecee;color:#c8323f}
 .cx-op-toast.ok{background:#e3f7ee;color:#0a8a5f}
 
@@ -513,7 +515,7 @@ const CSS = `
 .cx-op-row{display:flex;gap:10px}
 .cx-op-row>button{flex:1}
 .cx-op-row.one>button{flex:0 0 31%}
-.cx-op-row.five{gap:8px}
+.cx-op-row.six{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .cx-op-opt{position:relative;height:44px;border-radius:2px;border:1px solid #cfd3d9;background:#fff;font-size:17px;cursor:pointer;overflow:hidden;padding:0 2px}
 .cx-op-opt.on{border-color:var(--blue)}
 .cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:30px;height:24px;background:linear-gradient(135deg,transparent 50%,#4a86e8 50%);color:#fff;font-size:11px;line-height:30px;text-align:right;padding-right:4px}
@@ -526,6 +528,19 @@ const CSS = `
 .cx-op-sbtn{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:22px;padding:0 14px}
 .cx-op-sbtn .cx-op-go{height:62px;font-size:19px;border-radius:12px}
 .cx-op-hint{margin-top:8px;font-size:12px;color:var(--gray)}
+
+/* confirm dialog (Buy Long / Sell Short) */
+.cx-op-cfo{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:0 20px}
+.cx-op-cf{width:100%;max-width:420px;background:#fff;color:#1a1a1a;border-radius:20px;overflow:hidden;animation:cxpop .15s ease-out}
+@keyframes cxpop{from{transform:scale(.92);opacity:.4}to{transform:none;opacity:1}}
+.cx-op-cf-t{padding:22px 16px 18px;text-align:center;font-size:21px;font-weight:700;border-bottom:1px solid #dfe3e9}
+.cx-op-cf-b{padding:18px 26px 34px;font-size:21px;line-height:1.5;border-bottom:1px solid #dfe3e9}
+.cx-op-cf-b p{margin:0 0 14px}
+.cx-op-cf-b p:last-child{margin-bottom:0}
+.cx-op-cf-a{display:grid;grid-template-columns:1fr 1fr}
+.cx-op-cf-a button{height:68px;background:none;border:0;font-size:21px;cursor:pointer}
+.cx-op-cf-a button+button{border-left:1px solid #dfe3e9}
+.cx-op-cf-a button.ok{font-weight:600;color:var(--blue)!important}
 
 /* left coin drawer */
 .cx-op-dov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.62)}
@@ -567,6 +582,7 @@ const CSS = `
   .cx-chart-status{display:none}
   .cx-op-sbtn{gap:14px;padding:0}
   .cx-op-sec,.cx-op-g{font-size:16px}
+  .cx-op-cf-t,.cx-op-cf-b,.cx-op-cf-a button{font-size:18px}
 }
 
 /* PC */
@@ -603,6 +619,9 @@ const CSS = `
 .cx-op.dk .cx-op-toast.bad{background:#3b1a20;color:#ff8a95}
 .cx-op.dk .cx-op-toast.ok{background:#0f3a2c;color:#4be0a8}
 .cx-op.dk .cx-op-sh,.cx-op.dk .cx-op-dr{background:#17263d;color:#e8ecf3}
+.cx-op.dk .cx-op-cf{background:#12203a;color:#e8ecf3}
+.cx-op.dk .cx-op-cf-t,.cx-op.dk .cx-op-cf-b{border-bottom-color:#2c3c58}
+.cx-op.dk .cx-op-cf-a button+button{border-left-color:#2c3c58}
 .cx-op.dk .cx-op-sec{color:#e8ecf3}
 .cx-op.dk .cx-op-opt{background:#101c30;border-color:#3a4a66;color:#e8ecf3}
 .cx-op.dk .cx-op-opt.on{border-color:var(--blue)}
@@ -627,15 +646,16 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   };
 
   const [qty, setQty] = useState(QTY[0]);
-  const [secs, setSecs] = useState(SECS[0]);
+  const [secs, setSecs] = useState(DEFAULT_SECS[0]);
   const [sh, setSh] = useState(""); /* "", "trade", "coin" */
+  const [cf, setCf] = useState(null); /* confirm dialog: { dir, fromSheet } */
   const [panel, setPanel] = useState(false);
   const [tab, setTab] = useState("pos");
   const [qIn, setQIn] = useState(String(QTY[0]));
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", s: "bad" });
   const [now, setNow] = useState(Date.now());
-  const [st, setSt] = useState(null); /* অ্যাডমিন সেটিংস: enabled, disabled_syms, yield, qty_min, qty_max, blocked */
+  const [st, setSt] = useState(null); /* অ্যাডমিন সেটিংস: enabled, disabled_syms, yield, qty_min, qty_max, secs, blocked */
   const tm = useRef(null);
 
   useEffect(() => {
@@ -667,6 +687,22 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     tm.current = setTimeout(() => setMsg({ k: "", s: "bad" }), 3000);
   };
 
+  /* সময়ের তালিকা: server থেকে, না এলে ডিফল্ট (30s, 5m, 10m, 30m, 1h, 1d) */
+  const secList = st && Array.isArray(st.secs) && st.secs.length ? st.secs : DEFAULT_SECS;
+  useEffect(() => {
+    if (!secList.includes(secs)) setSecs(secList[0]);
+    // eslint-disable-next-line
+  }, [secList.join(",")]);
+
+  /* 30 -> 30s, 300 -> 5m, 3600 -> 1h, 86400 -> 1d */
+  const fmtDur = (s) => {
+    s = Number(s) || 0;
+    if (s >= 86400 && s % 86400 === 0) return (s / 86400) + tt("dday", "d");
+    if (s >= 3600 && s % 3600 === 0) return (s / 3600) + tt("dhour", "h");
+    if (s >= 60 && s % 60 === 0) return (s / 60) + tt("dmin", "m");
+    return s + tt("dsec", "s");
+  };
+
   const p = (P && P[sym]) || { price: 0, chg: 0, hi: 0, lo: 0, vol: 0 };
   const up = p.chg >= 0;
   const col = up ? CUP : CDN;
@@ -683,12 +719,18 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const maxQ = st && st.qty_max > 0 ? st.qty_max : MAX_Q;
   const yld = st && st.yield > 0 ? st.yield : YIELD;
 
-  const open = async (dir) => {
-    if (busy) return false;
+  /* ট্রেড খোলার আগের যাচাই */
+  const check = () => {
     if (W.guest) { W.needLogin(); return false; }
     if (paused) { flash(pausedMsg); return false; }
     if (!(qty >= minQ && qty <= maxQ)) { flash(t("badQ")); return false; }
     if (bal < qty) { flash(t("iB")); return false; }
+    return true;
+  };
+
+  const open = async (dir) => {
+    if (busy) return false;
+    if (!check()) return false;
     setBusy(true);
     try {
       await api(OPEN_PATH, { method: "POST", body: { sym, direction: dir, qty, seconds: secs } });
@@ -703,9 +745,19 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     }
   };
 
-  const buyFromSheet = async (dir) => {
-    const ok = await open(dir);
-    if (ok) setSh("");
+  /* Buy Long / Sell Short চাপলে আগে কনফার্ম কার্ড; Confirm চাপলে তবেই ট্রেড */
+  const ask = (dir, fromSheet = false) => {
+    if (busy) return;
+    if (!check()) return;
+    setCf({ dir, fromSheet });
+  };
+
+  const doConfirm = async () => {
+    const c = cf;
+    if (!c) return;
+    setCf(null);
+    const ok = await open(c.dir);
+    if (ok && c.fromSheet) setSh("");
   };
 
   const pickQty = (q) => { setQty(q); setQIn(q.toFixed(2)); };
@@ -720,9 +772,16 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     setQIn(String(v));
   };
 
+  /* বাকি সময়: 30s / 5m 03s / 1h 02m 03s / 1d 2h 3m */
   const left = (end) => {
-    const s = Math.max(0, Math.ceil((end - now) / 1000));
-    return s + "s";
+    let s = Math.max(0, Math.ceil((end - now) / 1000));
+    const d = Math.floor(s / 86400); s %= 86400;
+    const h = Math.floor(s / 3600); s %= 3600;
+    const m = Math.floor(s / 60); s %= 60;
+    if (d) return `${d}d ${h}h ${m}m`;
+    if (h) return `${h}h ${m}m ${s}s`;
+    if (m) return `${m}m ${s}s`;
+    return `${s}s`;
   };
 
   const myPos = pos;
@@ -770,10 +829,10 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
             <span>{t("qty")} ⌄</span><span>{qty.toFixed(2)}</span>
           </button>
           <button type="button" className="cx-op-pick" onClick={() => setSh("trade")}>
-            <span>{t("time")} ⌄</span><span>{secs}s</span>
+            <span>{t("time")} ⌄</span><span>{fmtDur(secs)}</span>
           </button>
-          <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => open(DIR.long)}>{t("bl")}</button>
-          <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => open(DIR.short)}>{t("ss")}</button>
+          <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => ask(DIR.long)}>{t("bl")}</button>
+          <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => ask(DIR.short)}>{t("ss")}</button>
         </div>
       </div>
 
@@ -798,9 +857,9 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         </div>
 
         <div className="cx-op-sec t2">{tt("otime", "Opening time")}</div>
-        <div className="cx-op-row five">
-          {SECS.map((s) => (
-            <button key={s} type="button" className={"cx-op-opt" + (s === secs ? " on" : "")} onClick={() => setSecs(s)}>{s}s</button>
+        <div className="cx-op-row six">
+          {secList.map((s) => (
+            <button key={s} type="button" className={"cx-op-opt" + (s === secs ? " on" : "")} onClick={() => setSecs(s)}>{fmtDur(s)}</button>
           ))}
         </div>
 
@@ -813,10 +872,27 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         {paused && <div className="cx-op-off" style={{ marginTop: 14, borderRadius: 8 }}>{pausedMsg}</div>}
 
         <div className="cx-op-sbtn">
-          <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => buyFromSheet(DIR.long)}>{t("bl")}</button>
-          <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => buyFromSheet(DIR.short)}>{t("ss")}</button>
+          <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => ask(DIR.long, true)}>{t("bl")}</button>
+          <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => ask(DIR.short, true)}>{t("ss")}</button>
         </div>
       </Sheet>
+
+      {/* ---- Confirm dialog: Cancel / Confirm ---- */}
+      {cf && (
+        <div className="cx-op-cfo" onClick={() => setCf(null)}>
+          <div className="cx-op-cf" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cx-op-cf-t">{cf.dir === DIR.long ? t("bl") : t("ss")}</div>
+            <div className="cx-op-cf-b">
+              <p>{t("oq")}: {qty.toFixed(2)}</p>
+              <p>{tt("otime", "Opening time")}: {fmtDur(secs)}</p>
+            </div>
+            <div className="cx-op-cf-a">
+              <button type="button" onClick={() => setCf(null)}>{tt("cancel", "Cancel")}</button>
+              <button type="button" className="ok" disabled={busy} onClick={doConfirm}>{tt("confirm", "Confirm")}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ---- Left coin drawer ---- */}
       {sh === "coin" && (
@@ -883,4 +959,4 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
       )}
     </div>
   );
-          }
+    }
