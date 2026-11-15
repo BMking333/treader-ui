@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useT, api, COINS } from "./Home";
 import { TopBar, Picker, useToast, SUB_CSS, num, goBack } from "./subpage";
 
@@ -8,7 +8,8 @@ import { TopBar, Picker, useToast, SUB_CSS, num, goBack } from "./subpage";
    ===================================================================== */
 
 /* ====== backend অনুযায়ী বদলান ====== */
-const TRANSFER_PATH = "/wallet/transfer"; /* POST {coin, from, to, amount} */
+const TRANSFER_PATH = "/wallet/transfer";   /* POST {coin, from, to, amount} */
+const ACCOUNTS_PATH = "/wallet/accounts";   /* GET -> { options: {COIN:{available}}, funds: {...} } */
 
 const ACCOUNTS = [
   { value: "options", label: "Options account" },
@@ -55,15 +56,30 @@ export default function ChangeMoney({ W, go }) {
   const [amt, setAmt] = useState("");
   const [pk, setPk] = useState(""); /* "", "to", "coin" */
   const [busy, setBusy] = useState(false);
+  const [accs, setAccs] = useState({ options: {}, funds: {} });
   const [toast, flash] = useToast();
 
-  const avail = num(W && W.w && W.w[coin]);
+  /* ---- দুই account-এর ব্যালেন্স ---- */
+  const loadAccs = async () => {
+    try {
+      const r = await api(ACCOUNTS_PATH);
+      setAccs({ options: (r && r.options) || {}, funds: (r && r.funds) || {} });
+    } catch (_) {}
+  };
 
-  const swap = () => { setFrom(to); setTo(from); };
+  useEffect(() => {
+    if (!(W && W.guest)) loadAccs();
+  }, []);
+
+  const rawAvail = accs[from] && accs[from][coin] ? accs[from][coin].available : 0;
+  const avail = num(rawAvail);
+
+  const swap = () => { setFrom(to); setTo(from); setAmt(""); };
 
   const pickTo = (v) => {
     if (v === from) setFrom(to);
     setTo(v);
+    setAmt("");
     setPk("");
   };
 
@@ -73,11 +89,16 @@ export default function ChangeMoney({ W, go }) {
     const a = parseFloat(amt);
     if (!(a > 0)) return flash(tt("badAmt", "Please enter the transfer quantity"));
     if (a > avail) return flash(t("iB") !== "iB" ? t("iB") : "Insufficient balance");
+    if (from === to) return flash(tt("sameAccount", "Choose two different accounts"));
     setBusy(true);
     try {
-      await api(TRANSFER_PATH, { method: "POST", body: { coin, from, to, amount: a } });
+      await api(TRANSFER_PATH, {
+        method: "POST",
+        body: { coin, from, to, amount: amt }, /* string পাঠানো হচ্ছে, float precision সমস্যা এড়াতে */
+      });
       flash(tt("trOk", "Transfer successful"), "ok");
       setAmt("");
+      await loadAccs();
       if (W && W.reload) await W.reload();
     } catch (e) {
       flash(tt(e && e.message ? e.message : "err", (e && e.message) || "Failed"));
@@ -116,7 +137,8 @@ export default function ChangeMoney({ W, go }) {
           <div className="cx-sp-inp">
             <input type="number" inputMode="decimal" value={amt} placeholder={tt("trPh", "Please enter the transfer quantity")} onChange={(e) => setAmt(e.target.value)} />
             <span>{coin}</span><i />
-            <button type="button" onClick={() => setAmt(avail > 0 ? String(avail) : "")}>{tt("all", "All")}</button>
+            {/* All: backend-এর string মানই বসে, তাই রাউন্ডিং-এ ব্যালেন্সের বেশি হয় না */}
+            <button type="button" onClick={() => setAmt(avail > 0 ? String(rawAvail) : "")}>{tt("all", "All")}</button>
           </div>
         </div>
         <div className="cx-tr-av">{tt("avail", "Available")} {avail.toFixed(8)} {coin}</div>
@@ -132,4 +154,3 @@ export default function ChangeMoney({ W, go }) {
     </div>
   );
 }
-
