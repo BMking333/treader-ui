@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
-  BLUE, GREEN, RED, CUP, CDN, COINS, MARKETS, QTY, SECS, YIELD, ASSET_COINS, TOPUP,
+  BLUE, GREEN, RED, CUP, CDN, COINS, MARKETS, QTY, YIELD, ASSET_COINS,
   useT, fmt, fmtV, api, Ic, ICON, Coin, List,
 } from "./Home";
 
 /* =====================================================================
    src/pages/trading.jsx — Market, Exchange (spot), Chart, Options, Assets
    ===================================================================== */
+
+const DEFAULT_SECS = [30, 300, 600, 1800, 3600, 86400]; /* 30s, 5m, 10m, 30m, 1h, 1d */
+const MIN_Q = 10, MAX_Q = 1000000; /* server থেকে না এলে ডিফল্ট */
+const STABLE = ["USDT", "USDC", "PYUSD"];
 
 function CoinDrawer({ P, onPick, onClose }) {
   const t = useT();
@@ -330,30 +334,171 @@ function Chart({ sym, price }) {
   );
 }
 
-/* ---- Options → POST /options/open ---- */
+/* ---- Options helpers ---- */
+const fmtPnl = (v) => {
+  const a = Math.abs(Number(v) || 0);
+  return a > 0 && a < 0.01 ? a.toFixed(4) : a.toFixed(2);
+};
+
+/* বাকি সময়: 30s / 5m 03s / 1h 02m 03s / 1d 2h 3m */
+const durLeft = (end) => {
+  let s = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+  const d = Math.floor(s / 86400); s %= 86400;
+  const h = Math.floor(s / 3600); s %= 3600;
+  const m = Math.floor(s / 60); s %= 60;
+  if (d) return `${d}d ${h}h ${m}m`;
+  if (h) return `${h}h ${m}m ${s}s`;
+  if (m) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
+const CF_CSS = `
+.cx-cfo{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:0 20px}
+.cx-cf{width:100%;max-width:420px;background:#fff;color:#1a1a1a;border-radius:20px;overflow:hidden}
+.cx-cf-t{padding:22px 16px 18px;text-align:center;font-size:21px;font-weight:700;border-bottom:1px solid #dfe3e9}
+.cx-cf-b{padding:18px 26px 34px;font-size:21px;line-height:1.5;border-bottom:1px solid #dfe3e9}
+.cx-cf-b p{margin:0 0 14px}
+.cx-cf-b p:last-child{margin-bottom:0}
+.cx-cf-a{display:grid;grid-template-columns:1fr 1fr}
+.cx-cf-a button{height:68px;background:none;border:0;font-size:21px;cursor:pointer;color:inherit}
+.cx-cf-a button+button{border-left:1px solid #dfe3e9;font-weight:600;color:#1a82d6}
+.cx-cf-a button:disabled{opacity:.5}
+.cx.dark .cx-cf{background:#12203a;color:#e8ecf3}
+.cx.dark .cx-cf-t,.cx.dark .cx-cf-b{border-bottom-color:#2c3c58}
+.cx.dark .cx-cf-a button+button{border-left-color:#2c3c58}
+@media(max-width:380px){.cx-cf-t,.cx-cf-b,.cx-cf-a button{font-size:18px}}
+`;
+
+/* ---- Options → POST /options/open, GET /options/status ---- */
 export function Options({ P, W, sym, setSym, pos, orders }) {
   const t = useT();
-  const [qty, setQty] = useState(10), [sec, setSec] = useState(20), [sheet, setSheet] = useState(false), [, tick] = useState(0);
+  const tt = (k, fb) => {
+    let v;
+    try { v = t(k); } catch (_) { v = k; }
+    return v && v !== k ? v : fb;
+  };
+  const [qty, setQty] = useState(10), [sec, setSec] = useState(DEFAULT_SECS[0]), [sheet, setSheet] = useState(false), [, tick] = useState(0);
   const [msg, setMsg] = useState(""), [busy, setBusy] = useState(false), [view, setView] = useState("k"), [ptab, setPtab] = useState("list"), [pick, setPick] = useState(false);
+  const [cf, setCf] = useState(null);   /* confirm dialog: { dir } */
+  const [st, setSt] = useState(null);   /* অ্যাডমিন সেটিংস */
+  const [extra, setExtra] = useState({}); /* position id -> { mode, leverage, yield_rate } */
   const d = P[sym];
+  const guest = !!(W && W.guest);
+
   useEffect(() => { const id = setInterval(() => tick((x) => x + 1), 1000); return () => clearInterval(id); }, []);
+
+  /* অ্যাডমিন সেটিংস: enabled, disabled_syms, qty_min/max, mode, leverage, yield, secs, blocked */
+  useEffect(() => {
+    if (guest) { setSt(null); return undefined; }
+    let on = true;
+    const load = async () => {
+      try { const r = await api("/options/status"); if (on) setSt(r); } catch (_) {}
+    };
+    load();
+    const id = setInterval(load, 15000);
+    return () => { on = false; clearInterval(id); };
+  }, [guest]);
+
+  /* খোলা ট্রেডের নিয়ম (mode/leverage) যাতে লাইভ লাভ-লস ঠিক দেখায় */
+  const loadExtra = async () => {
+    try {
+      const r = await api("/options/positions");
+      const m = {};
+      (r || []).forEach((x) => { m[x.id] = { mode: x.mode, leverage: x.leverage, yield_rate: x.yield_rate }; });
+      setExtra(m);
+    } catch (_) {}
+  };
+  useEffect(() => {
+    if (guest) { setExtra({}); return undefined; }
+    loadExtra();
+    const id = setInterval(loadExtra, 10000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line
+  }, [guest, (pos || []).length]);
+
+  /* সময়ের তালিকা: server থেকে, না এলে ডিফল্ট */
+  const secList = st && Array.isArray(st.secs) && st.secs.length ? st.secs : DEFAULT_SECS;
+  useEffect(() => {
+    if (!secList.includes(sec)) setSec(secList[0]);
+    // eslint-disable-next-line
+  }, [secList.join(",")]);
+
+  /* 30 -> 30s, 300 -> 5m, 3600 -> 1h, 86400 -> 1d */
+  const fmtDur = (s) => {
+    s = Number(s) || 0;
+    if (s >= 86400 && s % 86400 === 0) return (s / 86400) + tt("dday", "d");
+    if (s >= 3600 && s % 3600 === 0) return (s / 3600) + tt("dhour", "h");
+    if (s >= 60 && s % 60 === 0) return (s / 60) + tt("dmin", "m");
+    return s + tt("dsec", "s");
+  };
+
+  const bal = (W && W.w && W.w.USDT) || 0;
+  const minQ = st && st.qty_min > 0 ? st.qty_min : MIN_Q;
+  const maxQ = st && st.qty_max > 0 ? st.qty_max : MAX_Q;
+  const pausedMsg = !st ? ""
+    : !st.enabled ? tt("optionsOff", "Options trading is paused")
+    : st.blocked ? tt("userBlocked", "Trading is disabled for your account")
+    : (st.disabled_syms || []).includes(sym) ? tt("symOff", "This coin is paused")
+    : "";
+  const paused = !!pausedMsg;
+  const isProp = !!st && st.mode === "proportional";
+  const yld = st && st.yield > 0 ? st.yield : YIELD;
+
+  /* খোলা ট্রেডের এখনকার লাভ/লস (সার্ভারের হিসাবের মতোই) */
+  const calcLive = (p, c) => {
+    const ex = extra[p.id];
+    const mode = ex ? (ex.mode || "fixed") : (st ? st.mode : "fixed");
+    const q = Number(p.qty) || 0, o = Number(p.open) || 0;
+    if (mode === "proportional") {
+      const lev = ex && ex.leverage ? Number(ex.leverage) : (st ? Number(st.leverage || 1) : 1);
+      let mv = o ? (c - o) / o : 0;
+      if (p.dir !== "long") mv = -mv;
+      return Math.max(q * mv * lev, -q);
+    }
+    const rate = ex && ex.yield_rate != null ? Number(ex.yield_rate) : YIELD;
+    const win = p.dir === "long" ? c > o : c < o;
+    return win ? q * rate : -q;
+  };
+
+  /* ট্রেড খোলার আগের যাচাই */
+  const check = () => {
+    if (guest) { W.needLogin(); return false; }
+    if (paused) { setMsg(pausedMsg); return false; }
+    if (qty < minQ || qty > maxQ) { setMsg(t("badQ")); return false; }
+    if (qty > bal) { setMsg(t("iB")); return false; }
+    return true;
+  };
+
   const open = async (dir) => {
     if (busy) return;
-    if (W.guest) return W.needLogin();
     setMsg("");
-    const bal = W.w.USDT || 0;
-    if (qty < 10 || qty > 1000000) return setMsg(t("badQ"));
-    if (qty > bal) return setMsg(t("iB"));
+    if (!check()) return;
     setBusy(true);
     try {
       await api("/options/open", { method: "POST", body: { sym, direction: dir, qty, sec } });
       await W.reload();
+      loadExtra();
       setSheet(false); setMsg(t("openMsg"));
     } catch (e) { setMsg(t(e.message)); }
     setBusy(false);
   };
+
+  /* Buy Long / Sell Short → আগে কনফার্ম কার্ড; Confirm চাপলে তবেই ট্রেড */
+  const ask = (dir) => {
+    if (busy) return;
+    setMsg("");
+    if (!check()) return;
+    setCf({ dir });
+  };
+  const doConfirm = () => {
+    const c = cf;
+    setCf(null);
+    if (c) open(c.dir);
+  };
+
   return (
     <>
+      <style>{CF_CSS}</style>
       <div className="cx-top">
         <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
         <h1 style={{ textAlign: "start" }}>{sym}/USDT</h1>
@@ -365,14 +510,15 @@ export function Options({ P, W, sym, setSym, pos, orders }) {
             <b style={{ color: d.chg >= 0 ? GREEN : RED }}>{d.price.toFixed(6)}<small>{d.chg.toFixed(2)} %</small></b>
             <div><span>{t("hi")}</span><i>{fmt(d.hi)}</i><span>{t("lo")}</span><i>{fmt(d.lo)}</i><span>{t("vol")}</span><i>{d.vol.toFixed(2)}</i></div>
           </div>
+          {paused && <p className="cx-msg bad">{pausedMsg}</p>}
           <Chart sym={sym} price={d.price} />
           {msg && <p className="cx-msg">{msg}</p>}
           <div style={{ height: 110 }} />
           <div className="cx-obar">
             <button onClick={() => setSheet(true)}>{t("qty")} ⌄<b>{qty.toFixed(2)}</b></button>
-            <button onClick={() => setSheet(true)}>{t("time")} ⌄<b>{sec}s</b></button>
-            <button className="g" style={{ opacity: busy ? 0.6 : 1 }} onClick={() => open("long")}>{t("bl")}</button>
-            <button className="r" style={{ opacity: busy ? 0.6 : 1 }} onClick={() => open("short")}>{t("ss")}</button>
+            <button onClick={() => setSheet(true)}>{t("time")} ⌄<b>{fmtDur(sec)}</b></button>
+            <button className="g" style={{ opacity: busy || paused ? 0.6 : 1 }} disabled={busy || paused} onClick={() => ask("long")}>{t("bl")}</button>
+            <button className="r" style={{ opacity: busy || paused ? 0.6 : 1 }} disabled={busy || paused} onClick={() => ask("short")}>{t("ss")}</button>
           </div>
         </>
       ) : (
@@ -384,22 +530,25 @@ export function Options({ P, W, sym, setSym, pos, orders }) {
           <div className="cx-tbl cx-tbh"><span>{t("qty")}</span><span>{t("pp")}</span><span>{t("fp")}</span><span>{t("pnl")}</span></div>
           {ptab === "list" && pos.map((p) => {
             const c = P[p.sym] ? P[p.sym].price : p.open;
-            const win = p.dir === "long" ? c > p.open : c < p.open;
+            const pnl = calcLive(p, c);
             return (
               <div key={p.id} className="cx-tbl">
-                <span><Coin s={p.sym} size={18} /> {p.qty}<small>{p.sym} · {p.dir === "long" ? t("bl") : t("ss")} · {Math.max(0, Math.ceil((p.end - Date.now()) / 1000))}s</small></span>
+                <span><Coin s={p.sym} size={18} /> {p.qty}<small>{p.sym} · {p.dir === "long" ? t("bl") : t("ss")} · {durLeft(p.end)}</small></span>
                 <span>{fmt(p.open)}</span><span>{fmt(c)}</span>
-                <span style={{ color: win ? CUP : CDN }}>{win ? "+" : "-"}{(win ? p.qty * YIELD : p.qty).toFixed(2)}</span>
+                <span style={{ color: pnl >= 0 ? CUP : CDN }}>{pnl >= 0 ? "+" : "-"}{fmtPnl(pnl)}</span>
               </div>
             );
           })}
-          {ptab === "rec" && orders.map((o) => (
-            <div key={o.id} className="cx-tbl">
-              <span><Coin s={o.sym} size={18} /> {o.qty}<small>{o.sym} · {o.dir === "long" ? t("bl") : t("ss")}</small></span>
-              <span>{fmt(o.open)}</span><span>{fmt(o.close)}</span>
-              <span style={{ color: o.pnl >= 0 ? CUP : CDN }}>{o.pnl >= 0 ? "+" : ""}{o.pnl.toFixed(2)}</span>
-            </div>
-          ))}
+          {ptab === "rec" && orders.map((o) => {
+            const pn = Number(o.pnl || 0);
+            return (
+              <div key={o.id} className="cx-tbl">
+                <span><Coin s={o.sym} size={18} /> {o.qty}<small>{o.sym} · {o.dir === "long" ? t("bl") : t("ss")}</small></span>
+                <span>{fmt(o.open)}</span><span>{o.close != null ? fmt(o.close) : "--"}</span>
+                <span style={{ color: pn >= 0 ? CUP : CDN }}>{pn >= 0 ? "+" : "-"}{fmtPnl(pn)}</span>
+              </div>
+            );
+          })}
           {((ptab === "list" && !pos.length) || (ptab === "rec" && !orders.length)) && (
             <div className="cx-norec">
               <svg width="150" height="120" viewBox="0 0 150 120"><rect x="38" y="20" width="74" height="70" rx="4" fill="#eceef2" /><rect x="46" y="28" width="58" height="44" fill="#fff" /><rect x="54" y="38" width="42" height="5" fill="#e0e2e8" /><rect x="54" y="49" width="42" height="5" fill="#e0e2e8" /><rect x="54" y="60" width="42" height="5" fill="#e0e2e8" /><rect x="34" y="72" width="82" height="22" rx="3" fill="#e3e5ea" /><rect x="62" y="81" width="26" height="4" rx="2" fill="#fff" /></svg>
@@ -408,54 +557,88 @@ export function Options({ P, W, sym, setSym, pos, orders }) {
           )}
         </>
       )}
+
+      {/* ---- Trade sheet ---- */}
       {sheet && (
         <div className="cx-over end" onClick={() => setSheet(false)}>
           <div className="cx-sheet" onClick={(e) => e.stopPropagation()}>
             <h4>{t("mode")}</h4><div className="cx-chs"><button className="on">USDT</button></div>
             <h4>{t("oq")}</h4>
             <div className="cx-chs">{QTY.map((x) => <button key={x} className={qty === x ? "on" : ""} onClick={() => setQty(x)}>{x.toFixed(2)}</button>)}</div>
-            <div className="cx-line"><input value={qty} inputMode="decimal" onChange={(e) => setQty(parseFloat(e.target.value) || 0)} /><button onClick={() => setQty(Math.floor(W.w.USDT || 0))}>{t("all")}</button></div>
+            <div className="cx-line"><input value={qty} inputMode="decimal" onChange={(e) => setQty(parseFloat(e.target.value) || 0)} /><button onClick={() => setQty(Math.min(Math.floor(bal), maxQ))}>{t("all")}</button></div>
             <h4>{t("ot")}</h4>
-            <div className="cx-chs">{SECS.map((x) => <button key={x} className={sec === x ? "on" : ""} onClick={() => setSec(x)}>{x}s</button>)}</div>
-            <div className="cx-info"><span>{t("bal")} : {(W.w.USDT || 0).toFixed(8)}</span><span>{t("yld")} : {YIELD * 100}%</span></div>
-            <div className="cx-info"><span>{t("oq")} : 10.00 - 1000000.00</span></div>
+            <div className="cx-chs" style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10 }}>
+              {secList.map((x) => <button key={x} className={sec === x ? "on" : ""} onClick={() => setSec(x)}>{fmtDur(x)}</button>)}
+            </div>
+            <div className="cx-info">
+              <span>{t("bal")} : {bal.toFixed(8)}</span>
+              <span>{isProp ? tt("lev", "Leverage") + " : x" + Number(st.leverage || 1) : t("yld") + " : " + Math.round(yld * 100) + "%"}</span>
+            </div>
+            <div className="cx-info"><span>{t("oq")} : {Number(minQ).toFixed(2)} - {Number(maxQ).toFixed(2)}</span></div>
+            {paused && <p className="cx-msg bad" style={{ margin: "0 0 10px" }}>{pausedMsg}</p>}
             {msg && <p className="cx-msg" style={{ margin: "0 0 10px" }}>{msg}</p>}
-            <div className="cx-two"><button className="g" onClick={() => open("long")}>{t("bl")}</button><button className="r" onClick={() => open("short")}>{t("ss")}</button></div>
+            <div className="cx-two">
+              <button className="g" disabled={busy || paused} onClick={() => ask("long")}>{t("bl")}</button>
+              <button className="r" disabled={busy || paused} onClick={() => ask("short")}>{t("ss")}</button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* ---- Confirm dialog (Cancel / Confirm) ---- */}
+      {cf && (
+        <div className="cx-cfo" onClick={() => setCf(null)}>
+          <div className="cx-cf" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cx-cf-t">{cf.dir === "long" ? t("bl") : t("ss")}</div>
+            <div className="cx-cf-b">
+              <p>{t("oq")}: {qty.toFixed(2)}</p>
+              <p>{t("ot")}: {fmtDur(sec)}</p>
+            </div>
+            <div className="cx-cf-a">
+              <button type="button" onClick={() => setCf(null)}>{tt("cancel", "Cancel")}</button>
+              <button type="button" disabled={busy} onClick={doConfirm}>{tt("confirm", "Confirm")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pick && <CoinDrawer P={P} onClose={() => setPick(false)} onPick={(s) => { setSym(s); setPick(false); }} />}
     </>
   );
 }
 
-/* ---- Assets (GET /wallet/total, POST /wallet/demo-topup) ---- */
+/* ---- Assets (GET /wallet/accounts) : Options + Funds আলাদা ---- */
 export function Assets({ P, W }) {
   const t = useT();
-  const [tab, setTab] = useState("assets"), [hide, setHide] = useState(false), [note, setNote] = useState({ k: "", ok: true }), [busy, setBusy] = useState(false);
-  const val = (s, q) => (s === "USDT" || s === "USDC" ? q : q * (P[s]?.price || 0));
-  const calc = Object.entries(W.w).reduce((x, [s, q]) => x + val(s, q), 0);
-  const total = typeof W.total === "number" ? W.total : calc;
+  const [tab, setTab] = useState("assets"), [hide, setHide] = useState(false);
+  const [accs, setAccs] = useState({ options: {}, funds: {} });
+  const guest = !!(W && W.guest);
+
+  const loadAccs = async () => {
+    try {
+      const r = await api("/wallet/accounts");
+      setAccs({ options: (r && r.options) || {}, funds: (r && r.funds) || {} });
+    } catch (_) {}
+  };
+  useEffect(() => { if (!guest) loadAccs(); }, [guest, W && W.w]); // eslint-disable-line
+
+  const val = (s, q) => (STABLE.includes(s) ? q : q * ((P[s] && P[s].price) || 0));
+  const av = (acc, s) => Number(acc && acc[s] && acc[s].available) || 0;
+  const fzv = (acc, s) => Number(acc && acc[s] && acc[s].frozen) || 0;
+  const totOf = (acc) => Object.keys(acc || {}).reduce((x, s) => x + val(s, av(acc, s) + fzv(acc, s)), 0);
+
+  const totOpt = totOf(accs.options), totFun = totOf(accs.funds);
+  const totAll = totOpt + totFun;
   const sub = tab === "assets" ? null : tab;
   const tabs = [["assets", t("assets")], ["funds", t("funds")], ["options", t("options")], ["quant", t("quant")]];
-  const sec = [["ta", total], ["funds", total], ["options", 0], ["quant", 0]];
+  const sec = [["ta", totAll], ["funds", totFun], ["options", totOpt], ["quant", 0]];
   const title = (k) => (k === "ta" ? t("ta") : t(k));
-  const topup = async () => {
-    if (busy) return;
-    if (W.guest) return W.needLogin();
-    setBusy(true); setNote({ k: "wait2", ok: true });
-    try {
-      await api("/wallet/demo-topup", { method: "POST", body: { amount: TOPUP } });
-      await W.reload();
-      setNote({ k: "topOk", ok: true });
-    } catch (e) { setNote({ k: e.message, ok: false }); }
-    setBusy(false);
-  };
+  const subAcc = sub === "funds" ? accs.funds : sub === "options" ? accs.options : {};
+  const subTotal = sub === "funds" ? totFun : sub === "options" ? totOpt : 0;
+
   return (
     <>
       <div className="cx-tabs big">{tabs.map(([k, l]) => <button key={k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>)}</div>
-      <button className="cx-a1" style={{ opacity: busy ? 0.6 : 1, marginBottom: 6 }} onClick={topup}>{t("topup")}</button>
-      {note.k && <p className={"cx-msg" + (note.ok ? "" : " bad")}>{t(note.k)}</p>}
       {!sub ? (
         <div className="cx-cards">{sec.map(([k, v]) => (<div key={k} className="cx-ac"><h3>{title(k)} {t("conv")}</h3><small>{t("avail")}</small><b>{v.toFixed(2)}</b></div>))}</div>
       ) : (
@@ -463,16 +646,16 @@ export function Assets({ P, W }) {
           <div className="cx-sum">
             <div><h2>{title(sub)} {t("conv")}</h2><span>{t("ta")}</span><small>{t("cv")}</small></div>
             <button onClick={() => setHide(!hide)}><Ic d={ICON.eye} s={26} /></button>
-            <b>$ {hide ? "••••••" : (sub === "funds" ? total : 0).toFixed(8)}</b><small>≈ $ {(sub === "funds" ? total : 0).toFixed(2)}</small>
+            <b>$ {hide ? "••••••" : subTotal.toFixed(8)}</b><small>≈ $ {subTotal.toFixed(2)}</small>
           </div>
           <div className="cx-cards gray">
             {ASSET_COINS.map((s) => {
-              const q = sub === "funds" ? W.w[s] || 0 : 0;
-              const fz = sub === "funds" ? W.fz[s] || 0 : 0;
+              const q = av(subAcc, s);
+              const fz = fzv(subAcc, s);
               return (
                 <div key={s} className="cx-ac wide">
                   <h3><span className="cx-dn"><Coin s={s} size={30} />{s}</span> <i>›</i></h3>
-                  <div className="cx-3"><span><small>{t("avail")}</small>{q.toFixed(8)}</span><span><small>{t("frozen")}</small>{fz.toFixed(8)}</span><span><small>{t("cv")}</small>$ {val(s, q).toFixed(2)}</span></div>
+                  <div className="cx-3"><span><small>{t("avail")}</small>{q.toFixed(8)}</span><span><small>{t("frozen")}</small>{fz.toFixed(8)}</span><span><small>{t("cv")}</small>$ {val(s, q + fz).toFixed(2)}</span></div>
                 </div>
               );
             })}
@@ -481,4 +664,4 @@ export function Assets({ P, W }) {
       )}
     </>
   );
-}
+      }
