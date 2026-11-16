@@ -6,7 +6,7 @@ import {
 
 /* =====================================================================
    src/pages/trading.jsx — Market, Exchange (spot), Chart, Options, Assets
-   ডিজাইন: ছোট টেক্সট + প্রিমিয়াম লুক
+   ডিজাইন: প্রিমিয়াম লুক
    ===================================================================== */
 
 const DEFAULT_SECS = [30, 300, 600, 1800, 3600, 86400]; /* 30s, 5m, 10m, 30m, 1h, 1d */
@@ -31,18 +31,56 @@ const STABLE = ["USDT", "USDC", "PYUSD"];
   );
 })();
 
+/* ---- কয়েন ড্রয়ার (৩ ডট/মেনু চাপলে): ছোট কয়েন + ছোট প্রাইস, প্রিমিয়াম লুক ---- */
+const DR_CSS = `
+.cxd-ov{position:fixed;inset:0;z-index:1000;background:rgba(8,14,26,.5);
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:cxdf .18s ease}
+.cxd{position:absolute;top:0;bottom:0;left:0;width:min(76%,290px);background:#fff;color:#1b2433;
+  display:flex;flex-direction:column;box-shadow:12px 0 40px -18px rgba(0,0,0,.55);
+  border-radius:0 18px 18px 0;animation:cxds .26s cubic-bezier(.2,.8,.2,1);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;padding-top:env(safe-area-inset-top,0px)}
+.cxd-h{padding:22px 18px 12px}
+.cxd-h h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+.cxd-h span{display:inline-flex;align-items:center;margin-top:10px;padding:4px 12px;border-radius:999px;
+  background:rgba(26,130,214,.1);color:#1a82d6;font-size:12.5px;font-weight:600;letter-spacing:.3px}
+.cxd-l{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 12px max(16px,env(safe-area-inset-bottom))}
+.cxd-l button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:50px;padding:0 6px;
+  background:none;border:0;border-bottom:1px solid #edf0f4;color:inherit;font-family:inherit;cursor:pointer;
+  transition:background .15s ease;-webkit-tap-highlight-color:transparent}
+.cxd-l button:last-child{border-bottom:0}
+.cxd-l button:active{background:#f3f6fa;border-radius:10px}
+.cxd-n{display:flex;align-items:center;gap:9px;min-width:0}
+.cxd-n b{font-size:13.5px;font-weight:600;white-space:nowrap}
+.cxd-n b small{font-size:10.5px;font-weight:500;color:#9aa4b4;margin-left:1px}
+.cxd-p{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cx.dark .cxd{background:#101e34;color:#e9eef6;box-shadow:12px 0 40px -18px rgba(0,0,0,.9)}
+.cx.dark .cxd-l button{border-bottom-color:#1f2f4a}
+.cx.dark .cxd-l button:active{background:#0b1626}
+.cx.dark .cxd-n b small{color:#8a97ad}
+@keyframes cxdf{from{opacity:0}to{opacity:1}}
+@keyframes cxds{from{transform:translateX(-30px);opacity:.6}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.cxd-ov,.cxd{animation:none!important}}
+`;
+
 function CoinDrawer({ P, onPick, onClose }) {
   const t = useT();
   return (
-    <div className="cx-over" onClick={onClose}>
-      <div className="cx-drawer" onClick={(e) => e.stopPropagation()}>
-        <h2>{t("spot")}</h2><h3>USDT</h3>
-        {COINS.map((s) => (
-          <button key={s} onClick={() => onPick(s)}>
-            <span className="cx-dn"><Coin s={s} size={30} /><b>{s}<small>/USDT</small></b></span>
-            <span style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{fmt(P[s].price)}</span>
-          </button>
-        ))}
+    <div className="cxd-ov" onClick={onClose}>
+      <style>{DR_CSS}</style>
+      <div className="cxd" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <div className="cxd-h">
+          <h2>{t("spot")}</h2>
+          <span>USDT</span>
+        </div>
+        <div className="cxd-l">
+          {COINS.map((s) => (
+            <button key={s} type="button" onClick={() => onPick(s)}>
+              <span className="cxd-n"><Coin s={s} size={24} /><b>{s}<small>/USDT</small></b></span>
+              <span className="cxd-p" style={{ color: P[s].chg >= 0 ? GREEN : RED }}>{fmt(P[s].price)}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -65,7 +103,7 @@ export function Market({ P, go }) {
   );
 }
 
-/* ---- Exchange (spot) styles: ছোট টেক্সট, প্রিমিয়াম, স্মুথ ---- */
+/* ---- Exchange (spot) styles: প্রিমিয়াম, স্মুথ (লেখা একটু বড়) ---- */
 const EX_CSS = `
 .cx2{
   --bg:#ffffff;--bg2:#f4f6f9;--tx:#1b2433;--mu:#9aa4b4;--ln:#e6e9ef;--fld:#d8dde6;--fh:#eef1f5;
@@ -89,16 +127,16 @@ const EX_CSS = `
 
 /* order book */
 .cx2-book{min-width:0;display:flex;flex-direction:column}
-.cx2-bh{display:flex;justify-content:space-between;font-size:11px;color:var(--mu);padding:2px 2px 6px;font-weight:500}
-.cx2-row{position:relative;display:flex;justify-content:space-between;align-items:center;height:30px;padding:0 2px;font-size:11px;cursor:pointer;
+.cx2-bh{display:flex;justify-content:space-between;font-size:12px;color:var(--mu);padding:2px 2px 6px;font-weight:500}
+.cx2-row{position:relative;display:flex;justify-content:space-between;align-items:center;height:30px;padding:0 2px;font-size:12px;cursor:pointer;
   transition:background .15s ease}
 .cx2-row:active{background:var(--fh)}
 .cx2-row b{font-weight:500;position:relative;z-index:1}
 .cx2-row span{color:var(--mu);position:relative;z-index:1}
 .cx2-row i{position:absolute;right:0;top:3px;bottom:3px;opacity:.1;border-radius:2px;transition:width .35s ease}
 .cx2-mid{padding:10px 2px 8px;line-height:1.15}
-.cx2-mid b{display:block;font-size:17px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
-.cx2-mid small{display:block;margin-top:3px;font-size:11px;color:var(--mu)}
+.cx2-mid b{display:block;font-size:18px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
+.cx2-mid small{display:block;margin-top:3px;font-size:12px;color:var(--mu)}
 .cx2-bv{display:flex;gap:6px;margin-top:10px}
 .cx2-bv button{background:none;border:1px solid transparent;border-radius:4px;padding:2px;line-height:0;transition:border-color .15s ease}
 .cx2-bv button.on{border-color:var(--bl)}
@@ -107,57 +145,59 @@ const EX_CSS = `
 /* order form */
 .cx2-form{min-width:0;display:flex;flex-direction:column}
 .cx2-bs{position:relative;height:42px;border-radius:8px;overflow:hidden;background:var(--fh)}
-.cx2-bs button{position:absolute;top:0;bottom:0;margin:0;border:0;background:var(--fh);color:var(--tx);font-size:13.5px;font-weight:600;line-height:1;
+.cx2-bs button{position:absolute;top:0;bottom:0;margin:0;border:0;background:var(--fh);color:var(--tx);font-size:14.5px;font-weight:600;line-height:1;
   display:flex;align-items:center;justify-content:center;text-align:center;transition:background .2s ease,color .2s ease}
 .cx2-bs .bb{left:0;width:calc(50% + 7px);padding:0 7px 0 0;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
 .cx2-bs .sb{left:calc(50% - 7px);width:calc(50% + 7px);padding:0 0 0 7px;clip-path:polygon(12px 0,100% 0,100% 100%,0 100%)}
 .cx2-bs .bb.on{background:var(--up);color:#fff}
 .cx2-bs .sb.on{background:var(--dn);color:#fff}
-.cx2-sel{display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 4px 0 4px;font-size:13px;font-weight:500}
+.cx2-sel{display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 4px 0 4px;font-size:14px;font-weight:500}
 .cx2-sel svg{opacity:.7;width:18px;height:18px}
 .cx2-fld{display:flex;align-items:center;gap:6px;border:1px solid var(--ln);border-radius:8px;padding:0 10px;height:48px;
   background:transparent;transition:border-color .2s ease,box-shadow .2s ease}
 .cx2-fld:focus-within{border-color:rgba(26,130,214,.5);background:var(--fh)}
 .cx2 .cx2-fld input,.cx2 .cx2-fld input:focus,.cx2 .cx2-fld input:focus-visible,.cx2 .cx2-fld input:active{
   flex:1;min-width:0;border:0!important;background:transparent!important;color:var(--tx);
-  font-size:13.5px;height:30px;outline:none!important;box-shadow:none!important;
+  font-size:14.5px;height:30px;outline:none!important;box-shadow:none!important;
   -webkit-appearance:none;appearance:none;padding:0;border-radius:0;caret-color:var(--bl)}
-.cx2-fld input::placeholder{color:var(--mu);opacity:1;font-size:12.5px}
-.cx2-fld>b{font-size:12.5px;font-weight:600}
+.cx2-fld input::placeholder{color:var(--mu);opacity:1;font-size:13.5px}
+.cx2-fld>b{font-size:13.5px;font-weight:600}
 .cx2-fld button.pm{width:30px;height:30px;flex:none;background:var(--fh);border:0;border-radius:6px;color:var(--tx);
   font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .12s ease,background .15s ease}
 .cx2-fld button.pm:active{transform:scale(.92)}
-.cx2-est{font-size:11px;color:var(--mu);margin:6px 0 10px;min-height:14px}
-.cx2-av{margin:8px 0 8px;font-size:11px;color:var(--mu)}
+.cx2-est{font-size:12px;color:var(--mu);margin:6px 0 10px;min-height:14px}
+.cx2-av{margin:8px 0 8px;font-size:12px;color:var(--mu)}
 .cx2-av div{display:flex;justify-content:space-between;align-items:center;gap:6px;line-height:1.85;white-space:nowrap}
 .cx2-av b{font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums}
 .cx2-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 12px}
-.cx2-pc button{height:28px;background:var(--fh);border:0;border-radius:6px;color:var(--tx);font-size:11px;font-weight:600;
+.cx2-pc button{height:30px;width:100%;padding:0;margin:0;background:var(--fh);border:0;border-radius:6px;color:var(--tx);
+  font-size:12.5px;font-weight:600;line-height:1;
+  display:flex;align-items:center;justify-content:center;text-align:center;
   transition:transform .12s ease,background .15s ease}
 .cx2-pc button:active{transform:scale(.95)}
-.cx2-msg{font-size:11.5px;margin:8px 0 0;color:var(--dn);line-height:1.4}
+.cx2-msg{font-size:12.5px;margin:8px 0 0;color:var(--dn);line-height:1.4}
 .cx2-msg.ok{color:var(--up)}
 .cx2-cta{display:flex;align-items:center;justify-content:center;text-align:center;width:100%;padding:0;line-height:1;white-space:nowrap;
-  margin-top:16px;height:44px;border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;letter-spacing:.3px;
+  margin-top:16px;height:44px;border:0;border-radius:10px;color:#fff;font-size:15px;font-weight:600;letter-spacing:.3px;
   box-shadow:0 8px 18px -10px rgba(0,0,0,.55);transition:transform .12s ease,filter .15s ease,opacity .2s ease}
 .cx2-cta:active{transform:scale(.985);filter:brightness(.94)}
 
 /* entrust */
 .cx2-gap{height:10px;background:var(--bg2)}
 .cx2-eh{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 12px;border-bottom:1px solid var(--ln)}
-.cx2-eh h2{margin:0;font-size:16px;font-weight:600;display:flex;align-items:baseline;gap:8px}
-.cx2-eh h2 button{background:none;border:0;color:var(--bl);font-size:13px;font-weight:500;padding:0;display:flex;align-items:center;gap:3px}
+.cx2-eh h2{margin:0;font-size:17px;font-weight:600;display:flex;align-items:baseline;gap:8px}
+.cx2-eh h2 button{background:none;border:0;color:var(--bl);font-size:14px;font-weight:500;padding:0;display:flex;align-items:center;gap:3px}
 .cx2-eh h2 button svg{width:15px;height:15px}
-.cx2-eh>button{background:none;border:0;color:var(--tx);font-size:13px;display:flex;align-items:center;gap:4px;padding:0;
+.cx2-eh>button{background:none;border:0;color:var(--tx);font-size:14px;display:flex;align-items:center;gap:4px;padding:0;
   opacity:.9}
 .cx2-eh>button svg{width:17px;height:17px}
 .cx2-eh>button.on{color:var(--bl)}
 .cx2-list{min-height:130px;background:var(--bg)}
-.cx2-tx{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--ln);font-size:12.5px}
+.cx2-tx{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--ln);font-size:13.5px}
 .cx2-tx span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
-.cx2-tx small{font-size:11px;color:var(--mu)}
+.cx2-tx small{font-size:12px;color:var(--mu)}
 .cx2-tx>span:last-child{font-weight:600;white-space:nowrap}
-.cx2-empty{height:130px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:12.5px}
+.cx2-empty{height:130px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:13.5px}
 
 /* picker sheet */
 .cx2-ov{position:fixed;inset:0;z-index:1000;background:var(--dim);display:flex;align-items:flex-end;animation:cx2f .18s ease}
@@ -165,16 +205,16 @@ const EX_CSS = `
   box-shadow:0 -12px 40px -16px rgba(0,0,0,.5);
   animation:cx2u .26s cubic-bezier(.2,.8,.2,1);padding-bottom:max(8px,env(safe-area-inset-bottom))}
 .cx2-pkh{display:flex;justify-content:space-between;padding:14px 18px}
-.cx2-pkh button{background:none;border:0;font-size:14px;color:var(--mu);padding:0}
+.cx2-pkh button{background:none;border:0;font-size:15px;color:var(--mu);padding:0}
 .cx2-pkh button.ok{color:var(--bl);font-weight:600}
 .cx2-pkb{margin:auto 18px 10px;display:flex;flex-direction:column}
-.cx2-pkb button{height:48px;background:none;border:0;border-top:1px solid var(--ln);color:var(--mu);font-size:15.5px;font-weight:500;
+.cx2-pkb button{height:48px;background:none;border:0;border-top:1px solid var(--ln);color:var(--mu);font-size:16px;font-weight:500;
   transition:color .15s ease}
 .cx2-pkb button.on{color:var(--tx);font-weight:600}
 @keyframes cx2f{from{opacity:0}to{opacity:1}}
 @keyframes cx2u{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
 @media(max-width:380px){
-  .cx2-row{font-size:10.5px;height:28px}.cx2-mid b{font-size:15px}
+  .cx2-row{font-size:11.5px;height:28px}.cx2-mid b{font-size:16px}
   .cx2-fld{height:44px}.cx2-bs{height:38px}.cx2-cta{height:42px}
 }
 @media(prefers-reduced-motion:reduce){.cx2 *,.cx2-ov,.cx2-pk{animation:none!important;transition:none!important}}
@@ -278,7 +318,7 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
       <style>{EX_CSS}</style>
       <div className="cx-top">
         <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={22} /></button>
-        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8, fontSize: 16 }}>{sym}/USDT <small style={{ color: col, fontWeight: 500, fontSize: 12 }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)} %</small></h1>
+        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8, fontSize: 17 }}>{sym}/USDT <small style={{ color: col, fontWeight: 500, fontSize: 13 }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)} %</small></h1>
         <button onClick={() => go("options")}><Ic d={ICON.market} s={22} /></button>
       </div>
 
@@ -320,7 +360,7 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
             <div><span>{t("avail")}</span><b>{side === "buy" ? usdt.toFixed(4) + " USDT" : held.toFixed(6) + " " + sym}</b></div>
             <div><span>{side === "buy" ? t("buy") : t("sell")}</span><b>{est ? est.toFixed(6) : "0.000000"} {sym}</b></div>
           </div>
-          <div className="cx2-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
+          <div className="cx2-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} type="button" onClick={() => pct(p)}>{p * 100}%</button>)}</div>
 
           <div className="cx2-fld">
             <input className="num" value={amt} onChange={(e) => onAmt(e.target.value)} placeholder={t("amt")} inputMode="decimal" />
@@ -604,7 +644,7 @@ const durLeft = (end) => {
   return `${s}s`;
 };
 
-/* কনফার্ম ডায়ালগ: ছোট টেক্সট, প্রিমিয়াম কার্ড */
+/* কনফার্ম ডায়ালগ: প্রিমিয়াম কার্ড */
 const CF_CSS = `
 .cx-cfo{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:0 24px;
   animation:cxcf .18s ease}
@@ -612,13 +652,13 @@ const CF_CSS = `
   box-shadow:0 24px 60px -20px rgba(0,0,0,.6);animation:cxcu .24s cubic-bezier(.2,.8,.2,1);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali",Arial,sans-serif;
   -webkit-font-smoothing:antialiased}
-.cx-cf-t{padding:16px 16px 13px;text-align:center;font-size:15.5px;font-weight:600;letter-spacing:.2px;border-bottom:1px solid #e4e8ee}
-.cx-cf-b{padding:14px 22px 18px;font-size:13.5px;line-height:1.5;border-bottom:1px solid #e4e8ee}
+.cx-cf-t{padding:16px 16px 13px;text-align:center;font-size:16px;font-weight:600;letter-spacing:.2px;border-bottom:1px solid #e4e8ee}
+.cx-cf-b{padding:14px 22px 18px;font-size:14px;line-height:1.5;border-bottom:1px solid #e4e8ee}
 .cx-cf-b p{margin:0 0 8px;display:flex;justify-content:space-between;gap:12px}
 .cx-cf-b p:last-child{margin-bottom:0}
 .cx-cf-b p b{font-weight:600;font-variant-numeric:tabular-nums}
 .cx-cf-a{display:grid;grid-template-columns:1fr 1fr}
-.cx-cf-a button{height:48px;background:none;border:0;font-size:14px;cursor:pointer;color:inherit;font-family:inherit;
+.cx-cf-a button{height:48px;background:none;border:0;font-size:15px;cursor:pointer;color:inherit;font-family:inherit;
   transition:background .15s ease}
 .cx-cf-a button:active{background:rgba(0,0,0,.04)}
 .cx-cf-a button+button{border-left:1px solid #e4e8ee;font-weight:600;color:#1a82d6}
@@ -765,8 +805,8 @@ export function Options({ P, W, sym, setSym, pos, orders }) {
       <style>{CF_CSS}</style>
       <div className="cx-top">
         <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={22} /></button>
-        <h1 style={{ textAlign: "start", fontSize: 16 }}>{sym}/USDT</h1>
-        <button className="cx-link" style={{ fontSize: 13 }} onClick={() => setView(view === "k" ? "p" : "k")}>{view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={19} /></button>
+        <h1 style={{ textAlign: "start", fontSize: 17 }}>{sym}/USDT</h1>
+        <button className="cx-link" style={{ fontSize: 14 }} onClick={() => setView(view === "k" ? "p" : "k")}>{view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={19} /></button>
       </div>
       {view === "k" ? (
         <>
