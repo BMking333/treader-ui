@@ -14,7 +14,8 @@ import {
    API: GET /admin/deposits
    Navigation targets (App.jsx go()):
      admin, adminDeposits, adminWithdrawals,
-     adminPaymentMethods, adminOptions
+     adminPaymentMethods, adminOptions,
+     adminKyc, adminUsers
    ========================================================= */
 
 const CSS = `
@@ -204,6 +205,20 @@ const ADMIN_LINKS = [
     icon: ICON.trade,
     title: "Dashboard",
     desc: "Platform overview and statistics",
+  },
+  {
+    key: "adminUsers",
+    label: "Users",
+    icon: ICON.eye,
+    title: "User List",
+    desc: "Search users, edit, disable, change password, login as user",
+  },
+  {
+    key: "adminKyc",
+    label: "KYC",
+    icon: ICON.lock,
+    title: "KYC Requests",
+    desc: "Review, approve and reject user identity documents",
   },
   {
     key: "adminDeposits",
