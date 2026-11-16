@@ -1,61 +1,88 @@
 import React, { useState } from "react";
 import { useT, api } from "./Home";
-import { NETS, Chips } from "./depsoted";
+import { NETS } from "./depsoted";
 
 /* =====================================================================
-   src/pages/withdrew.jsx — Withdraw পেজ (প্রিমিয়াম ডিজাইন, হিস্ট্রি সরানো)
+   src/pages/withdrew.jsx — Withdraw পেজ (ন্যাচারাল প্রিমিয়াম ডিজাইন, নীল রঙ নেই, হিস্ট্রি নেই)
    ===================================================================== */
 
 const WFEE = { USDT: 1, USDC: 1, ETH: 0.002, BTC: 0.0002 };
 
 const CSS = `
 .wd{
-  --w-card:#ffffff;--w-tx:#141b29;--w-mu:#8793a8;--w-ln:#e8ecf3;--w-ac:#1a82d6;--w-ac2:#4aa8ff;--w-rd:#d84d5a;--w-gr:#00a97a;--w-soft:#f1f5fb;
-  --w-sh:0 10px 28px -18px rgba(20,40,80,.38);
+  --w-card:#ffffff;--w-tx:#141b29;--w-mu:#8590a3;--w-ln:#e8ebf0;--w-bd:#c3cad6;--w-soft:#f4f6f9;
+  --w-ink:#141b29;--w-inkx:#ffffff;--w-gr:#0a9f72;--w-rd:#d84d5a;
+  --w-sh:0 10px 28px -18px rgba(20,27,41,.35);
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;color:var(--w-tx);padding:0 14px 32px;
 }
-.cx.dark .wd{--w-card:#14233b;--w-tx:#eaf0f8;--w-mu:#8795ac;--w-ln:#22324f;--w-soft:#0f1c31;--w-sh:none}
+.cx.dark .wd{--w-card:#14233b;--w-tx:#eaf0f8;--w-mu:#8795ac;--w-ln:#22324f;--w-bd:#3d4f70;--w-soft:#0f1c31;--w-ink:#eaf0f8;--w-inkx:#0d1626;--w-sh:none}
 .wd,.wd *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 .wd button{font-family:inherit;cursor:pointer}
 
-/* balance hero */
-.wd-hero{position:relative;overflow:hidden;margin:12px 0;padding:18px 18px 16px;border-radius:18px;color:#fff;
-  background:linear-gradient(135deg,#2a9bff 0%,#1a6fd0 55%,#1557a8 100%);box-shadow:0 14px 30px -16px rgba(26,111,208,.75)}
-.wd-hero::after{content:"";position:absolute;right:-40px;top:-50px;width:170px;height:170px;border-radius:50%;background:rgba(255,255,255,.12)}
-.wd-hero small{display:block;font-size:12px;opacity:.85}
-.wd-hero b{position:relative;z-index:1;display:block;margin-top:6px;font-size:24px;font-weight:700;letter-spacing:-.3px;font-variant-numeric:tabular-nums;word-break:break-all}
-.wd-hero b em{font-style:normal;font-size:13px;font-weight:600;opacity:.9;margin-inline-start:6px}
+/* balance hero (ন্যাচারাল ডার্ক কার্ড) */
+.wd-hero{position:relative;overflow:hidden;margin:12px 0;padding:20px 20px 18px;border-radius:18px;color:#fff;text-align:center;
+  background:linear-gradient(135deg,#1d222c 0%,#2a303c 100%);box-shadow:0 14px 30px -18px rgba(0,0,0,.6)}
+.wd-hero::after{content:"";position:absolute;right:-50px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
+.wd-hero small{display:block;font-size:12px;opacity:.7;letter-spacing:.3px}
+.wd-hero b{position:relative;z-index:1;display:block;margin-top:8px;font-size:24px;font-weight:700;letter-spacing:-.3px;font-variant-numeric:tabular-nums;word-break:break-all}
+.wd-hero b em{font-style:normal;font-size:13px;font-weight:600;opacity:.8;margin-inline-start:6px}
 
 /* cards */
-.wd-card{margin-bottom:12px;padding:14px 16px 16px;border-radius:16px;background:var(--w-card);border:1px solid var(--w-ln);box-shadow:var(--w-sh)}
-.wd-card h4{margin:0 0 10px;font-size:12.5px;font-weight:600;color:var(--w-mu);letter-spacing:.2px}
-.wd-card h4:not(:first-child){margin-top:16px}
+.wd-card{margin-bottom:12px;padding:16px;border-radius:16px;background:var(--w-card);border:1px solid var(--w-ln);box-shadow:var(--w-sh)}
+.wd-card h4{margin:0 0 10px;font-size:12.5px;font-weight:600;color:var(--w-mu);letter-spacing:.3px}
+.wd-card h4:not(:first-child){margin-top:18px}
+
+/* coin / network pills — নিজস্ব স্টাইল, বর্ডার সবসময় দেখা যাবে */
+.wd-pills{display:flex;flex-wrap:wrap;gap:8px}
+.wd .wd-pill{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
+  min-width:68px;height:40px;padding:0 16px!important;border-radius:11px!important;
+  border:1.5px solid var(--w-bd)!important;background:var(--w-card)!important;color:var(--w-tx)!important;
+  font-size:13.5px;font-weight:600;line-height:1;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.wd .wd-pill:active{transform:scale(.97)}
+.wd .wd-pill.on{background:var(--w-ink)!important;border-color:var(--w-ink)!important;color:var(--w-inkx)!important}
 
 /* inputs */
-.wd-in{display:flex;align-items:center;gap:8px;height:48px;padding:0 12px 0 14px;border-radius:12px;background:var(--w-soft);border:1px solid var(--w-ln);transition:border-color .2s,box-shadow .2s}
-.wd-in:focus-within{border-color:var(--w-ac);box-shadow:0 0 0 3px rgba(26,130,214,.14)}
-.wd-in input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:var(--w-tx);font-size:14.5px;font-weight:500}
+.wd-in{display:flex;align-items:center;gap:8px;height:50px;padding:0 8px 0 14px;border-radius:12px;background:var(--w-soft);border:1.5px solid var(--w-bd);transition:border-color .2s,box-shadow .2s}
+.wd-in:focus-within{border-color:var(--w-ink);box-shadow:0 0 0 3px rgba(128,138,155,.2)}
+.wd-in input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;outline:0;background:transparent;color:var(--w-tx);font-size:14.5px;font-weight:500;line-height:50px}
 .wd-in input::placeholder{color:var(--w-mu);font-weight:400}
-.wd-in b{font-size:13px;font-weight:700;color:var(--w-tx)}
-.wd-in .all{padding:5px 12px;border:0;border-radius:20px;background:rgba(26,130,214,.12);color:var(--w-ac);font-size:12px;font-weight:600}
-.wd-in .all:active{background:var(--w-ac);color:#fff}
+.wd-in b{display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--w-tx);padding-inline-end:4px}
+.wd .wd-in .all{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
+  height:34px;padding:0 14px!important;border-radius:9px!important;border:1px solid var(--w-bd)!important;
+  background:var(--w-card)!important;color:var(--w-tx)!important;font-size:12.5px;font-weight:700;line-height:1}
+.wd .wd-in .all:active{background:var(--w-ink)!important;color:var(--w-inkx)!important}
 
 /* summary rows */
 .wd-sum{margin-bottom:12px;padding:6px 16px;border-radius:16px;background:var(--w-card);border:1px solid var(--w-ln);box-shadow:var(--w-sh)}
-.wd-sum .r{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:11px 0;font-size:13px;border-bottom:1px dashed var(--w-ln)}
+.wd-sum .r{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;font-size:13px;border-bottom:1px dashed var(--w-bd)}
 .wd-sum .r:last-child{border-bottom:0}
 .wd-sum .r span{color:var(--w-mu)}
 .wd-sum .r b{font-weight:600;text-align:end;font-variant-numeric:tabular-nums;word-break:break-all}
 .wd-sum .r.rv b{font-size:15px;font-weight:700;color:var(--w-gr)}
 
 /* message + submit */
-.wd-msg{margin:0 0 12px;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.4;background:rgba(0,169,122,.12);color:var(--w-gr)}
+.wd-msg{margin:0 0 12px;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.4;text-align:center;background:rgba(10,159,114,.12);color:var(--w-gr)}
 .wd-msg.bad{background:rgba(216,77,90,.12);color:var(--w-rd)}
-.wd-go{width:100%;height:50px;border:0;border-radius:14px;background:linear-gradient(135deg,var(--w-ac2),var(--w-ac));color:#fff;font-size:15px;font-weight:600;box-shadow:0 10px 22px -12px var(--w-ac);transition:transform .12s ease,opacity .2s}
-.wd-go:active{transform:scale(.985)}
-.wd-go:disabled{opacity:.6}
+.wd .wd-go{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
+  width:100%;height:52px;padding:0 20px!important;border:0!important;border-radius:14px!important;
+  background:linear-gradient(135deg,#2a303c,#141b29)!important;color:#fff!important;font-size:15px;font-weight:600;letter-spacing:.3px;line-height:1;
+  box-shadow:0 12px 24px -14px rgba(20,27,41,.8);transition:transform .12s ease,opacity .2s}
+.cx.dark .wd .wd-go{background:linear-gradient(135deg,#f4f7fb,#cfd7e4)!important;color:#0d1626!important;box-shadow:0 12px 24px -14px rgba(0,0,0,.7)}
+.wd .wd-go:active{transform:scale(.985)}
+.wd .wd-go:disabled{opacity:.6}
 `;
+
+/* coin / network বাছাইয়ের বাটন */
+function Pills({ list, v, set }) {
+  return (
+    <div className="wd-pills">
+      {list.map((x) => (
+        <button key={x} type="button" className={"wd-pill" + (x === v ? " on" : "")} onClick={() => set(x)}>{x}</button>
+      ))}
+    </div>
+  );
+}
 
 export default function Withdraw({ W, go }) {
   const t = useT();
@@ -94,9 +121,9 @@ export default function Withdraw({ W, go }) {
 
         <div className="wd-card">
           <h4>{t("coin")}</h4>
-          <Chips list={Object.keys(NETS)} v={coin} set={pickCoin} />
+          <Pills list={Object.keys(NETS)} v={coin} set={pickCoin} />
           <h4>{t("net")}</h4>
-          <Chips list={nl} v={nn} set={setNet} />
+          <Pills list={nl} v={nn} set={setNet} />
           <h4>{t("addr")}</h4>
           <div className="wd-in">
             <input value={addr} onChange={(e) => setAddr(e.target.value)} placeholder={t("addr")} autoComplete="off" />
@@ -104,8 +131,8 @@ export default function Withdraw({ W, go }) {
           <h4>{t("amount")}</h4>
           <div className="wd-in">
             <input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amount")} inputMode="decimal" />
-            <button type="button" className="all" onClick={() => setAmt(String(held))}>{t("all")}</button>
             <b>{coin}</b>
+            <button type="button" className="all" onClick={() => setAmt(String(held))}>{t("all")}</button>
           </div>
         </div>
 
