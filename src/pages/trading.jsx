@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   BLUE, GREEN, RED, CUP, CDN, COINS, MARKETS, QTY, YIELD, ASSET_COINS,
-  useT, fmt, fmtV, api, Ic, ICON, Coin, List,
+  useT, fmt, fmtV, api, Ic, ICON, Coin, List, NftList,
 } from "./Home";
 
 /* =====================================================================
    src/pages/trading.jsx — Market, Exchange (spot), Chart, Options, Assets
+   ডিজাইন: ছোট টেক্সট + প্রিমিয়াম লুক
    ===================================================================== */
 
 const DEFAULT_SECS = [30, 300, 600, 1800, 3600, 86400]; /* 30s, 5m, 10m, 30m, 1h, 1d */
@@ -48,22 +49,23 @@ function CoinDrawer({ P, onPick, onClose }) {
 }
 
 /* ---- Market ---- */
-/* প্রতিটি ট্যাবে (USDT/TRX/BTC/ETH/USDD/USDC) সব কয়েনের দাম ওই মার্কেটের হিসাবে দেখায় */
+/* প্রতিটি ট্যাবে (USDT/TRX/BTC/ETH/USDD/USDC) সব কয়েনের দাম ওই মার্কেটের হিসাবে দেখায়।
+   NFT ট্যাব (উপরের মার্কেট ট্যাব বা নিচের All/NFT) চাপলে NFT কালেকশনের ডাটা দেখায় */
 export function Market({ P, go }) {
   const t = useT();
   const [m, setM] = useState("USDT"), [sub, setSub] = useState("All");
-  const showList = m !== "NFT" && sub === "All";
+  const showNft = m === "NFT" || sub === "NFT";
   return (
     <div className="hm">
       <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("market")}</h1><span /></div>
       <div className="cx-tabs">{MARKETS.map((x) => <button key={x} className={m === x ? "on" : ""} onClick={() => setM(x)}>{x}</button>)}</div>
       <div className="cx-tabs two">{["All", "NFT"].map((x) => <button key={x} className={sub === x ? "on" : ""} onClick={() => setSub(x)}>{x === "All" ? t("all") : x}</button>)}</div>
-      {showList ? <List P={P} go={go} names quote={m} /> : <div className="cx-empty">{t("nodata")}</div>}
+      {showNft ? <NftList P={P} /> : <List P={P} go={go} names quote={m} />}
     </div>
   );
 }
 
-/* ---- Exchange (spot) styles: প্রিমিয়াম, স্মুথ টেক্সট (স্ক্রিনশটের মতো) ---- */
+/* ---- Exchange (spot) styles: ছোট টেক্সট, প্রিমিয়াম, স্মুথ ---- */
 const EX_CSS = `
 .cx2{
   --bg:#ffffff;--bg2:#f4f6f9;--tx:#1b2433;--mu:#9aa4b4;--ln:#e6e9ef;--fld:#d8dde6;--fh:#eef1f5;
@@ -83,90 +85,93 @@ const EX_CSS = `
 .cx2 input{font-family:inherit;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
 .cx2 .num{font-variant-numeric:tabular-nums;letter-spacing:.1px}
 
-.cx2-main{display:grid;grid-template-columns:47% 1fr;gap:12px;padding:12px 12px 16px;border-top:1px solid var(--ln)}
+.cx2-main{display:grid;grid-template-columns:47% 1fr;gap:10px;padding:10px 10px 14px;border-top:1px solid var(--ln)}
 
 /* order book */
 .cx2-book{min-width:0;display:flex;flex-direction:column}
-.cx2-bh{display:flex;justify-content:space-between;font-size:13px;color:var(--mu);padding:2px 2px 8px;font-weight:500}
-.cx2-row{position:relative;display:flex;justify-content:space-between;align-items:center;height:38px;padding:0 2px;font-size:13px;cursor:pointer;
+.cx2-bh{display:flex;justify-content:space-between;font-size:11px;color:var(--mu);padding:2px 2px 6px;font-weight:500}
+.cx2-row{position:relative;display:flex;justify-content:space-between;align-items:center;height:30px;padding:0 2px;font-size:11px;cursor:pointer;
   transition:background .15s ease}
 .cx2-row:active{background:var(--fh)}
 .cx2-row b{font-weight:500;position:relative;z-index:1}
 .cx2-row span{color:var(--mu);position:relative;z-index:1}
 .cx2-row i{position:absolute;right:0;top:3px;bottom:3px;opacity:.1;border-radius:2px;transition:width .35s ease}
-.cx2-mid{padding:12px 2px 10px;line-height:1.15}
-.cx2-mid b{display:block;font-size:22px;font-weight:500;letter-spacing:-.2px;white-space:nowrap}
-.cx2-mid small{display:block;margin-top:3px;font-size:13px;color:var(--mu)}
-.cx2-bv{display:flex;gap:8px;margin-top:12px}
-.cx2-bv button{background:none;border:1px solid transparent;border-radius:2px;padding:1px;line-height:0;transition:border-color .15s ease}
+.cx2-mid{padding:10px 2px 8px;line-height:1.15}
+.cx2-mid b{display:block;font-size:17px;font-weight:600;letter-spacing:-.2px;white-space:nowrap}
+.cx2-mid small{display:block;margin-top:3px;font-size:11px;color:var(--mu)}
+.cx2-bv{display:flex;gap:6px;margin-top:10px}
+.cx2-bv button{background:none;border:1px solid transparent;border-radius:4px;padding:2px;line-height:0;transition:border-color .15s ease}
 .cx2-bv button.on{border-color:var(--bl)}
+.cx2-bv svg{width:22px;height:20px}
 
 /* order form */
 .cx2-form{min-width:0;display:flex;flex-direction:column}
-.cx2-bs{position:relative;height:56px;border-radius:2px;overflow:hidden;background:var(--fh)}
-.cx2-bs button{position:absolute;top:0;bottom:0;margin:0;border:0;background:var(--fh);color:var(--tx);font-size:16px;font-weight:500;line-height:1;
+.cx2-bs{position:relative;height:42px;border-radius:8px;overflow:hidden;background:var(--fh)}
+.cx2-bs button{position:absolute;top:0;bottom:0;margin:0;border:0;background:var(--fh);color:var(--tx);font-size:13.5px;font-weight:600;line-height:1;
   display:flex;align-items:center;justify-content:center;text-align:center;transition:background .2s ease,color .2s ease}
-.cx2-bs .bb{left:0;width:calc(50% + 7px);padding:0 7px 0 0;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
-.cx2-bs .sb{left:calc(50% - 7px);width:calc(50% + 7px);padding:0 0 0 7px;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%)}
+.cx2-bs .bb{left:0;width:calc(50% + 7px);padding:0 7px 0 0;clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,0 100%)}
+.cx2-bs .sb{left:calc(50% - 7px);width:calc(50% + 7px);padding:0 0 0 7px;clip-path:polygon(12px 0,100% 0,100% 100%,0 100%)}
 .cx2-bs .bb.on{background:var(--up);color:#fff}
 .cx2-bs .sb.on{background:var(--dn);color:#fff}
-.cx2-sel{display:flex;justify-content:space-between;align-items:center;height:52px;padding:0 6px 0 4px;font-size:16px;font-weight:500}
-.cx2-sel svg{opacity:.85}
-.cx2-fld{display:flex;align-items:center;gap:8px;border:1px solid var(--ln);border-radius:2px;padding:0 12px;height:68px;
-  background:transparent;transition:border-color .2s ease,background .2s ease}
-.cx2-fld:focus-within{border-color:var(--bl)}
-.cx2-fld input{flex:1;min-width:0;border:0;border-bottom:1px solid var(--fld);background:transparent;color:var(--tx);
-  font-size:16px;height:34px;outline:0;padding:0;border-radius:0}
-.cx2-fld input::placeholder{color:var(--mu);opacity:1}
-.cx2-fld input:focus{border-bottom-color:var(--bl)}
-.cx2-fld>b{font-size:16px;font-weight:500}
-.cx2-fld button.pm{width:42px;height:42px;flex:none;background:transparent;border:1px solid var(--tx);border-radius:2px;color:var(--tx);
-  font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .12s ease,background .15s ease}
-.cx2-fld button.pm:active{transform:scale(.92);background:var(--fh)}
-.cx2-est{font-size:13px;color:var(--mu);margin:8px 0 12px;min-height:18px}
-.cx2-av{font-size:13px;line-height:1.7;color:var(--mu);margin:10px 0 8px;word-break:break-all}
-.cx2-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 16px}
-.cx2-pc button{height:34px;background:transparent;border:1px solid var(--tx);border-radius:2px;color:var(--tx);font-size:13px;font-weight:500;
+.cx2-sel{display:flex;justify-content:space-between;align-items:center;height:40px;padding:0 4px 0 4px;font-size:13px;font-weight:500}
+.cx2-sel svg{opacity:.7;width:18px;height:18px}
+.cx2-fld{display:flex;align-items:center;gap:6px;border:1px solid var(--ln);border-radius:8px;padding:0 10px;height:48px;
+  background:transparent;transition:border-color .2s ease,box-shadow .2s ease}
+.cx2-fld:focus-within{border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,130,214,.12)}
+.cx2-fld input{flex:1;min-width:0;border:0;background:transparent;color:var(--tx);
+  font-size:13.5px;height:30px;outline:0;padding:0;border-radius:0}
+.cx2-fld input::placeholder{color:var(--mu);opacity:1;font-size:12.5px}
+.cx2-fld>b{font-size:12.5px;font-weight:600}
+.cx2-fld button.pm{width:30px;height:30px;flex:none;background:var(--fh);border:0;border-radius:6px;color:var(--tx);
+  font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .12s ease,background .15s ease}
+.cx2-fld button.pm:active{transform:scale(.92)}
+.cx2-est{font-size:11px;color:var(--mu);margin:6px 0 10px;min-height:14px}
+.cx2-av{font-size:11px;line-height:1.65;color:var(--mu);margin:8px 0 8px;word-break:break-all}
+.cx2-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 12px}
+.cx2-pc button{height:28px;background:var(--fh);border:0;border-radius:6px;color:var(--tx);font-size:11px;font-weight:600;
   transition:transform .12s ease,background .15s ease}
-.cx2-pc button:active{transform:scale(.95);background:var(--fh)}
-.cx2-msg{font-size:13px;margin:10px 0 0;color:var(--dn);line-height:1.4}
+.cx2-pc button:active{transform:scale(.95)}
+.cx2-msg{font-size:11.5px;margin:8px 0 0;color:var(--dn);line-height:1.4}
 .cx2-msg.ok{color:var(--up)}
 .cx2-cta{display:flex;align-items:center;justify-content:center;text-align:center;width:100%;padding:0;line-height:1;white-space:nowrap;
-  margin-top:22px;height:56px;border:0;border-radius:3px;color:#fff;font-size:17px;font-weight:500;letter-spacing:.2px;
-  box-shadow:0 6px 16px -8px rgba(0,0,0,.45);transition:transform .12s ease,filter .15s ease,opacity .2s ease}
+  margin-top:16px;height:44px;border:0;border-radius:10px;color:#fff;font-size:14px;font-weight:600;letter-spacing:.3px;
+  box-shadow:0 8px 18px -10px rgba(0,0,0,.55);transition:transform .12s ease,filter .15s ease,opacity .2s ease}
 .cx2-cta:active{transform:scale(.985);filter:brightness(.94)}
 
 /* entrust */
-.cx2-gap{height:12px;background:var(--bg2)}
-.cx2-eh{display:flex;justify-content:space-between;align-items:center;padding:18px 16px 14px;border-bottom:1px solid var(--ln)}
-.cx2-eh h2{margin:0;font-size:22px;font-weight:500;display:flex;align-items:baseline;gap:10px}
-.cx2-eh h2 button{background:none;border:0;color:var(--bl);font-size:16px;padding:0;display:flex;align-items:center;gap:4px}
-.cx2-eh>button{background:none;border:0;color:var(--tx);font-size:18px;display:flex;align-items:center;gap:4px;padding:0;
-  opacity:.92}
+.cx2-gap{height:10px;background:var(--bg2)}
+.cx2-eh{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 12px;border-bottom:1px solid var(--ln)}
+.cx2-eh h2{margin:0;font-size:16px;font-weight:600;display:flex;align-items:baseline;gap:8px}
+.cx2-eh h2 button{background:none;border:0;color:var(--bl);font-size:13px;font-weight:500;padding:0;display:flex;align-items:center;gap:3px}
+.cx2-eh h2 button svg{width:15px;height:15px}
+.cx2-eh>button{background:none;border:0;color:var(--tx);font-size:13px;display:flex;align-items:center;gap:4px;padding:0;
+  opacity:.9}
+.cx2-eh>button svg{width:17px;height:17px}
 .cx2-eh>button.on{color:var(--bl)}
-.cx2-list{min-height:150px;background:var(--bg)}
-.cx2-tx{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--ln);font-size:14px}
-.cx2-tx span:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
-.cx2-tx small{font-size:12px;color:var(--mu)}
-.cx2-tx>span:last-child{font-weight:500;white-space:nowrap}
-.cx2-empty{height:150px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:14px}
+.cx2-list{min-height:130px;background:var(--bg)}
+.cx2-tx{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--ln);font-size:12.5px}
+.cx2-tx span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cx2-tx small{font-size:11px;color:var(--mu)}
+.cx2-tx>span:last-child{font-weight:600;white-space:nowrap}
+.cx2-empty{height:130px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:12.5px}
 
 /* picker sheet */
 .cx2-ov{position:fixed;inset:0;z-index:1000;background:var(--dim);display:flex;align-items:flex-end;animation:cx2f .18s ease}
-.cx2-pk{width:100%;min-height:46vh;background:var(--sheet);color:var(--tx);border-radius:22px 22px 0 0;display:flex;flex-direction:column;
+.cx2-pk{width:100%;min-height:34vh;background:var(--sheet);color:var(--tx);border-radius:18px 18px 0 0;display:flex;flex-direction:column;
+  box-shadow:0 -12px 40px -16px rgba(0,0,0,.5);
   animation:cx2u .26s cubic-bezier(.2,.8,.2,1);padding-bottom:max(8px,env(safe-area-inset-bottom))}
-.cx2-pkh{display:flex;justify-content:space-between;padding:18px 22px}
-.cx2-pkh button{background:none;border:0;font-size:19px;color:var(--mu);padding:0}
-.cx2-pkh button.ok{color:var(--bl);font-weight:500}
-.cx2-pkb{margin:auto 22px 14px;display:flex;flex-direction:column}
-.cx2-pkb button{height:62px;background:none;border:0;border-top:1px solid var(--ln);color:var(--mu);font-size:21px;font-weight:500;
+.cx2-pkh{display:flex;justify-content:space-between;padding:14px 18px}
+.cx2-pkh button{background:none;border:0;font-size:14px;color:var(--mu);padding:0}
+.cx2-pkh button.ok{color:var(--bl);font-weight:600}
+.cx2-pkb{margin:auto 18px 10px;display:flex;flex-direction:column}
+.cx2-pkb button{height:48px;background:none;border:0;border-top:1px solid var(--ln);color:var(--mu);font-size:15.5px;font-weight:500;
   transition:color .15s ease}
-.cx2-pkb button.on{color:var(--tx)}
+.cx2-pkb button.on{color:var(--tx);font-weight:600}
 @keyframes cx2f{from{opacity:0}to{opacity:1}}
 @keyframes cx2u{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
 @media(max-width:380px){
-  .cx2-row{font-size:12px;height:34px}.cx2-mid b{font-size:19px}
-  .cx2-fld{height:60px}.cx2-bs{height:48px}.cx2-cta{height:50px}
+  .cx2-row{font-size:10.5px;height:28px}.cx2-mid b{font-size:15px}
+  .cx2-fld{height:44px}.cx2-bs{height:38px}.cx2-cta{height:42px}
 }
 @media(prefers-reduced-motion:reduce){.cx2 *,.cx2-ov,.cx2-pk{animation:none!important;transition:none!important}}
 `;
@@ -268,9 +273,9 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
     <div className="cx2">
       <style>{EX_CSS}</style>
       <div className="cx-top">
-        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
-        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}>{sym}/USDT <small style={{ color: col, fontWeight: 400 }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)} %</small></h1>
-        <button onClick={() => go("options")}><Ic d={ICON.market} s={26} /></button>
+        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={22} /></button>
+        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8, fontSize: 16 }}>{sym}/USDT <small style={{ color: col, fontWeight: 500, fontSize: 12 }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)} %</small></h1>
+        <button onClick={() => go("options")}><Ic d={ICON.market} s={22} /></button>
       </div>
 
       <div className="cx2-main">
@@ -294,7 +299,7 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
             <button className={"bb" + (side === "buy" ? " on" : "")} onClick={() => switchSide("buy")}>{t("buy")}</button>
             <button className={"sb" + (side === "sell" ? " on" : "")} onClick={() => switchSide("sell")}>{t("sell")}</button>
           </div>
-          <div className="cx2-sel"><span>{t("limit")}</span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7" /></svg></div>
+          <div className="cx2-sel"><span>{t("limit")}</span><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7" /></svg></div>
 
           <div className="cx2-fld">
             <input className="num" value={price} onChange={(e) => setPx(e.target.value)} placeholder={t("price")} inputMode="decimal" />
@@ -328,11 +333,11 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
       <div className="cx2-eh">
         <h2>{t("entrust")}
           <button onClick={() => { setEntTmp(ent); setEntPick(true); }}>{t(ent)}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7" /></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7" /></svg>
           </button>
         </h2>
         <button className={entAll ? "on" : ""} onClick={() => setEntAll(!entAll)}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg>
           {t("all")}
         </button>
       </div>
@@ -595,21 +600,32 @@ const durLeft = (end) => {
   return `${s}s`;
 };
 
+/* কনফার্ম ডায়ালগ: ছোট টেক্সট, প্রিমিয়াম কার্ড */
 const CF_CSS = `
-.cx-cfo{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:0 20px}
-.cx-cf{width:100%;max-width:420px;background:#fff;color:#1a1a1a;border-radius:20px;overflow:hidden}
-.cx-cf-t{padding:22px 16px 18px;text-align:center;font-size:21px;font-weight:700;border-bottom:1px solid #dfe3e9}
-.cx-cf-b{padding:18px 26px 34px;font-size:21px;line-height:1.5;border-bottom:1px solid #dfe3e9}
-.cx-cf-b p{margin:0 0 14px}
+.cx-cfo{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.62);display:flex;align-items:center;justify-content:center;padding:0 24px;
+  animation:cxcf .18s ease}
+.cx-cf{width:100%;max-width:320px;background:#fff;color:#1a1a1a;border-radius:16px;overflow:hidden;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.6);animation:cxcu .24s cubic-bezier(.2,.8,.2,1);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased}
+.cx-cf-t{padding:16px 16px 13px;text-align:center;font-size:15.5px;font-weight:600;letter-spacing:.2px;border-bottom:1px solid #e4e8ee}
+.cx-cf-b{padding:14px 22px 18px;font-size:13.5px;line-height:1.5;border-bottom:1px solid #e4e8ee}
+.cx-cf-b p{margin:0 0 8px;display:flex;justify-content:space-between;gap:12px}
 .cx-cf-b p:last-child{margin-bottom:0}
+.cx-cf-b p b{font-weight:600;font-variant-numeric:tabular-nums}
 .cx-cf-a{display:grid;grid-template-columns:1fr 1fr}
-.cx-cf-a button{height:68px;background:none;border:0;font-size:21px;cursor:pointer;color:inherit}
-.cx-cf-a button+button{border-left:1px solid #dfe3e9;font-weight:600;color:#1a82d6}
+.cx-cf-a button{height:48px;background:none;border:0;font-size:14px;cursor:pointer;color:inherit;font-family:inherit;
+  transition:background .15s ease}
+.cx-cf-a button:active{background:rgba(0,0,0,.04)}
+.cx-cf-a button+button{border-left:1px solid #e4e8ee;font-weight:600;color:#1a82d6}
 .cx-cf-a button:disabled{opacity:.5}
 .cx.dark .cx-cf{background:#12203a;color:#e8ecf3}
-.cx.dark .cx-cf-t,.cx.dark .cx-cf-b{border-bottom-color:#2c3c58}
-.cx.dark .cx-cf-a button+button{border-left-color:#2c3c58}
-@media(max-width:380px){.cx-cf-t,.cx-cf-b,.cx-cf-a button{font-size:18px}}
+.cx.dark .cx-cf-t,.cx.dark .cx-cf-b{border-bottom-color:#2a3a56}
+.cx.dark .cx-cf-a button+button{border-left-color:#2a3a56}
+.cx.dark .cx-cf-a button:active{background:rgba(255,255,255,.05)}
+@keyframes cxcf{from{opacity:0}to{opacity:1}}
+@keyframes cxcu{from{transform:translateY(14px) scale(.97);opacity:.5}to{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.cx-cfo,.cx-cf{animation:none!important}}
 `;
 
 /* ---- Options → POST /options/open, GET /options/status ---- */
@@ -743,9 +759,9 @@ export function Options({ P, W, sym, setSym, pos, orders }) {
     <>
       <style>{CF_CSS}</style>
       <div className="cx-top">
-        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
-        <h1 style={{ textAlign: "start" }}>{sym}/USDT</h1>
-        <button className="cx-link" onClick={() => setView(view === "k" ? "p" : "k")}>{view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={22} /></button>
+        <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={22} /></button>
+        <h1 style={{ textAlign: "start", fontSize: 16 }}>{sym}/USDT</h1>
+        <button className="cx-link" style={{ fontSize: 13 }} onClick={() => setView(view === "k" ? "p" : "k")}>{view === "k" ? t("pos") : t("kl")} <Ic d={view === "k" ? ICON.doc : ICON.candle} s={19} /></button>
       </div>
       {view === "k" ? (
         <>
@@ -834,8 +850,8 @@ export function Options({ P, W, sym, setSym, pos, orders }) {
           <div className="cx-cf" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="cx-cf-t">{cf.dir === "long" ? t("bl") : t("ss")}</div>
             <div className="cx-cf-b">
-              <p>{t("oq")}: {qty.toFixed(2)}</p>
-              <p>{t("ot")}: {fmtDur(sec)}</p>
+              <p><span>{t("oq")}</span><b>{qty.toFixed(2)}</b></p>
+              <p><span>{t("ot")}</span><b>{fmtDur(sec)}</b></p>
             </div>
             <div className="cx-cf-a">
               <button type="button" onClick={() => setCf(null)}>{tt("cancel", "Cancel")}</button>
