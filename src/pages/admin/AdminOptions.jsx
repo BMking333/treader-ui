@@ -1,13 +1,21 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../Home";
 
-
+/* =========================================================
+   Helpers
+   ========================================================= */
 
 const n2 = (v) =>
   Number(v || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  });
+
+// Up to 8 decimals (matches backend Q8 precision)
+const n8 = (v) =>
+  Number(v || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 8,
   });
 
 const dt = (s) => (s ? new Date(s).toLocaleString() : "--");
@@ -28,6 +36,24 @@ const ruleOf = (x) => {
   return x.yield_rate != null
     ? Math.round(x.yield_rate * 100) + "%"
     : "--";
+};
+
+// Signed decimal, max 8 places (same as backend)
+const DEC8 = /^-?\d+(\.\d{1,8})?$/;
+
+// Backend error codes -> readable messages
+const ERR_MAP = {
+  insufficientBalance:
+    "User's available balance is not enough. Nothing was changed.",
+  notClosed: "Only CLOSED trades can be adjusted.",
+  notOpen: "Only OPEN trades can be canceled or settled.",
+  notFound: "Record not found.",
+  badPnl: "Invalid P&L. New P&L cannot be lower than the negative stake.",
+  badAdjustment: "Adjustment cannot be zero.",
+  badPrice: "Invalid close price.",
+  reasonRequired: "Reason is required.",
+  frozenMismatch: "Frozen balance mismatch. Nothing was changed.",
+  forbidden: "Admin access required.",
 };
 
 const ADMIN_LINKS = [
@@ -110,9 +136,10 @@ const CSS = `
 .ao th{background:#f7f8fb;text-align:left;padding:9px 10px;color:#6b7183;font-weight:600}
 .ao td{padding:8px 10px;border-top:1px solid #eef0f3}
 .ao .up{color:#00a870}.ao .dn{color:#d84d5a}
+.ao-sn{display:inline-block;min-width:28px;text-align:center;padding:2px 6px;border-radius:6px;background:#eef3fa;color:#26364a;font-weight:700;font-size:12px}
 .ao-tag{padding:2px 8px;border-radius:4px;color:#fff;font-size:12px}
 .ao-err{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#fdecee;color:#c8323f;font-size:14px}
-.ao-success{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#e3f7ee;color:#087d58;font-size:14px}
+.ao-success{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#e3f7ee;color:#087d58;font-size:14px;line-height:1.5}
 .ao-none{text-align:center;color:#9aa0ad;padding:30px}
 .ao-note{margin-top:8px;font-size:12px;color:#8a94a6;line-height:1.5}
 .ao-actions{display:flex;gap:6px;flex-wrap:wrap}
@@ -125,12 +152,21 @@ const CSS = `
 .ao-modal .full{grid-column:1/-1}
 .ao-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .ao-pill{font-size:11px;border-radius:20px;padding:4px 8px;background:#edf1f7;color:#536174}
+.ao-prev{margin-top:12px;border:1px solid #e4e7ec;border-radius:10px;overflow:hidden}
+.ao-prev div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:13px;border-top:1px solid #eef0f3}
+.ao-prev div:first-child{border-top:0}
+.ao-prev span{color:#6b7183}
+.ao-warn{margin-top:10px;padding:8px 12px;border-radius:8px;background:#fff6e5;color:#8a5a00;font-size:12px;line-height:1.5}
 @media(max-width:550px){
   .ao{padding:12px}
   .ao-nav button{min-width:110px}
   .ao-modal .ao-row{grid-template-columns:1fr}
 }
 `;
+
+/* =========================================================
+   Component
+   ========================================================= */
 
 export default function AdminOptions({ me, go, logout }) {
   const [sum, setSum] = useState(null);
@@ -182,11 +218,16 @@ export default function AdminOptions({ me, go, logout }) {
     try {
       await fn();
     } catch (e) {
-      setErr((e && e.message) || "Request failed");
+      const raw = (e && e.message) || "Request failed";
+      setErr(ERR_MAP[raw] || raw);
     } finally {
       setBusy(false);
     }
   };
+
+  /* -------------------------
+     Loaders
+     ------------------------- */
 
   const loadSum = useCallback(async () => {
     try {
@@ -254,6 +295,10 @@ export default function AdminOptions({ me, go, logout }) {
     if (tab === "audit") loadAudits();
   };
 
+  /* -------------------------
+     Settings
+     ------------------------- */
+
   const saveCfg = (changes) =>
     run(async () => {
       const c = await api("/admin/options/settings", {
@@ -299,6 +344,10 @@ export default function AdminOptions({ me, go, logout }) {
       leverage: form.leverage,
     });
 
+  /* -------------------------
+     Cancel
+     ------------------------- */
+
   const cancelOne = (x) => {
     const note = window.prompt(
       `Cancel trade #${x.id}. Stake ${n2(x.qty)} USDT will be refunded. Reason:`,
@@ -312,7 +361,7 @@ export default function AdminOptions({ me, go, logout }) {
         method: "POST",
         body: { note },
       });
-      setSuccess("Trade canceled and refund processed.");
+      setSuccess(`Trade #${x.id} canceled and refund processed.`);
       refresh();
     });
   };
@@ -338,6 +387,10 @@ export default function AdminOptions({ me, go, logout }) {
       refresh();
     });
   };
+
+  /* -------------------------
+     Block / Unblock
+     ------------------------- */
 
   const blockUser = (u) => {
     if (u.blocked) {
@@ -371,9 +424,33 @@ export default function AdminOptions({ me, go, logout }) {
     });
   };
 
-  /* =========================
+  const setUserTrading = (u) => {
+    const enabled = !!u.blocked;
+
+    const reason = window.prompt(
+      `${enabled ? "Enable" : "Disable"} trading for ${u.email}. Reason:`,
+      ""
+    );
+
+    if (reason === null) return;
+
+    run(async () => {
+      await api(`/admin/options/users/${u.user_id}/trading`, {
+        method: "PUT",
+        body: {
+          enabled,
+          reason,
+        },
+      });
+
+      setSuccess(`User trading ${enabled ? "enabled" : "disabled"}.`);
+      refresh();
+    });
+  };
+
+  /* -------------------------
      Wallet Add / Deduct
-     ========================= */
+     ------------------------- */
 
   const openWalletModal = (u, action) => {
     setWalletForm({ amount: "", reason: "" });
@@ -414,7 +491,7 @@ export default function AdminOptions({ me, go, logout }) {
           ? `/admin/options/users/${userId}/wallet/add`
           : `/admin/options/users/${userId}/wallet/deduct`;
 
-      await api(path, {
+      const r = await api(path, {
         method: "POST",
         body: {
           amount: String(walletForm.amount),
@@ -424,15 +501,26 @@ export default function AdminOptions({ me, go, logout }) {
       });
 
       setModal(null);
-      setSuccess(`Wallet ${action === "add" ? "credited" : "debited"} successfully.`);
+      setSuccess(
+        `Wallet ${action === "add" ? "credited" : "debited"} successfully.` +
+          (r && r.available_after != null
+            ? ` Available: ${n8(r.available_before)} → ${n8(r.available_after)} USDT.`
+            : "")
+      );
       loadUsers();
     });
   };
 
-  /* =========================
-     Closed P&L Adjustment
-     adjustment = new P&L - old P&L
-     ========================= */
+  /* -------------------------
+     Closed Trade P&L Adjustment
+     (every trade is independent)
+
+     new P&L = old P&L + adjustment
+     + adjustment  -> available wallet +
+     - adjustment  -> available wallet -
+     frozen        -> never changes
+     insufficient  -> rejected, nothing changes
+     ------------------------- */
 
   const openPnlModal = (x) => {
     setPnlForm({
@@ -448,58 +536,76 @@ export default function AdminOptions({ me, go, logout }) {
     });
   };
 
-  const submitPnl = () => {
-    if (!modal?.trade) return;
+  // Live preview numbers for the P&L modal
+  const pnlPreview = (() => {
+    if (modal?.type !== "pnl") return null;
 
     const raw = pnlForm.adjustment.trim();
-    const adjustment = Number(raw);
+    const valid = DEC8.test(raw) && Number(raw) !== 0;
+    const adj = valid ? Number(raw) : 0;
+    const oldPnl = Number(modal.trade.pnl || 0);
+    const newPnl = oldPnl + adj;
+    const tooLow = valid && newPnl < -Number(modal.trade.qty);
 
-    if (
-      raw === "" ||
-      !Number.isFinite(adjustment) ||
-      adjustment === 0
-    ) {
-      setErr("Enter a valid non-zero adjustment amount.");
+    return { raw, valid, adj, oldPnl, newPnl, tooLow };
+  })();
+
+  const submitPnl = () => {
+    if (!modal?.trade || !pnlPreview) return;
+
+    const { raw, valid, adj, oldPnl, newPnl, tooLow } = pnlPreview;
+    const x = modal.trade;
+
+    if (!valid) {
+      setErr(
+        "Enter a valid non-zero adjustment (max 8 decimal places). Example: 5 or -3.5"
+      );
       return;
     }
 
-    const x = modal.trade;
-    const oldPnl = Number(x.pnl || 0);
-    const newPnl = oldPnl + adjustment;
-
-    if (newPnl < -Number(x.qty)) {
+    if (tooLow) {
       setErr("New P&L cannot be lower than negative stake.");
       return;
     }
 
-    const direction = adjustment > 0 ? "credit" : "debit";
+    const credit = adj > 0;
 
     if (
       !window.confirm(
-        `Trade #${x.id}\nOld P&L: ${n2(oldPnl)} USDT\nAdjustment: ${adjustment > 0 ? "+" : ""}${n2(adjustment)} USDT\nNew P&L: ${n2(newPnl)} USDT\n\nWallet will be ${direction}ed by ${n2(Math.abs(adjustment))} USDT. Continue?`
+        `Trade #${x.id} (${x.email || "user"})\n` +
+          `Old P&L: ${n8(oldPnl)} USDT\n` +
+          `Adjustment: ${credit ? "+" : ""}${n8(adj)} USDT\n` +
+          `New P&L: ${n8(newPnl)} USDT\n\n` +
+          `User's available wallet will be ${credit ? "credited" : "debited"} by ${n8(Math.abs(adj))} USDT.\n` +
+          `Frozen balance will not change.\n` +
+          `Only this trade is changed. Continue?`
       )
     ) return;
 
     run(async () => {
-      await api(`/admin/options/positions/${x.id}/adjust-pnl`, {
+      const r = await api(`/admin/options/positions/${x.id}/adjust-pnl`, {
         method: "POST",
         body: {
-          adjustment: String(raw),
+          adjustment: raw,
           reason: pnlForm.reason.trim() || null,
         },
       });
 
       setModal(null);
       setSuccess(
-        `P&L adjusted: ${n2(oldPnl)} → ${n2(newPnl)} USDT. Wallet ${direction}: ${n2(Math.abs(adjustment))} USDT.`
+        `Trade #${x.id} P&L: ${n8(r?.old_pnl ?? oldPnl)} → ${n8(r?.new_pnl ?? newPnl)} USDT. ` +
+          `Wallet ${credit ? "credit" : "debit"}: ${n8(Math.abs(adj))} USDT.` +
+          (r && r.available_after != null
+            ? ` Available: ${n8(r.available_before)} → ${n8(r.available_after)} USDT. Frozen: ${n8(r.frozen)} (unchanged).`
+            : "")
       );
       refresh();
     });
   };
 
-  /* =========================
-     Open Trade Settlement
-     ========================= */
+  /* -------------------------
+     Open Trade Settlement Override
+     ------------------------- */
 
   const openSettlementModal = (x) => {
     setPnlForm({
@@ -538,7 +644,7 @@ export default function AdminOptions({ me, go, logout }) {
 
     if (
       !window.confirm(
-        `Settle trade #${x.id} with P&L ${n2(pnl)} USDT? This closes the trade.`
+        `Settle trade #${x.id} with P&L ${n8(pnl)} USDT? This closes the trade.`
       )
     ) return;
 
@@ -562,37 +668,17 @@ export default function AdminOptions({ me, go, logout }) {
       });
 
       setModal(null);
-      setSuccess("Trade settled successfully.");
-      refresh();
-    });
-  };
-
-  const setUserTrading = (u) => {
-    const enabled = !!u.blocked;
-
-    const reason = window.prompt(
-      `${enabled ? "Enable" : "Disable"} trading for ${u.email}. Reason:`,
-      ""
-    );
-
-    if (reason === null) return;
-
-    run(async () => {
-      await api(`/admin/options/users/${u.user_id}/trading`, {
-        method: "PUT",
-        body: {
-          enabled,
-          reason,
-        },
-      });
-
-      setSuccess(`User trading ${enabled ? "enabled" : "disabled"}.`);
+      setSuccess(`Trade #${x.id} settled successfully.`);
       refresh();
     });
   };
 
   const platPnl = sum ? sum.today_platform_pnl : 0;
   const isProp = form.mode === "proportional";
+
+  /* =========================================================
+     Render
+     ========================================================= */
 
   return (
     <div className="ao">
@@ -915,13 +1001,16 @@ export default function AdminOptions({ me, go, logout }) {
         </div>
       )}
 
-      {/* Trades */}
+      {/* =====================================================
+          Trades  (every trade = its own row, serial 1,2,3...)
+          ===================================================== */}
       {tab === "pos" && (
         <div className="ao-tw">
           <table>
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
+                <th>Trade ID</th>
                 <th>User</th>
                 <th>Pair</th>
                 <th>Side</th>
@@ -940,12 +1029,13 @@ export default function AdminOptions({ me, go, logout }) {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={13} className="ao-none">No trades</td>
+                  <td colSpan={14} className="ao-none">No trades</td>
                 </tr>
               )}
 
-              {rows.map((x) => (
+              {rows.map((x, i) => (
                 <tr key={x.id}>
+                  <td><span className="ao-sn">{i + 1}</span></td>
                   <td>{x.id}</td>
                   <td>
                     {x.email}
@@ -967,7 +1057,7 @@ export default function AdminOptions({ me, go, logout }) {
                   <td>{x.open_price}</td>
                   <td>{x.close_price != null ? x.close_price : "--"}</td>
                   <td className={x.pnl > 0 ? "up" : x.pnl < 0 ? "dn" : ""}>
-                    {x.pnl != null ? n2(x.pnl) : "--"}
+                    {x.pnl != null ? n8(x.pnl) : "--"}
                   </td>
                   <td className={x.floating_pnl > 0 ? "up" : x.floating_pnl < 0 ? "dn" : ""}>
                     {x.floating_pnl != null ? n2(x.floating_pnl) : "--"}
@@ -1011,9 +1101,10 @@ export default function AdminOptions({ me, go, logout }) {
                           type="button"
                           className="ao-btn sm"
                           disabled={busy}
+                          title={`Adjust P&L of trade #${x.id} only`}
                           onClick={() => openPnlModal(x)}
                         >
-                          Edit P&amp;L
+                          Edit P&amp;L ±
                         </button>
                       )}
                     </div>
@@ -1031,6 +1122,7 @@ export default function AdminOptions({ me, go, logout }) {
           <table>
             <thead>
               <tr>
+                <th>#</th>
                 <th>User</th>
                 <th>Trades</th>
                 <th>Volume</th>
@@ -1045,11 +1137,12 @@ export default function AdminOptions({ me, go, logout }) {
 
             <tbody>
               {users.length === 0 && (
-                <tr><td colSpan={9} className="ao-none">No users</td></tr>
+                <tr><td colSpan={10} className="ao-none">No users</td></tr>
               )}
 
-              {users.map((u) => (
+              {users.map((u, i) => (
                 <tr key={u.user_id}>
+                  <td><span className="ao-sn">{i + 1}</span></td>
                   <td>
                     {u.email}
                     <br />
@@ -1138,7 +1231,8 @@ export default function AdminOptions({ me, go, logout }) {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
+                <th>Audit ID</th>
                 <th>Admin</th>
                 <th>User ID</th>
                 <th>Trade ID</th>
@@ -1154,19 +1248,20 @@ export default function AdminOptions({ me, go, logout }) {
 
             <tbody>
               {audits.length === 0 && (
-                <tr><td colSpan={11} className="ao-none">No audit records</td></tr>
+                <tr><td colSpan={12} className="ao-none">No audit records</td></tr>
               )}
 
-              {audits.map((a) => (
+              {audits.map((a, i) => (
                 <tr key={a.id}>
+                  <td><span className="ao-sn">{i + 1}</span></td>
                   <td>{a.id}</td>
                   <td>{a.admin_id}</td>
                   <td>{a.user_id}</td>
                   <td>{a.position_id ?? "--"}</td>
                   <td><span className="ao-pill">{a.action}</span></td>
-                  <td>{a.amount != null ? n2(a.amount) : "--"}</td>
-                  <td>{a.old_value != null ? n2(a.old_value) : "--"}</td>
-                  <td>{a.new_value != null ? n2(a.new_value) : "--"}</td>
+                  <td>{a.amount != null ? n8(a.amount) : "--"}</td>
+                  <td>{a.old_value != null ? n8(a.old_value) : "--"}</td>
+                  <td>{a.new_value != null ? n8(a.new_value) : "--"}</td>
                   <td>{a.coin || "--"}</td>
                   <td style={{ whiteSpace: "normal", minWidth: 160 }}>{a.reason || "--"}</td>
                   <td>{dt(a.created_at)}</td>
@@ -1216,6 +1311,12 @@ export default function AdminOptions({ me, go, logout }) {
               </label>
             </div>
 
+            <div className="ao-note">
+              Only the available balance changes. Frozen balance is never
+              changed. If the available balance is not enough for a deduct,
+              the request is rejected.
+            </div>
+
             <div className="ao-modal-footer">
               <button
                 type="button"
@@ -1238,77 +1339,36 @@ export default function AdminOptions({ me, go, logout }) {
         </div>
       )}
 
-      {/* P&L / Settlement Modal */}
-      {(modal?.type === "pnl" || modal?.type === "settlement") && (
+      {/* Closed trade P&L modal */}
+      {modal?.type === "pnl" && pnlPreview && (
         <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
           <div className="ao-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              {modal.type === "pnl" ? "Adjust Closed Trade P&L" : "Override Trade Settlement"}
-            </h3>
+            <h3>Adjust Closed Trade P&amp;L</h3>
 
             <div className="ao-note">
-              Trade #{modal.trade.id} · {modal.trade.email || "User"} ·{" "}
+              Trade <b>#{modal.trade.id}</b> · {modal.trade.email || "User"} ·{" "}
               {modal.trade.sym} · Stake {n2(modal.trade.qty)} USDT
-              {modal.type === "pnl" && (
-                <>
-                  <br />
-                  Current P&amp;L: <b>{n2(modal.trade.pnl)} USDT</b>
-                  <br />
-                  New P&amp;L preview:{" "}
-                  <b>
-                    {n2(Number(modal.trade.pnl || 0) + Number(pnlForm.adjustment || 0))} USDT
-                  </b>
-                </>
-              )}
+              <br />
+              This changes <b>only this trade</b>. Other trades of the same
+              user are not affected.
             </div>
 
             <div className="ao-row" style={{ marginTop: 15 }}>
-              {modal.type === "pnl" ? (
-                <label className="full">
-                  P&amp;L Adjustment (USDT)
-                  <input
-                    type="number"
-                    step="0.00000001"
-                    value={pnlForm.adjustment}
-                    onChange={(e) =>
-                      setPnlForm({ ...pnlForm, adjustment: e.target.value })
-                    }
-                    placeholder="Example: 5 or -3.5"
-                  />
-                </label>
-              ) : (
-                <label className="full">
-                  Settlement P&amp;L (USDT)
-                  <input
-                    type="number"
-                    step="0.00000001"
-                    value={pnlForm.pnl}
-                    onChange={(e) =>
-                      setPnlForm({ ...pnlForm, pnl: e.target.value })
-                    }
-                    placeholder="Positive = profit, negative = loss"
-                  />
-                </label>
-              )}
-
-              {modal.type === "settlement" && (
-                <label className="full">
-                  Close price (optional)
-                  <input
-                    type="number"
-                    min="0.00000001"
-                    step="any"
-                    value={pnlForm.close_price}
-                    onChange={(e) =>
-                      setPnlForm({ ...pnlForm, close_price: e.target.value })
-                    }
-                    placeholder="Optional close price"
-                  />
-                </label>
-              )}
+              <label className="full">
+                P&amp;L Adjustment (USDT, + or −)
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={pnlForm.adjustment}
+                  onChange={(e) =>
+                    setPnlForm({ ...pnlForm, adjustment: e.target.value })
+                  }
+                  placeholder="Example: 5 or -3.5"
+                />
+              </label>
 
               <label className="full">
-                Reason {modal.type === "pnl" ? "(optional)" : "(required)"}
+                Reason (optional)
                 <textarea
                   value={pnlForm.reason}
                   onChange={(e) =>
@@ -1319,10 +1379,127 @@ export default function AdminOptions({ me, go, logout }) {
               </label>
             </div>
 
+            <div className="ao-prev">
+              <div>
+                <span>Old P&amp;L</span>
+                <b>{n8(pnlPreview.oldPnl)} USDT</b>
+              </div>
+              <div>
+                <span>Adjustment</span>
+                <b className={pnlPreview.adj > 0 ? "up" : pnlPreview.adj < 0 ? "dn" : ""}>
+                  {pnlPreview.adj > 0 ? "+" : ""}
+                  {n8(pnlPreview.adj)} USDT
+                </b>
+              </div>
+              <div>
+                <span>New P&amp;L</span>
+                <b className={pnlPreview.newPnl > 0 ? "up" : pnlPreview.newPnl < 0 ? "dn" : ""}>
+                  {n8(pnlPreview.newPnl)} USDT
+                </b>
+              </div>
+              <div>
+                <span>Available wallet</span>
+                <b className={pnlPreview.adj > 0 ? "up" : pnlPreview.adj < 0 ? "dn" : ""}>
+                  {pnlPreview.adj > 0 ? "+" : ""}
+                  {n8(pnlPreview.adj)} USDT
+                </b>
+              </div>
+              <div>
+                <span>Frozen wallet</span>
+                <b>unchanged</b>
+              </div>
+            </div>
+
+            {pnlPreview.tooLow && (
+              <div className="ao-warn">
+                New P&amp;L cannot be lower than the negative stake (
+                {n8(-Number(modal.trade.qty))} USDT).
+              </div>
+            )}
+
             <div className="ao-note">
-              {modal.type === "pnl"
-                ? "Positive adjustment credits the user's available USDT wallet. Negative adjustment debits the available wallet. Frozen balance is not changed. Insufficient available balance will reject the entire adjustment."
-                : "This closes the open trade. The backend calculates the payout as stake + P&L. P&L cannot be lower than the negative stake."}
+              +adjustment credits the user's available USDT wallet.
+              −adjustment debits it. If the available balance is not enough,
+              the whole adjustment is rejected and nothing changes.
+            </div>
+
+            <div className="ao-modal-footer">
+              <button
+                type="button"
+                className="ao-btn"
+                disabled={busy}
+                onClick={() => setModal(null)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="ao-btn pri"
+                disabled={busy || !pnlPreview.valid || pnlPreview.tooLow}
+                onClick={submitPnl}
+              >
+                {busy ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Open trade settlement modal */}
+      {modal?.type === "settlement" && (
+        <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
+          <div className="ao-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Override Trade Settlement</h3>
+
+            <div className="ao-note">
+              Trade <b>#{modal.trade.id}</b> · {modal.trade.email || "User"} ·{" "}
+              {modal.trade.sym} · Stake {n2(modal.trade.qty)} USDT
+            </div>
+
+            <div className="ao-row" style={{ marginTop: 15 }}>
+              <label className="full">
+                Settlement P&amp;L (USDT)
+                <input
+                  type="number"
+                  step="0.00000001"
+                  value={pnlForm.pnl}
+                  onChange={(e) =>
+                    setPnlForm({ ...pnlForm, pnl: e.target.value })
+                  }
+                  placeholder="Positive = profit, negative = loss"
+                />
+              </label>
+
+              <label className="full">
+                Close price (optional)
+                <input
+                  type="number"
+                  min="0.00000001"
+                  step="any"
+                  value={pnlForm.close_price}
+                  onChange={(e) =>
+                    setPnlForm({ ...pnlForm, close_price: e.target.value })
+                  }
+                  placeholder="Optional close price"
+                />
+              </label>
+
+              <label className="full">
+                Reason (required)
+                <textarea
+                  value={pnlForm.reason}
+                  onChange={(e) =>
+                    setPnlForm({ ...pnlForm, reason: e.target.value })
+                  }
+                  placeholder="Explain why this settlement is needed"
+                />
+              </label>
+            </div>
+
+            <div className="ao-note">
+              This closes the open trade. The backend pays out stake + P&amp;L
+              to the available wallet. P&amp;L cannot be lower than the
+              negative stake.
             </div>
 
             <div className="ao-modal-footer">
@@ -1338,7 +1515,7 @@ export default function AdminOptions({ me, go, logout }) {
                 type="button"
                 className="ao-btn pri"
                 disabled={busy}
-                onClick={modal.type === "pnl" ? submitPnl : submitSettlement}
+                onClick={submitSettlement}
               >
                 {busy ? "Processing..." : "Confirm"}
               </button>
