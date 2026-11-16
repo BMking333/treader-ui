@@ -4,6 +4,8 @@ import { LangPicker } from "../lib/i18n";
 
 /* =========================================================
    Register_Login.jsx  (Premium UI)
+   - Light + Dark theme (default: LIGHT), toggle in top bar
+   - Theme choice is remembered (store key: cx_theme)
    - No blue focus border on inputs
    - Login / Register buttons always visible (page scrolls itself)
    - Custom SVG icons
@@ -58,6 +60,38 @@ const FB = {
 
 const NONE = { k: "", kind: "" };
 
+/* ================= THEME ================= */
+
+const THEME_KEY = "cx_theme";
+
+function readTheme() {
+  let v = "light";
+  try {
+    v = store.get(THEME_KEY, "light");
+  } catch (_) {
+    v = "light";
+  }
+  return v === "dark" ? "dark" : "light"; // default = light
+}
+
+function useTheme() {
+  const [theme, setTheme] = useState(readTheme);
+
+  const toggle = useCallback(() => {
+    setTheme((cur) => {
+      const next = cur === "dark" ? "light" : "dark";
+      try {
+        store.set(THEME_KEY, next);
+      } catch (_) {
+        /* ignore storage errors */
+      }
+      return next;
+    });
+  }, []);
+
+  return [theme, toggle];
+}
+
 /* ================= ICONS ================= */
 
 const PATHS = {
@@ -88,6 +122,13 @@ const PATHS = {
       <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z" />,
   chat: <path d="M20 12a8 8 0 0 1-11.6 7.1L4 20l1-4A8 8 0 1 1 20 12Z" />,
   back: <path d="m15 5-7 7 7 7" />,
   check: <path d="m5 12.5 4.5 4.5L19 7.5" />,
@@ -128,17 +169,47 @@ function Icon({ n, s = 20, w = 1.8 }) {
 const CSS = `
 .ax, .ax * { box-sizing: border-box; }
 
-/* Full-screen layer: scrolls by itself so buttons are never cut off */
+/* ---------- LIGHT theme (default) ---------- */
 .ax {
-  --bg: #070d1a;
-  --card: rgba(18,28,48,.78);
-  --field: #0b1424;
-  --line: #22314b;
-  --text: #f1f5fb;
-  --muted: #8392ab;
-  --accent: #26bfd6;
-  --danger: #f0627d;
-  --ok: #19c37d;
+  --bg: #f3f6fb;
+  --card: rgba(255,255,255,.92);
+  --card-line: rgba(15,30,60,.08);
+  --card-shadow: 0 20px 50px rgba(30,60,110,.12), inset 0 1px 0 rgba(255,255,255,.9);
+  --field: #f6f8fc;
+  --field-focus: #ffffff;
+  --line: #d9e1ee;
+  --line-focus: #9fb2d0;
+  --text: #0f1b30;
+  --label: #3b4a65;
+  --muted: #6b7a93;
+  --placeholder: #9aa7bd;
+  --accent: #129fb6;
+  --accent-bg: rgba(18,159,182,.10);
+  --danger: #e0415f;
+  --ok: #0fa968;
+  --warn: #d89a1f;
+  --glow1: rgba(38,191,214,.22);
+  --glow2: rgba(40,120,224,.14);
+  --btn-sh: 0 12px 26px rgba(40,125,225,.30);
+  --btn2-bg: #ffffff;
+  --btn2-bg-active: #eef2f9;
+  --btn2-line: #cfd9ea;
+  --btn2-text: #14233d;
+  --ghost-bg: rgba(15,30,60,.04);
+  --or-line: rgba(15,30,60,.12);
+  --ck-line: #b5c2d9;
+  --track: #dde4f0;
+  --autofill: #f6f8fc;
+  --logo-bg: linear-gradient(160deg, #ffffff, #e9f7fa);
+  --logo-ring: 0 0 0 6px rgba(38,191,214,.12), 0 12px 30px rgba(38,191,214,.28);
+  --ov: rgba(20,32,56,.40);
+  --tcard-bg: #ffffff;
+  --tcard-line: rgba(15,30,60,.08);
+  --tcard-text: #0f1b30;
+  --tcard-shadow: 0 24px 60px rgba(20,40,80,.25);
+  --info: #2f8cff;
+  --info-bg: rgba(47,140,255,.12);
+  --info-ring: rgba(47,140,255,.25);
 
   position: fixed;
   inset: 0;
@@ -151,9 +222,52 @@ const CSS = `
   align-items: flex-start;
   background: var(--bg);
   color: var(--text);
+  color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
+  transition: background .25s, color .25s;
+}
+
+/* ---------- DARK theme ---------- */
+.ax[data-theme="dark"] {
+  --bg: #070d1a;
+  --card: rgba(18,28,48,.78);
+  --card-line: rgba(255,255,255,.07);
+  --card-shadow: 0 24px 60px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.05);
+  --field: #0b1424;
+  --field-focus: #0d172a;
+  --line: #22314b;
+  --line-focus: #3a5278;
+  --text: #f1f5fb;
+  --label: #c4d0e3;
+  --muted: #8392ab;
+  --placeholder: #5f6f8a;
+  --accent: #26bfd6;
+  --accent-bg: rgba(38,191,214,.10);
+  --danger: #f0627d;
+  --ok: #19c37d;
+  --warn: #e5ad40;
+  --glow1: rgba(38,191,214,.22);
+  --glow2: rgba(40,120,224,.18);
+  --btn-sh: 0 12px 28px rgba(40,125,225,.35);
+  --btn2-bg: rgba(255,255,255,.04);
+  --btn2-bg-active: rgba(255,255,255,.08);
+  --btn2-line: #2d4163;
+  --btn2-text: #e6edf9;
+  --ghost-bg: rgba(255,255,255,.04);
+  --or-line: rgba(255,255,255,.09);
+  --ck-line: #3a4c6b;
+  --track: #2a3a55;
+  --autofill: #0b1424;
+  --logo-bg: linear-gradient(160deg, #ffffff, #e6f6fa);
+  --logo-ring: 0 0 0 6px rgba(38,191,214,.10), 0 14px 34px rgba(38,191,214,.30);
+  --ov: rgba(2,6,14,.65);
+  --tcard-bg: #131c2e;
+  --tcard-line: rgba(255,255,255,.08);
+  --tcard-text: #e8edf7;
+  --tcard-shadow: 0 24px 64px rgba(0,0,0,.55);
+  color-scheme: dark;
 }
 
 /* soft ambient glow */
@@ -169,12 +283,12 @@ const CSS = `
   width: 320px; height: 320px;
   top: -140px; left: 50%;
   margin-left: -160px;
-  background: rgba(38,191,214,.22);
+  background: var(--glow1);
 }
 .ax::after {
   width: 260px; height: 260px;
   bottom: -120px; right: -90px;
-  background: rgba(40,120,224,.18);
+  background: var(--glow2);
 }
 
 .ax-box {
@@ -195,16 +309,21 @@ const CSS = `
   justify-content: space-between;
   padding: calc(14px + env(safe-area-inset-top, 0px)) 0 0;
 }
-.ax .ax-back {
+.ax-topr { display: flex; align-items: center; gap: 10px; }
+.ax .ax-back,
+.ax .ax-theme {
   width: 42px; height: 42px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 14px;
   border: 1px solid var(--line);
-  background: rgba(255,255,255,.04);
+  background: var(--ghost-bg);
   color: var(--text);
   outline: none;
+  transition: background .2s, border-color .2s, color .2s;
 }
-.ax .ax-back:active { transform: scale(.94); }
+.ax .ax-theme { color: var(--accent); }
+.ax .ax-back:active,
+.ax .ax-theme:active { transform: scale(.94); }
 
 /* ---------- brand ---------- */
 .ax-logo {
@@ -212,10 +331,8 @@ const CSS = `
   margin: 22px auto 18px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 21px;
-  background: linear-gradient(160deg, #ffffff, #e6f6fa);
-  box-shadow:
-    0 0 0 6px rgba(38,191,214,.10),
-    0 14px 34px rgba(38,191,214,.30);
+  background: var(--logo-bg);
+  box-shadow: var(--logo-ring);
 }
 .ax-logo svg { width: 42px; height: 42px; }
 
@@ -234,11 +351,11 @@ const CSS = `
 .ax-card {
   padding: 22px 18px 20px;
   border-radius: 24px;
-  border: 1px solid rgba(255,255,255,.07);
+  border: 1px solid var(--card-line);
   background: var(--card);
   -webkit-backdrop-filter: blur(14px);
   backdrop-filter: blur(14px);
-  box-shadow: 0 24px 60px rgba(0,0,0,.40), inset 0 1px 0 rgba(255,255,255,.05);
+  box-shadow: var(--card-shadow);
 }
 
 /* ---------- field ---------- */
@@ -248,7 +365,7 @@ const CSS = `
   margin: 0 0 8px 2px;
   font-size: 13px;
   font-weight: 600;
-  color: #c4d0e3;
+  color: var(--label);
 }
 .ax-fw {
   display: flex;
@@ -261,7 +378,7 @@ const CSS = `
   transition: border-color .18s, background .18s;
 }
 /* focus: only a soft border change, NO blue ring / glow */
-.ax-fw:focus-within { border-color: #3a5278; background: #0d172a; }
+.ax-fw:focus-within { border-color: var(--line-focus); background: var(--field-focus); }
 .ax-fw.err { border-color: var(--danger); }
 
 .ax-fi {
@@ -269,7 +386,7 @@ const CSS = `
   display: flex; align-items: center; justify-content: center;
   margin-right: 10px;
   border-radius: 11px;
-  background: rgba(38,191,214,.10);
+  background: var(--accent-bg);
   color: var(--accent);
   flex-shrink: 0;
 }
@@ -297,8 +414,8 @@ const CSS = `
   letter-spacing: .2px;
 }
 .ax .ax-in::placeholder {
-  color: #5f6f8a;
-  -webkit-text-fill-color: #5f6f8a;
+  color: var(--placeholder);
+  -webkit-text-fill-color: var(--placeholder);
   opacity: 1;
 }
 /* autofill: no coloured box behind saved email / password */
@@ -307,8 +424,8 @@ const CSS = `
 .ax .ax-in:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--text) !important;
   caret-color: var(--accent);
-  -webkit-box-shadow: 0 0 0 1000px #0b1424 inset !important;
-  box-shadow: 0 0 0 1000px #0b1424 inset !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--autofill) inset !important;
+  box-shadow: 0 0 0 1000px var(--autofill) inset !important;
   transition: background-color 99999s ease-in-out 0s;
 }
 
@@ -339,7 +456,7 @@ const CSS = `
   align-items: center;
   gap: 10px;
   font-size: 13px;
-  color: #b4c0d4;
+  color: var(--label);
   cursor: pointer;
   user-select: none;
 }
@@ -348,7 +465,7 @@ const CSS = `
   width: 20px; height: 20px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 6px;
-  border: 1.5px solid #3a4c6b;
+  border: 1.5px solid var(--ck-line);
   background: var(--field);
   color: transparent;
   transition: .15s;
@@ -390,7 +507,7 @@ const CSS = `
   font-weight: 700;
   letter-spacing: .2px;
   box-shadow:
-    0 12px 28px rgba(40,125,225,.35),
+    var(--btn-sh),
     inset 0 1px 0 rgba(255,255,255,.28);
   transition: transform .15s, opacity .15s;
 }
@@ -417,7 +534,7 @@ const CSS = `
   content: "";
   flex: 1;
   height: 1px;
-  background: rgba(255,255,255,.09);
+  background: var(--or-line);
 }
 .ax .ax-btn2 {
   display: flex !important;
@@ -428,15 +545,15 @@ const CSS = `
   margin: 0;
   padding: 0 16px;
   border-radius: 16px;
-  border: 1px solid #2d4163;
-  background: rgba(255,255,255,.04) !important;
-  color: #e6edf9 !important;
+  border: 1px solid var(--btn2-line);
+  background: var(--btn2-bg) !important;
+  color: var(--btn2-text) !important;
   font-size: 15px;
   font-weight: 600;
   outline: none;
   transition: transform .15s, background .15s;
 }
-.ax .ax-btn2:active { transform: scale(.98); background: rgba(255,255,255,.08) !important; }
+.ax .ax-btn2:active { transform: scale(.98); background: var(--btn2-bg-active) !important; }
 
 .ax .ax-ghost {
   display: block;
@@ -471,12 +588,12 @@ const CSS = `
   font-size: 12px;
 }
 .ax-str > div { display: flex; gap: 5px; flex: 1; }
-.ax-str i { flex: 1; height: 4px; border-radius: 4px; background: #2a3a55; }
+.ax-str i { flex: 1; height: 4px; border-radius: 4px; background: var(--track); }
 .ax-str i.on.s1 { background: var(--danger); }
-.ax-str i.on.s2 { background: #e5ad40; }
+.ax-str i.on.s2 { background: var(--warn); }
 .ax-str i.on.s3 { background: var(--ok); }
 .ax-str .s1 { color: var(--danger); }
-.ax-str .s2 { color: #e5ad40; }
+.ax-str .s2 { color: var(--warn); }
 .ax-str .s3 { color: var(--ok); }
 
 /* ---------- toast ---------- */
@@ -484,7 +601,7 @@ const CSS = `
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
   padding: 24px;
-  background: rgba(2,6,14,.65);
+  background: var(--ov);
   -webkit-backdrop-filter: blur(5px);
   backdrop-filter: blur(5px);
   animation: axfade .16s ease-out;
@@ -493,11 +610,11 @@ const CSS = `
   width: min(86vw, 320px);
   padding: 28px 22px 24px;
   border-radius: 22px;
-  background: #131c2e;
-  border: 1px solid rgba(255,255,255,.08);
-  box-shadow: 0 24px 64px rgba(0,0,0,.55);
+  background: var(--tcard-bg);
+  border: 1px solid var(--tcard-line);
+  box-shadow: var(--tcard-shadow);
   text-align: center;
-  color: #e8edf7;
+  color: var(--tcard-text);
   animation: axpop .2s ease-out;
 }
 .ax-tic {
@@ -506,15 +623,15 @@ const CSS = `
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
 }
-.ax-tcard.ok .ax-tic   { background: rgba(25,195,125,.14); color: #19c37d; }
-.ax-tcard.bad .ax-tic  { background: rgba(240,98,125,.14); color: #f0627d; }
+.ax-tcard.ok .ax-tic   { background: rgba(25,195,125,.14); color: var(--ok); }
+.ax-tcard.bad .ax-tic  { background: rgba(240,98,125,.14); color: var(--danger); }
 .ax-tcard.info .ax-tic,
-.ax-tcard.load .ax-tic { background: rgba(47,140,255,.14); color: #2f8cff; }
+.ax-tcard.load .ax-tic { background: var(--info-bg); color: var(--info); }
 .ax-spin {
   width: 28px; height: 28px;
   border-radius: 50%;
-  border: 3px solid rgba(47,140,255,.25);
-  border-top-color: #2f8cff;
+  border: 3px solid var(--info-ring);
+  border-top-color: var(--info);
   animation: axspin .8s linear infinite;
 }
 .ax-ttx { font-size: 15px; line-height: 1.5; font-weight: 600; overflow-wrap: anywhere; }
@@ -562,7 +679,8 @@ function Logo() {
   );
 }
 
-function TopBar({ go, lang, setLang }) {
+function TopBar({ go, lang, setLang, theme, onTheme }) {
+  const dark = theme === "dark";
   return (
     <div className="ax-top">
       <button
@@ -573,7 +691,19 @@ function TopBar({ go, lang, setLang }) {
       >
         <Icon n="back" s={22} w={2.2} />
       </button>
-      <LangPicker lang={lang} setLang={setLang} />
+
+      <div className="ax-topr">
+        <button
+          type="button"
+          className="ax-theme"
+          onClick={onTheme}
+          aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+          title={dark ? "Light mode" : "Dark mode"}
+        >
+          <Icon n={dark ? "sun" : "moon"} s={20} w={2} />
+        </button>
+        <LangPicker lang={lang} setLang={setLang} />
+      </div>
     </div>
   );
 }
@@ -676,6 +806,7 @@ function EyeBtn({ show, onToggle }) {
 
 export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const tx = useTx();
+  const [theme, toggleTheme] = useTheme();
 
   const rem0 = store.get("cx_rem", "");
 
@@ -727,11 +858,17 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   };
 
   return (
-    <div className="ax">
+    <div className="ax" data-theme={theme}>
       <style>{CSS}</style>
 
       <div className="ax-box">
-        <TopBar go={go} lang={lang} setLang={setLang} />
+        <TopBar
+          go={go}
+          lang={lang}
+          setLang={setLang}
+          theme={theme}
+          onTheme={toggleTheme}
+        />
         <Logo />
 
         <div className="ax-head">
@@ -814,6 +951,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
 export function Register({ onLogin, go, lang, setLang }) {
   const tx = useTx();
+  const [theme, toggleTheme] = useTheme();
 
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -865,11 +1003,17 @@ export function Register({ onLogin, go, lang, setLang }) {
   const eye = <EyeBtn show={show} onToggle={() => setShow((v) => !v)} />;
 
   return (
-    <div className="ax">
+    <div className="ax" data-theme={theme}>
       <style>{CSS}</style>
 
       <div className="ax-box">
-        <TopBar go={go} lang={lang} setLang={setLang} />
+        <TopBar
+          go={go}
+          lang={lang}
+          setLang={setLang}
+          theme={theme}
+          onTheme={toggleTheme}
+        />
         <Logo />
 
         <div className="ax-head">
