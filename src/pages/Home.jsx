@@ -86,6 +86,8 @@ export const COL = {
   ETC: "#328332",
   USDT: "#26a17b",
   USDC: "#2775ca",
+  PYUSD: "#0070e0",
+  SOL: "#9945ff",
 };
 
 export const FALL = {
@@ -101,6 +103,7 @@ export const FALL = {
   ICP: [2.57, 0, 2008],
   XRP: [1.04406, -1.48, 2.7e7],
   ETC: [6.6095, -1.69, 124280],
+  SOL: [150.0, 0, 1e6], /* শুধু দাম/ওয়ালেট হিসাবের জন্য — COINS এ নেই, তাই Market তালিকায় আসে না */
 };
 
 export const MARKETS = [
@@ -1092,4 +1095,4 @@ export default function Home({
       />
     </div>
   );
-}
+   }
