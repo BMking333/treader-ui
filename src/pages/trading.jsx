@@ -12,6 +12,24 @@ const DEFAULT_SECS = [30, 300, 600, 1800, 3600, 86400]; /* 30s, 5m, 10m, 30m, 1h
 const MIN_Q = 10, MAX_Q = 1000000; /* server থেকে না এলে ডিফল্ট */
 const STABLE = ["USDT", "USDC", "PYUSD"];
 
+/* ডিভাইস ভিউ: পিঞ্চ/ডাবল-ট্যাপ জুম বন্ধ (index.html এ meta দেওয়া থাকলেও এটা নিশ্চিত করে) */
+(function lockZoom() {
+  if (typeof document === "undefined") return;
+  const content = "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) { m = document.createElement("meta"); m.name = "viewport"; document.head.appendChild(m); }
+  m.setAttribute("content", content);
+  if (!document.getElementById("cx-nozoom")) {
+    const s = document.createElement("style");
+    s.id = "cx-nozoom";
+    s.textContent = "html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}";
+    document.head.appendChild(s);
+  }
+  ["gesturestart", "gesturechange", "gestureend"].forEach((ev) =>
+    document.addEventListener(ev, (e) => e.preventDefault(), { passive: false })
+  );
+})();
+
 function CoinDrawer({ P, onPick, onClose }) {
   const t = useT();
   return (
@@ -83,13 +101,13 @@ const EX_CSS = `
 
 /* order form */
 .cx2-form{min-width:0;display:flex;flex-direction:column}
-.cx2-bs{display:grid;grid-template-columns:1fr 1fr;height:56px;border-radius:2px;overflow:hidden;background:var(--fh)}
-.cx2-bs button{border:0;background:transparent;color:var(--tx);font-size:16px;font-weight:500;transition:background .2s ease,color .2s ease}
-.cx2-bs .bb{clip-path:polygon(0 0,100% 0,90% 100%,0 100%);margin-right:-8%;position:relative;z-index:1}
-.cx2-bs .sb{clip-path:polygon(10% 0,100% 0,100% 100%,0 100%);margin-left:-8%;padding-left:8%}
+.cx2-bs{position:relative;height:56px;border-radius:2px;overflow:hidden;background:var(--fh)}
+.cx2-bs button{position:absolute;top:0;bottom:0;margin:0;border:0;background:var(--fh);color:var(--tx);font-size:16px;font-weight:500;line-height:1;
+  display:flex;align-items:center;justify-content:center;text-align:center;transition:background .2s ease,color .2s ease}
+.cx2-bs .bb{left:0;width:calc(50% + 7px);padding:0 7px 0 0;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%)}
+.cx2-bs .sb{left:calc(50% - 7px);width:calc(50% + 7px);padding:0 0 0 7px;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%)}
 .cx2-bs .bb.on{background:var(--up);color:#fff}
 .cx2-bs .sb.on{background:var(--dn);color:#fff}
-.cx2-bs button:not(.on){background:var(--fh);color:var(--tx);opacity:.9}
 .cx2-sel{display:flex;justify-content:space-between;align-items:center;height:52px;padding:0 6px 0 4px;font-size:16px;font-weight:500}
 .cx2-sel svg{opacity:.85}
 .cx2-fld{display:flex;align-items:center;gap:8px;border:1px solid var(--ln);border-radius:2px;padding:0 12px;height:68px;
