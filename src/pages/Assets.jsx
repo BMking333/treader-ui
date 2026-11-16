@@ -1,18 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useT, api, Coin, Ic, ICON, COINS } from "./Home";
 
-/* =====================================================================
-   src/pages/Assets.jsx — Assets (wallet) page
-   Props: P (prices), W (wallet), go (page navigation — এখানে ব্যবহার হয় না)
-   W = { w: {COIN: available}, fz: {COIN: frozen}, total, reload, guest, needLogin }
-   Accounts: GET /wallet/accounts -> { options: {COIN:{available,frozen}}, funds: {COIN:{available,frozen}} }
-
-   আপডেট: এখন সব কয়েন দেখায় (আগে শুধু USDT/USDC/ETH/BTC ছিল)।
-   - কয়েন তালিকা = স্টেবল + ট্রান্সফার/এক্সচেঞ্জ কয়েন (SOL, PYUSD, DOGE, XRP...) + স্পটে কেনা সব কয়েন (COINS)
-   - backend /wallet/accounts-এ যে অতিরিক্ত কয়েন আসবে সেটাও অটো যোগ হবে
-   - মোট ব্যালেন্স এখন সব কয়েনের হিসাবে (আগে শুধু ৪টি কয়েন ধরা হতো)
-   - "Hide zero" টগল যোগ হয়েছে
-   ===================================================================== */
+ 
 
 const ACCOUNTS_PATH = "/wallet/accounts";
 const STABLE = ["USDT", "USDC", "PYUSD", "USDD"];
@@ -72,7 +61,8 @@ const CSS = `
 
 /* coin cards */
 .as-list{display:flex;flex-direction:column;gap:12px;padding:12px 14px 24px}
-.as-c{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--sh)}
+.as-c{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--sh);cursor:pointer;transition:transform .12s ease}
+.as-c:active{transform:scale(.985)}
 .as-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .as-h b{font-size:15.5px;font-weight:700;color:var(--ac);letter-spacing:.2px}
 .as-h i{margin-inline-start:auto;font-style:normal;font-size:20px;line-height:1;color:var(--mu)}
@@ -91,7 +81,7 @@ const CSS = `
 @media(prefers-reduced-motion:reduce){.as *{transition:none!important}}
 `;
 
-export default function Assets({ P, W }) {
+export default function Assets({ P, W, go }) {
   const t = useT();
   const tt = (k, fb) => {
     let v;
@@ -219,7 +209,14 @@ export default function Assets({ P, W }) {
               const f = frozenOf(sub, c);
               const usd = (a + f) * priceOf(c);
               return (
-                <div key={c} className="as-c">
+                <div
+                  key={c}
+                  className="as-c"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => go && go("tradeaccount", c, sub)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && go) go("tradeaccount", c, sub); }}
+                >
                   <div className="as-h">
                     <Coin s={c} size={28} />
                     <b>{c}</b>
