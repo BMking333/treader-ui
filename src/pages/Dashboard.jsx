@@ -11,26 +11,14 @@ import Swap from "./exchange";
 import Loans from "./loans";
 import ChangeMoney from "./changemoney";
 import TradeAccount from "./TradeAccount";
+import ChangePassword from "./ChangePassword";
 
-/* =====================================================================
-   src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
-   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication  /exchangeb  /loans  /changemoney  /trade-account?coin=USDT&acc=funds
-
-   আপডেট:
-   - Market পেজে কোনো কয়েনে ক্লিক করলে Options পেজ খুলবে (ওই কয়েন সহ)
-   - Home এ onRegister পাঠানো হয়েছে (গেস্টের Register বাটন → /register)
-   - নিচের নেভিগেশন বার ছোট ও প্রিমিয়াম (আইকন 22px, লেখা 11px, স্মুথ ফন্ট)
-   ===================================================================== */
-
-const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney", tradeaccount: "/trade-account" };
-/* এই পেজগুলোতে নিচের নেভিগেশন বার লুকানো থাকে (স্ক্রিনশটের মতো) */
-const HIDE_NAV = ["exchangeb", "loans", "changemoney", "tradeaccount"];
+const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney", tradeaccount: "/trade-account", "change-password": "/change-password" };
+const HIDE_NAV = ["exchangeb", "loans", "changemoney", "tradeaccount", "change-password"];
 const HAS_SYM = ["exchange", "options"];
 const TA_COINS = ["USDT", "USDC", "PYUSD", "ETH", "BTC", "DOGE", "XRP", "SOL"];
-/* Options পেজ এখন লাইট থিম (নিজের ব্যাকগ্রাউন্ড আছে), তাই এখানে আর ডার্ক নয় */
 const DARK_PAGES = ["auth"];
 
-/* নিচের নেভিগেশন বার: ছোট, প্রিমিয়াম, স্মুথ টেক্সট */
 const NAV_CSS = `
 nav.cx-nav{
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
@@ -145,10 +133,8 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
     return () => clearInterval(id);
   }, []); // eslint-disable-line
 
-  /* প্রথম লোডে ভুল/অচেনা URL হলে ঠিক URL বসায় */
   useEffect(() => { replaceUrl(urlFor(page, sym, ta)); }, []); // eslint-disable-line
 
-  /* ব্রাউজারের Back / Forward */
   useEffect(() => {
     const onPop = () => {
       const l = fromLoc();
@@ -159,8 +145,6 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  /* পেজ বদল → state + URL দুটোই */
-  /* go(page, sym)  |  go("tradeaccount", coin, "funds" | "options") */
   const go = (p, s, a) => {
     if (p === "tradeaccount") {
       const nt = { coin: String(s || "USDT").toUpperCase(), acc: a === "options" ? "options" : "funds" };
@@ -177,10 +161,8 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
     window.scrollTo(0, 0);
   };
 
-  /* Market পেজ থেকে কয়েনে ক্লিক করলে (exchange/trade এ যেত) → এখন Options পেজে যাবে */
   const marketGo = (p, s) => go(p === "exchange" ? "options" : p, s);
 
-  /* Trade/Options পেজে কয়েন বদলালে URL-এর ?s= বদলায় (নতুন history entry ছাড়াই) */
   const pickSym = (s) => { setSym(s); replaceUrl(urlFor(page, s)); };
 
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
@@ -200,6 +182,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
         {page === "loans" && <Loans W={W} go={go} />}
         {page === "changemoney" && <ChangeMoney W={W} go={go} />}
         {page === "tradeaccount" && <TradeAccount P={P} W={W} go={go} coin={ta.coin} acc={ta.acc} />}
+        {page === "change-password" && <ChangePassword go={go} notify={notify} me={me} />}
       </div>
       <SideMenu open={menu} onClose={() => setMenu(false)} me={authed ? me : null} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} guest={!authed} askLogin={askLogin} />
       {toast && <div className="cx-toast">{toast}</div>}
