@@ -12,12 +12,13 @@ import Loans from "./loans";
 import ChangeMoney from "./changemoney";
 import TradeAccount from "./TradeAccount";
 import ChangePassword from "./ChangePassword";
+import Introduction from "./Introduction";
 
-const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney", tradeaccount: "/trade-account", "change-password": "/change-password" };
-const HIDE_NAV = ["exchangeb", "loans", "changemoney", "tradeaccount", "change-password"];
+const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney", tradeaccount: "/trade-account", "change-password": "/change-password", introduction: "/introduction" };
+const HIDE_NAV = ["exchangeb", "loans", "changemoney", "tradeaccount", "change-password", "introduction"];
 const HAS_SYM = ["exchange", "options"];
 const TA_COINS = ["USDT", "USDC", "PYUSD", "ETH", "BTC", "DOGE", "XRP", "SOL"];
-const DARK_PAGES = ["auth"];
+const DARK_PAGES = [];
 
 const NAV_CSS = `
 nav.cx-nav{
@@ -183,6 +184,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
         {page === "changemoney" && <ChangeMoney W={W} go={go} />}
         {page === "tradeaccount" && <TradeAccount P={P} W={W} go={go} coin={ta.coin} acc={ta.acc} />}
         {page === "change-password" && <ChangePassword go={go} notify={notify} me={me} />}
+        {page === "introduction" && <Introduction go={go} />}
       </div>
       <SideMenu open={menu} onClose={() => setMenu(false)} me={authed ? me : null} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} guest={!authed} askLogin={askLogin} />
       {toast && <div className="cx-toast">{toast}</div>}
