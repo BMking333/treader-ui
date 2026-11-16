@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useT, api, Coin, Ic, ICON, ASSET_COINS } from "./Home";
+import { useT, api, Coin, Ic, ICON, COINS } from "./Home";
 
 /* =====================================================================
    src/pages/Assets.jsx — Assets (wallet) page
@@ -7,14 +7,19 @@ import { useT, api, Coin, Ic, ICON, ASSET_COINS } from "./Home";
    W = { w: {COIN: available}, fz: {COIN: frozen}, total, reload, guest, needLogin }
    Accounts: GET /wallet/accounts -> { options: {COIN:{available,frozen}}, funds: {COIN:{available,frozen}} }
 
-   ট্যাব: Assets | Funds | Options | Quant trading
-   - Assets: চারটি সামারি কার্ড (Total / Funds / Options / Quant)
-   - Funds / Options / Quant: মোট ব্যালেন্স + কয়েন কার্ড (Available / Frozen / Converted)
-   Deposit / Withdraw / Transfer / Exchange বাটন এই পেজ থেকে সরানো হয়েছে।
+   আপডেট: এখন সব কয়েন দেখায় (আগে শুধু USDT/USDC/ETH/BTC ছিল)।
+   - কয়েন তালিকা = স্টেবল + ট্রান্সফার/এক্সচেঞ্জ কয়েন (SOL, PYUSD, DOGE, XRP...) + স্পটে কেনা সব কয়েন (COINS)
+   - backend /wallet/accounts-এ যে অতিরিক্ত কয়েন আসবে সেটাও অটো যোগ হবে
+   - মোট ব্যালেন্স এখন সব কয়েনের হিসাবে (আগে শুধু ৪টি কয়েন ধরা হতো)
+   - "Hide zero" টগল যোগ হয়েছে
    ===================================================================== */
 
 const ACCOUNTS_PATH = "/wallet/accounts";
 const STABLE = ["USDT", "USDC", "PYUSD", "USDD"];
+
+/* backend transfer/exchange/deposit যে কয়েন সাপোর্ট করে + স্পট ট্রেডের কয়েন */
+const BASE_COINS = ["USDT", "USDC", "PYUSD", "ETH", "BTC", "DOGE", "XRP", "SOL"];
+const KNOWN_COINS = [...BASE_COINS, ...COINS.filter((c) => !BASE_COINS.includes(c))];
 
 const num = (v) => {
   const n = typeof v === "string" ? parseFloat(v) : v;
@@ -60,8 +65,13 @@ const CSS = `
 .as-sum .big{grid-column:1/-1;margin-top:14px;font-size:22px;font-weight:700;letter-spacing:-.2px}
 .as-sum .sub{grid-column:1/-1;margin-top:2px;font-size:13px;color:var(--mu)}
 
+/* hide-zero bar */
+.as-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 0;font-size:13px;color:var(--mu)}
+.as-bar label{display:flex;align-items:center;gap:8px;cursor:pointer}
+.as-bar input{width:16px;height:16px;accent-color:var(--ac)}
+
 /* coin cards */
-.as-list{display:flex;flex-direction:column;gap:12px;padding:16px 14px 24px}
+.as-list{display:flex;flex-direction:column;gap:12px;padding:12px 14px 24px}
 .as-c{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--sh)}
 .as-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .as-h b{font-size:15.5px;font-weight:700;color:var(--ac);letter-spacing:.2px}
@@ -72,6 +82,7 @@ const CSS = `
 .as-g span small{display:block;margin-bottom:5px;font-size:12px;font-weight:400;color:var(--mu)}
 .as-g span:nth-child(2){text-align:center}
 .as-g span:last-child{text-align:end}
+.as-none{text-align:center;color:var(--mu);padding:40px 0;font-size:14px}
 
 .as-guest{margin:30px 16px;padding:30px 20px;background:var(--card);border:1px solid var(--ln);border-radius:16px;text-align:center;box-shadow:var(--sh)}
 .as-guest p{margin:0 0 16px;font-size:14px;color:var(--mu)}
@@ -90,6 +101,7 @@ export default function Assets({ P, W }) {
 
   const [tab, setTab] = useState("assets"); /* assets | funds | options | quant */
   const [hide, setHide] = useState(false);
+  const [hideZero, setHideZero] = useState(false);
   const [accs, setAccs] = useState(null); /* null = এখনো লোড হয়নি */
   const guest = !!(W && W.guest);
 
@@ -108,6 +120,16 @@ export default function Assets({ P, W }) {
 
   const priceOf = (c) => (STABLE.includes(c) ? 1 : num(P && P[c] && P[c].price));
 
+  /* সব কয়েন: নির্ধারিত তালিকা + backend/ওয়ালেট থেকে আসা বাড়তি কয়েন */
+  const allCoins = (() => {
+    const set = [...KNOWN_COINS];
+    const add = (o) => Object.keys(o || {}).forEach((c) => { if (!set.includes(c)) set.push(c); });
+    add(accs && accs.options);
+    add(accs && accs.funds);
+    add(W && W.w);
+    return set;
+  })();
+
   /* অ্যাকাউন্ট অনুযায়ী Available / Frozen। Options: accs না এলে W থেকে। Quant: এখনো নেই */
   const availOf = (acc, c) => {
     if (acc === "options") return num(accs ? accs.options[c] && accs.options[c].available : W && W.w && W.w[c]);
@@ -119,7 +141,7 @@ export default function Assets({ P, W }) {
     if (acc === "funds") return num(accs && accs.funds[c] && accs.funds[c].frozen);
     return 0;
   };
-  const totalOf = (acc) => ASSET_COINS.reduce((s, c) => s + (availOf(acc, c) + frozenOf(acc, c)) * priceOf(c), 0);
+  const totalOf = (acc) => allCoins.reduce((s, c) => s + (availOf(acc, c) + frozenOf(acc, c)) * priceOf(c), 0);
 
   const totOptions = totalOf("options");
   const totFunds = totalOf("funds");
@@ -140,6 +162,10 @@ export default function Assets({ P, W }) {
   const subTotal = sub === "funds" ? totFunds : sub === "options" ? totOptions : totQuant;
 
   const summary = [["ta", totAll], ["funds", totFunds], ["options", totOptions], ["quant", totQuant]];
+
+  const rows = sub
+    ? allCoins.filter((c) => !hideZero || availOf(sub, c) + frozenOf(sub, c) > 0)
+    : [];
 
   return (
     <div className="as">
@@ -178,8 +204,17 @@ export default function Assets({ P, W }) {
             <div className="sub num">≈ $ {mask(subTotal.toFixed(2))}</div>
           </div>
 
+          <div className="as-bar">
+            <span>{tt("coins", "Coins")} ({rows.length})</span>
+            <label>
+              <input type="checkbox" checked={hideZero} onChange={(e) => setHideZero(e.target.checked)} />
+              {tt("hideZero", "Hide zero balances")}
+            </label>
+          </div>
+
           <div className="as-list">
-            {ASSET_COINS.map((c) => {
+            {rows.length === 0 && <div className="as-none">{tt("norec", "No records")}</div>}
+            {rows.map((c) => {
               const a = availOf(sub, c);
               const f = frozenOf(sub, c);
               const usd = (a + f) * priceOf(c);
