@@ -680,6 +680,14 @@ const CSS = `
 .cx-op.dk .cx-op-tabs button.on{color:#fff!important}
 .cx-op.dk .cx-op-list{background:#0a111f}
 .cx-op.dk .cx-op-card{background:#17263d;border-color:#243148}
+
+/* ===== বর্ডার ফিক্স: অ্যাপের গ্লোবাল button স্টাইল ওভাররাইড করতে বেশি specificity + !important ===== */
+.cx-op button.cx-op-opt{border:1.5px solid var(--f-bd)!important;background:var(--f-card)!important;color:var(--f-tx)!important;border-radius:12px!important;box-shadow:none}
+.cx-op button.cx-op-opt.on{border:1.5px solid var(--blue)!important;background:#e3f1fd!important;color:var(--blue)!important;box-shadow:0 0 0 3px rgba(26,130,214,.14)}
+.cx-op button.cx-op-pick{border:1.5px solid var(--f-bd)!important;background:var(--f-card)!important;border-radius:12px!important}
+.cx-op button.cx-op-pick:active{border-color:var(--blue)!important}
+.cx-op.dk button.cx-op-opt.on{background:#16335a!important;color:#7cc0ff!important;border-color:#4aa3f0!important;box-shadow:0 0 0 3px rgba(74,163,240,.18)}
+
 `;
 
 export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark }) {
