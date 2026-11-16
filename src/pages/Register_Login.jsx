@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useT, api, store, CSheet } from "./Home";
-import { LangPicker } from "../lib/i18n";
+import { LANGS } from "../lib/i18n";
 
 /* =========================================================
    Register_Login.jsx  (Premium UI)
    - Light + Dark theme (default: LIGHT), toggle in top bar
+   - Language picker uses ALL languages from ../lib/i18n (theme-aware)
+   - Customer service sheet follows light / dark theme
    - Theme choice is remembered (store key: cx_theme)
    - No blue focus border on inputs
    - Login / Register buttons always visible (page scrolls itself)
@@ -90,6 +92,63 @@ function useTheme() {
   }, []);
 
   return [theme, toggle];
+}
+
+/* ================= LANGUAGE PICKER (theme-aware) ================= */
+
+function LangPicker({ lang, setLang }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const cur = LANGS.find((l) => l[0] === lang) || LANGS[1];
+
+  useEffect(() => {
+    if (!open) return;
+    const away = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("touchstart", away);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("touchstart", away);
+    };
+  }, [open]);
+
+  return (
+    <div className="ax-lg" ref={ref}>
+      <button
+        type="button"
+        className="ax-lgb"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{cur[1]}</span>
+        <span className="ax-fl">{cur[2]}</span>
+      </button>
+
+      {open && (
+        <div className="ax-lgm" role="listbox">
+          {LANGS.map(([code, name, flag]) => (
+            <button
+              key={code}
+              type="button"
+              role="option"
+              aria-selected={code === cur[0]}
+              className={"ax-lgi" + (code === cur[0] ? " on" : "")}
+              onClick={() => {
+                setLang && setLang(code);
+                setOpen(false);
+              }}
+            >
+              <span>{name}</span>
+              <span className="ax-fl">{flag}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /* ================= ICONS ================= */
@@ -210,6 +269,12 @@ const CSS = `
   --info: #2f8cff;
   --info-bg: rgba(47,140,255,.12);
   --info-ring: rgba(47,140,255,.25);
+  --menu-bg: #ffffff;
+  --menu-line: rgba(15,30,60,.08);
+  --menu-text: #14233d;
+  --menu-hover: #eef3fa;
+  --menu-active: #129fb6;
+  --menu-shadow: 0 18px 44px rgba(20,40,80,.22);
 
   position: fixed;
   inset: 0;
@@ -267,6 +332,12 @@ const CSS = `
   --tcard-line: rgba(255,255,255,.08);
   --tcard-text: #e8edf7;
   --tcard-shadow: 0 24px 64px rgba(0,0,0,.55);
+  --menu-bg: #131d33;
+  --menu-line: rgba(255,255,255,.07);
+  --menu-text: #e6edf9;
+  --menu-hover: rgba(255,255,255,.06);
+  --menu-active: #4aa3ff;
+  --menu-shadow: 0 18px 44px rgba(0,0,0,.55);
   color-scheme: dark;
 }
 
@@ -324,6 +395,66 @@ const CSS = `
 .ax .ax-theme { color: var(--accent); }
 .ax .ax-back:active,
 .ax .ax-theme:active { transform: scale(.94); }
+
+
+/* ---------- language picker ---------- */
+.ax-lg { position: relative; }
+.ax .ax-lgb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 4px 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 500;
+  outline: none;
+}
+.ax-fl { font-size: 24px; line-height: 1; }
+.ax-lgm {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  width: 240px;
+  max-width: calc(100vw - 28px);
+  max-height: min(62vh, 440px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 18px;
+  border: 1px solid var(--menu-line);
+  background: var(--menu-bg);
+  box-shadow: var(--menu-shadow);
+}
+.ax .ax-lgi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 18px;
+  border: 0;
+  border-bottom: 1px solid var(--menu-line);
+  background: transparent;
+  color: var(--menu-text);
+  font-size: 16px;
+  font-weight: 500;
+  text-align: left;
+  outline: none;
+}
+.ax .ax-lgi:last-child { border-bottom: 0; }
+.ax .ax-lgi:active { background: var(--menu-hover); }
+.ax .ax-lgi.on { color: var(--menu-active); font-weight: 700; }
+
+
+/* ---------- customer service sheet (follows theme) ---------- */
+.ax-csw { position: fixed; inset: 0; z-index: 900; }
+/* the sheet itself is dark by design: in LIGHT mode flip it to a light look */
+.ax[data-theme="light"] .ax-csw { filter: invert(1) hue-rotate(180deg); }
 
 /* ---------- brand ---------- */
 .ax-logo {
@@ -941,7 +1072,11 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
         </button>
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
-        <CSheet open={cs} onClose={() => setCs(false)} />
+        {cs && (
+          <div className="ax-csw">
+            <CSheet open={cs} onClose={() => setCs(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1108,7 +1243,11 @@ export function Register({ onLogin, go, lang, setLang }) {
         </button>
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
-        <CSheet open={cs} onClose={() => setCs(false)} />
+        {cs && (
+          <div className="ax-csw">
+            <CSheet open={cs} onClose={() => setCs(false)} />
+          </div>
+        )}
       </div>
     </div>
   );
