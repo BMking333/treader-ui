@@ -18,6 +18,7 @@ import ChangeMoney from "./changemoney";
    আপডেট:
    - Market পেজে কোনো কয়েনে ক্লিক করলে Options পেজ খুলবে (ওই কয়েন সহ)
    - Home এ onRegister পাঠানো হয়েছে (গেস্টের Register বাটন → /register)
+   - নিচের নেভিগেশন বার ছোট ও প্রিমিয়াম (আইকন 22px, লেখা 11px, স্মুথ ফন্ট)
    ===================================================================== */
 
 const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney" };
@@ -26,6 +27,31 @@ const HIDE_NAV = ["exchangeb", "loans", "changemoney"];
 const HAS_SYM = ["exchange", "options"];
 /* Options পেজ এখন লাইট থিম (নিজের ব্যাকগ্রাউন্ড আছে), তাই এখানে আর ডার্ক নয় */
 const DARK_PAGES = ["auth"];
+
+/* নিচের নেভিগেশন বার: ছোট, প্রিমিয়াম, স্মুথ টেক্সট */
+const NAV_CSS = `
+nav.cx-nav{
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
+  box-shadow:0 -1px 0 rgba(125,140,165,.2);touch-action:manipulation;
+}
+nav.cx-nav > button{
+  position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  height:auto!important;min-height:0!important;
+  padding:8px 0 calc(6px + env(safe-area-inset-bottom,0px))!important;
+  font-size:11px!important;font-weight:500;letter-spacing:.15px;line-height:1.1;
+  background:transparent;border:0;-webkit-tap-highlight-color:transparent;
+  transition:color .2s ease,opacity .15s ease;
+}
+nav.cx-nav > button svg{width:22px;height:22px;transition:transform .2s ease}
+nav.cx-nav > button.on{font-weight:600}
+nav.cx-nav > button.on svg{transform:translateY(-1px)}
+nav.cx-nav > button.on::before{
+  content:"";position:absolute;top:0;left:50%;width:18px;height:2px;margin-left:-9px;border-radius:0 0 2px 2px;background:currentColor;
+}
+nav.cx-nav > button:active{opacity:.65}
+@media(prefers-reduced-motion:reduce){nav.cx-nav > button,nav.cx-nav > button svg{transition:none!important}}
+`;
 
 const urlFor = (page, sym) => PATHS[page] + (HAS_SYM.includes(page) ? "?s=" + sym : "");
 
@@ -136,6 +162,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   const nav = [["home", "home"], ["market", "market"], ["exchange", "trade"], ["options", "options"], ["assets", "assets"]];
   return (
     <>
+      <style>{NAV_CSS}</style>
       <div className={"cx-pg" + (DARK_PAGES.includes(page) ? " od" : "")}>
         {page === "home" && <Home P={P} go={go} lang={lang} setLang={setLang} onMenu={() => setMenu(true)} notify={notify} guest={!authed} askLogin={askLogin} onRegister={() => askLogin("register")} />}
         {page === "market" && <Market P={P} go={marketGo} />}
@@ -153,7 +180,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
       {toast && <div className="cx-toast">{toast}</div>}
       {!HIDE_NAV.includes(page) && (
       <nav className="cx-nav">
-        {nav.map(([k, l]) => (<button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={30} />{t(l)}</button>))}
+        {nav.map(([k, l]) => (<button key={k} className={page === k ? "on" : ""} onClick={() => go(k)}><Ic d={ICON[k === "exchange" ? "trade" : k]} s={22} />{t(l)}</button>))}
       </nav>
       )}
     </>
