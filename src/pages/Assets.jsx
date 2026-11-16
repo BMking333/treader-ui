@@ -1,72 +1,86 @@
-import React, { useState, useEffect } from "react";
-import { useT, api, Coin, COINS, CUP } from "./Home";
+import React, { useEffect, useState } from "react";
+import { useT, api, Coin, Ic, ICON, ASSET_COINS } from "./Home";
 
 /* =====================================================================
    src/pages/Assets.jsx — Assets (wallet) page
-   Props: P (prices), W (wallet), go (page navigation)
+   Props: P (prices), W (wallet), go (page navigation — এখানে ব্যবহার হয় না)
    W = { w: {COIN: available}, fz: {COIN: frozen}, total, reload, guest, needLogin }
-   Accounts: GET /wallet/accounts -> { options: {COIN:{available,frozen}}, funds: {COIN:{available}} }
+   Accounts: GET /wallet/accounts -> { options: {COIN:{available,frozen}}, funds: {COIN:{available,frozen}} }
+
+   ট্যাব: Assets | Funds | Options | Quant trading
+   - Assets: চারটি সামারি কার্ড (Total / Funds / Options / Quant)
+   - Funds / Options / Quant: মোট ব্যালেন্স + কয়েন কার্ড (Available / Frozen / Converted)
+   Deposit / Withdraw / Transfer / Exchange বাটন এই পেজ থেকে সরানো হয়েছে।
    ===================================================================== */
 
 const ACCOUNTS_PATH = "/wallet/accounts";
+const STABLE = ["USDT", "USDC", "PYUSD", "USDD"];
 
 const num = (v) => {
   const n = typeof v === "string" ? parseFloat(v) : v;
   return typeof n === "number" && isFinite(n) ? n : 0;
 };
 
-const fmtAmt = (v) => {
-  const n = num(v);
-  if (n === 0) return "0.00000000";
-  return n >= 1000 ? n.toFixed(4) : n.toFixed(8);
-};
-const fmtUsd = (v) => num(v).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
 const CSS = `
-.cx-as{background:#f3f5fa;min-height:100vh;padding-bottom:20px;color:#111}
-.cx-as,.cx-as *{box-sizing:border-box}
-.cx-as button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
-.cx-as-top{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;background:#fff;border-bottom:1px solid #eef0f3}
-.cx-as-top h1{margin:0;font-size:19px;font-weight:700}
-.cx-as-top button{font-size:14px;color:#1a82d6!important}
-.cx-as-sum{margin:14px 12px;padding:22px 20px;border-radius:16px;background:linear-gradient(135deg,#2a8fe0,#1f7acb);color:#fff;box-shadow:0 8px 24px rgba(31,122,203,.3)}
-.cx-as-sum small{display:block;color:rgba(255,255,255,.8)!important;font-size:14px}
-.cx-as-sum b{display:block;margin:8px 0 2px;font-size:30px;font-weight:700;letter-spacing:.2px}
-.cx-as-sum span{font-size:14px;color:rgba(255,255,255,.85)}
-.cx-as-act{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
-.cx-as-act button{height:44px;border-radius:10px;background:rgba(255,255,255,.2);color:#fff!important;font-size:16px;font-weight:600;text-align:center}
-.cx-as-act button:active{background:rgba(255,255,255,.32)}
-.cx-as-tabs{display:flex;gap:8px;padding:0 12px 10px}
-.cx-as-tabs button{flex:1;height:38px;border-radius:10px;background:#fff;font-size:14px;font-weight:600;color:#6b7183!important}
-.cx-as-tabs button.on{background:#1a82d6;color:#fff!important}
-.cx-as-tabs button small{display:block;font-size:11px;font-weight:400;opacity:.85}
-.cx-as-bar{display:flex;align-items:center;justify-content:space-between;padding:6px 18px 8px;font-size:15px;color:#6b7183}
-.cx-as-bar label{display:flex;align-items:center;gap:8px;cursor:pointer}
-.cx-as-bar input{width:18px;height:18px;accent-color:#1a82d6}
-.cx-as-list{display:flex;flex-direction:column;gap:12px;padding:0 12px}
-.cx-as-c{background:#fff;border-radius:14px;padding:16px 16px 14px}
-.cx-as-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.cx-as-h b{font-size:18px}
-.cx-as-h b i{font-style:normal;font-weight:400;color:#8a94a6;font-size:13px}
-.cx-as-h em{margin-inline-start:auto;font-style:normal;font-size:15px;font-weight:600}
-.cx-as-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:14px}
-.cx-as-g span small{display:block;color:#8a94a6!important;font-size:12px;margin-bottom:4px}
-.cx-as-g span:nth-child(2){text-align:center}
-.cx-as-g span:last-child{text-align:end}
-.cx-as-g span{word-break:break-all}
-.cx-as-none{text-align:center;color:#9aa0ad;padding:50px 0;font-size:15px}
-.cx-as-guest{margin:30px 20px;padding:30px 20px;background:#fff;border-radius:16px;text-align:center}
-.cx-as-guest p{margin:0 0 16px;color:#6b7183;font-size:15px}
-.cx-as-guest button{padding:12px 34px;border-radius:12px;background:#1a82d6!important;color:#fff!important;font-size:16px;font-weight:600}
+.as{
+  --bg:#f3f5fa;--bar:#ffffff;--card:#ffffff;--tx:#141b29;--mu:#8793a8;--ln:#e6eaf1;--ac:#1a82d6;--sh:0 8px 24px -16px rgba(20,40,80,.3);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;
+  background:var(--bg);color:var(--tx);min-height:100vh;
+}
+.cx.dark .as{--bg:#0d1626;--bar:#12203a;--card:#14233b;--tx:#eaf0f8;--mu:#8795ac;--ln:#1f3050;--sh:none}
+.as,.as *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.as button{font-family:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.as .num{font-variant-numeric:tabular-nums}
 
-.cx.dark .cx-as{background:#0b1424;color:#e8ecf3}
-.cx.dark .cx-as-top,.cx.dark .cx-as-c,.cx.dark .cx-as-guest,.cx.dark .cx-as-tabs button{background:#17263d;border-color:#22304a}
-.cx.dark .cx-as-tabs button.on{background:#1a82d6}
-.cx.dark .cx-as-bar,.cx.dark .cx-as-guest p{color:#9aa6bb}
-.cx.dark .cx-as-g span small,.cx.dark .cx-as-h b i{color:#8d98ad!important}
+/* tabs */
+.as-tabs{display:flex;overflow-x:auto;scrollbar-width:none;background:var(--bar);border-bottom:1px solid var(--ln);padding:0 4px}
+.as-tabs::-webkit-scrollbar{display:none}
+.as-tabs button{position:relative;flex:1 0 auto;display:flex;align-items:center;justify-content:center;text-align:center;
+  height:52px;padding:0 18px;font-size:14.5px;font-weight:500;white-space:nowrap;color:var(--mu);transition:color .2s ease}
+.as-tabs button.on{color:var(--tx);font-weight:600}
+.as-tabs button::after{content:"";position:absolute;left:50%;bottom:0;width:0;height:3px;margin-left:0;border-radius:3px 3px 0 0;background:var(--ac);
+  transition:width .22s ease,margin-left .22s ease}
+.as-tabs button.on::after{width:26px;margin-left:-13px}
+
+/* summary cards (Assets tab) */
+.as-cards{display:flex;flex-direction:column;gap:12px;padding:16px 14px 24px}
+.as-card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:18px 18px 16px;box-shadow:var(--sh)}
+.as-card h3{margin:0 0 14px;font-size:15px;font-weight:600;color:var(--ac);letter-spacing:.1px}
+.as-card small{display:block;font-size:12.5px;color:var(--mu)}
+.as-card b{display:block;margin-top:6px;font-size:19px;font-weight:600;letter-spacing:-.1px}
+
+/* sub header */
+.as-sum{display:grid;grid-template-columns:1fr auto;align-items:start;gap:2px 10px;padding:20px 18px 24px;background:var(--bar);border-bottom:1px solid var(--ln)}
+.as-sum h2{margin:0;font-size:16px;font-weight:600;letter-spacing:-.1px}
+.as-sum .lb{grid-column:1;margin-top:4px;font-size:12.5px;color:var(--mu)}
+.as-sum .eye{grid-column:2;grid-row:1/3;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;color:var(--tx);opacity:.85}
+.as-sum .eye:active{background:var(--bg)}
+.as-sum .eye.off{opacity:.45}
+.as-sum .big{grid-column:1/-1;margin-top:14px;font-size:22px;font-weight:700;letter-spacing:-.2px}
+.as-sum .sub{grid-column:1/-1;margin-top:2px;font-size:13px;color:var(--mu)}
+
+/* coin cards */
+.as-list{display:flex;flex-direction:column;gap:12px;padding:16px 14px 24px}
+.as-c{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--sh)}
+.as-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.as-h b{font-size:15.5px;font-weight:700;color:var(--ac);letter-spacing:.2px}
+.as-h i{margin-inline-start:auto;font-style:normal;font-size:20px;line-height:1;color:var(--mu)}
+.cx[dir=rtl] .as-h i{transform:scaleX(-1)}
+.as-g{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.as-g span{min-width:0;font-size:13.5px;font-weight:500;word-break:break-all}
+.as-g span small{display:block;margin-bottom:5px;font-size:12px;font-weight:400;color:var(--mu)}
+.as-g span:nth-child(2){text-align:center}
+.as-g span:last-child{text-align:end}
+
+.as-guest{margin:30px 16px;padding:30px 20px;background:var(--card);border:1px solid var(--ln);border-radius:16px;text-align:center;box-shadow:var(--sh)}
+.as-guest p{margin:0 0 16px;font-size:14px;color:var(--mu)}
+.as-guest button{padding:11px 32px;border-radius:12px;background:var(--ac);color:#fff;font-size:14.5px;font-weight:600}
+@media(max-width:360px){.as-g span{font-size:12.5px}.as-tabs button{padding:0 14px;font-size:13.5px}}
+@media(prefers-reduced-motion:reduce){.as *{transition:none!important}}
 `;
 
-export default function Assets({ P, W, go }) {
+export default function Assets({ P, W }) {
   const t = useT();
   const tt = (k, fb) => {
     let v;
@@ -74,9 +88,10 @@ export default function Assets({ P, W, go }) {
     return v && v !== k ? v : fb;
   };
 
-  const [hideZero, setHideZero] = useState(false);
-  const [tab, setTab] = useState("all"); /* all | options | funds */
+  const [tab, setTab] = useState("assets"); /* assets | funds | options | quant */
+  const [hide, setHide] = useState(false);
   const [accs, setAccs] = useState(null); /* null = এখনো লোড হয়নি */
+  const guest = !!(W && W.guest);
 
   const loadAccs = async () => {
     try {
@@ -85,111 +100,104 @@ export default function Assets({ P, W, go }) {
     } catch (_) {}
   };
 
-  /* প্রথমবার এবং W.w বদলালে (reload/transfer-এর পর) আবার আনা */
+  /* প্রথমবার এবং W.w বদলালে (ট্রেড/ট্রান্সফারের পর) আবার আনা */
   useEffect(() => {
-    if (!(W && W.guest)) loadAccs();
-  }, [W && W.w]);
+    if (!guest) loadAccs();
+    // eslint-disable-next-line
+  }, [guest, W && W.w]);
 
-  const refresh = async () => {
-    if (W && W.reload) await W.reload();
-    await loadAccs();
+  const priceOf = (c) => (STABLE.includes(c) ? 1 : num(P && P[c] && P[c].price));
+
+  /* অ্যাকাউন্ট অনুযায়ী Available / Frozen। Options: accs না এলে W থেকে। Quant: এখনো নেই */
+  const availOf = (acc, c) => {
+    if (acc === "options") return num(accs ? accs.options[c] && accs.options[c].available : W && W.w && W.w[c]);
+    if (acc === "funds") return num(accs && accs.funds[c] && accs.funds[c].available);
+    return 0;
   };
-
-  /* Options: accs থেকে, না এলে W থেকে। Funds: শুধু accs থেকে */
-  const optA = (c) => num(accs ? accs.options[c] && accs.options[c].available : W && W.w && W.w[c]);
-  const optF = (c) => num(accs ? accs.options[c] && accs.options[c].frozen : W && W.fz && W.fz[c]);
-  const funA = (c) => num(accs && accs.funds[c] && accs.funds[c].available);
-
-  const priceOf = (c) => (c === "USDT" || c === "USDC" ? 1 : num(P && P[c] && P[c].price));
-
-  const coins = ["USDT", ...COINS.filter((c) => c !== "USDT")];
-
-  const calc = (c) => {
-    let a = 0, f = 0;
-    if (tab === "options") { a = optA(c); f = optF(c); }
-    else if (tab === "funds") { a = funA(c); }
-    else { a = optA(c) + funA(c); f = optF(c); }
-    return { c, a, f, usd: (a + f) * priceOf(c) };
+  const frozenOf = (acc, c) => {
+    if (acc === "options") return num(accs ? accs.options[c] && accs.options[c].frozen : W && W.fz && W.fz[c]);
+    if (acc === "funds") return num(accs && accs.funds[c] && accs.funds[c].frozen);
+    return 0;
   };
+  const totalOf = (acc) => ASSET_COINS.reduce((s, c) => s + (availOf(acc, c) + frozenOf(acc, c)) * priceOf(c), 0);
 
-  const rows = coins
-    .map(calc)
-    .filter((r) => !hideZero || r.a + r.f > 0)
-    .sort((x, y) => y.usd - x.usd || (x.c === "USDT" ? -1 : 0));
+  const totOptions = totalOf("options");
+  const totFunds = totalOf("funds");
+  const totQuant = 0;
+  const totAll = totOptions + totFunds + totQuant;
 
-  /* মোট হিসাব (Options + Funds), প্রতিটি tab-এর জন্য আলাদা */
-  const sumOf = (fn) => coins.reduce((s, c) => s + fn(c) * priceOf(c), 0);
-  const totOptions = sumOf((c) => optA(c) + optF(c));
-  const totFunds = sumOf(funA);
-  const totAll = totOptions + totFunds;
-  const total = tab === "options" ? totOptions : tab === "funds" ? totFunds : totAll;
+  const tabs = [
+    ["assets", tt("assets", "Assets")],
+    ["funds", tt("funds", "Funds")],
+    ["options", tt("options", "Options")],
+    ["quant", tt("quant", "Quant trading")],
+  ];
+  const conv = tt("conv", "converted");
+  const titleOf = (k) => (k === "ta" ? tt("ta", "Total assets") : k === "funds" ? tt("funds", "Funds") : k === "options" ? tt("options", "Options") : tt("quant", "Quant trading"));
 
-  const toPage = (p) => { if (typeof go === "function") go(p); };
+  const mask = (s) => (hide ? "••••••" : s);
+  const sub = tab === "assets" ? null : tab;
+  const subTotal = sub === "funds" ? totFunds : sub === "options" ? totOptions : totQuant;
+
+  const summary = [["ta", totAll], ["funds", totFunds], ["options", totOptions], ["quant", totQuant]];
 
   return (
-    <div className="cx-as">
+    <div className="as">
       <style>{CSS}</style>
 
-      <div className="cx-as-top">
-        <h1>{tt("assets", "Assets")}</h1>
-        {W && !W.guest && <button type="button" onClick={refresh}>↻</button>}
+      <div className="as-tabs">
+        {tabs.map(([k, l]) => (
+          <button key={k} type="button" className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
+        ))}
       </div>
 
-      {W && W.guest ? (
-        <div className="cx-as-guest">
+      {guest ? (
+        <div className="as-guest">
           <p>{tt("needLogin", "Please log in to view your assets")}</p>
           <button type="button" onClick={() => W.needLogin()}>{tt("login", "Login")}</button>
         </div>
+      ) : !sub ? (
+        <div className="as-cards">
+          {summary.map(([k, v]) => (
+            <div key={k} className="as-card">
+              <h3>{titleOf(k)} {conv}</h3>
+              <small>{tt("avail", "Available")}</small>
+              <b className="num">{v.toFixed(2)}</b>
+            </div>
+          ))}
+        </div>
       ) : (
         <>
-          <div className="cx-as-sum">
-            <small>{tt("totalAssets", "Total assets")} (USDT)</small>
-            <b>{fmtUsd(total)}</b>
-            <span>≈ ${fmtUsd(total)}</span>
-            <div className="cx-as-act">
-              <button type="button" onClick={() => toPage("deposit")}>{tt("deposit", "Deposit")}</button>
-              <button type="button" onClick={() => toPage("withdraw")}>{tt("withdraw", "Withdraw")}</button>
-              <button type="button" onClick={() => toPage("changemoney")}>{tt("transfer", "Transfer")}</button>
-              <button type="button" onClick={() => toPage("exchangeb")}>{tt("exchange", "Exchange")}</button>
-            </div>
+          <div className="as-sum">
+            <h2>{titleOf(sub)} {conv}</h2>
+            <span className="lb">{tt("ta", "Total assets")} {conv}($)</span>
+            <button type="button" className={"eye" + (hide ? " off" : "")} onClick={() => setHide(!hide)} aria-label="toggle">
+              <Ic d={ICON.eye} s={24} />
+            </button>
+            <div className="big num">$ {mask(subTotal.toFixed(8))}</div>
+            <div className="sub num">≈ $ {mask(subTotal.toFixed(2))}</div>
           </div>
 
-          <div className="cx-as-tabs">
-            <button type="button" className={tab === "all" ? "on" : ""} onClick={() => setTab("all")}>
-              {tt("all", "All")}<small>{fmtUsd(totAll)}</small>
-            </button>
-            <button type="button" className={tab === "options" ? "on" : ""} onClick={() => setTab("options")}>
-              {tt("optionsAcc", "Options")}<small>{fmtUsd(totOptions)}</small>
-            </button>
-            <button type="button" className={tab === "funds" ? "on" : ""} onClick={() => setTab("funds")}>
-              {tt("fundsAcc", "Funds")}<small>{fmtUsd(totFunds)}</small>
-            </button>
-          </div>
-
-          <div className="cx-as-bar">
-            <span>{tt("coins", "Coins")}</span>
-            <label>
-              <input type="checkbox" checked={hideZero} onChange={(e) => setHideZero(e.target.checked)} />
-              {tt("hideZero", "Hide zero balances")}
-            </label>
-          </div>
-
-          <div className="cx-as-list">
-            {rows.length === 0 && <div className="cx-as-none">{tt("norec", "No records")}</div>}
-            {rows.map((r) => (
-              <div key={r.c} className="cx-as-c">
-                <div className="cx-as-h">
-                  <Coin s={r.c} size={34} />
-                  <b>{r.c}<i>/USDT</i></b>
-                  <em style={{ color: r.usd > 0 ? CUP : "#8a94a6" }}>≈ {fmtUsd(r.usd)}</em>
+          <div className="as-list">
+            {ASSET_COINS.map((c) => {
+              const a = availOf(sub, c);
+              const f = frozenOf(sub, c);
+              const usd = (a + f) * priceOf(c);
+              return (
+                <div key={c} className="as-c">
+                  <div className="as-h">
+                    <Coin s={c} size={28} />
+                    <b>{c}</b>
+                    <i>›</i>
+                  </div>
+                  <div className="as-g num">
+                    <span><small>{tt("avail", "Available")}</small>{mask(a.toFixed(8))}</span>
+                    <span><small>{tt("frozen", "Frozen")}</small>{mask(f.toFixed(8))}</span>
+                    <span><small>{tt("cv", "Converted($)")}</small>{mask("$ " + usd.toFixed(2))}</span>
+                  </div>
                 </div>
-                <div className="cx-as-g">
-                  <span><small>{tt("avail", "Available")}</small>{fmtAmt(r.a)}</span>
-                  <span><small>{tt("frozen", "Frozen")}</small>{fmtAmt(r.f)}</span>
-                  <span><small>{tt("total", "Total")}</small>{fmtAmt(r.a + r.f)}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </>
       )}
