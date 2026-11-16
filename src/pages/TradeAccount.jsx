@@ -365,4 +365,3 @@ export default function TradeAccount({ P, W, go, coin = "USDT", acc = "funds" })
     </div>
   );
 }
- 
