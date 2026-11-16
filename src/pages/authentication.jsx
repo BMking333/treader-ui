@@ -6,11 +6,15 @@ import { LangCtx, API, TOKEN, api, T3 } from "./Home";
    Backend: POST /kyc/submit (multipart: doc_type, name, front, back)
             GET  /kyc/status
             GET  /kyc/file/{doc_id}/{front|back}  (Bearer token লাগে → blob হিসেবে আনা হয়)
+
+   ✔ Night / Light mode: কোনো রং hard-code নেই — অ্যাপের থিমের রং (color/background) inherit করে
+   ✔ ভাষা: সব ২৬টি ভাষার অনুবাদ আছে (আগে অনেক ভাষায় English দেখাত)
    ===================================================================== */
 
 const DOC_TYPE = "nid"; /* backend DOC_TYPES: nid | passport | driving */
 const MAX_MB = 5; /* backend MAX_BYTES = 5 MB */
 
+/* ---------- মূল টেক্সট (ক্রম নিচের KEYS অনুযায়ী) ---------- */
 const KEYS = [
   "title", "name", "namePh", "upPhoto", "front", "back", "confirm", "eName", "ePhotos", "tooBig",
   "okSub", "stPending", "stVerified", "stRejected", "wait2", "errGeneric", "badType",
@@ -29,37 +33,80 @@ const RAW = {
   ru: ["Проверка личности", "Имя", "Введите ваше настоящее имя", "Загрузите фото документа", "Загрузить лицевую сторону", "Загрузить оборотную сторону", "Подтвердить", "Введите ваше настоящее имя", "Загрузите обе стороны документа", "Файл слишком большой (макс. 5 МБ)", "Отправлено. Ожидает проверки", "Ваши документы на проверке", "Ваша личность подтверждена", "Проверка отклонена. Отправьте снова", "Подождите...", "Запрос не выполнен", "Выберите файл изображения"],
   tr: ["Kimlik doğrulama", "Ad", "Gerçek adınızı girin", "Kimlik fotoğrafı yükle", "Kimliğin ön yüzünü yükle", "Kimliğin arka yüzünü yükle", "Onayla", "Gerçek adınızı girin", "Kimliğin iki yüzünü de yükleyin", "Görsel çok büyük (en fazla 5 MB)", "Gönderildi. İnceleme bekleniyor", "Belgeleriniz inceleniyor", "Kimliğiniz doğrulandı", "Doğrulama reddedildi. Tekrar gönderin", "Lütfen bekleyin...", "İstek başarısız", "Lütfen bir görsel dosyası seçin"],
   zh: ["实名认证", "姓名", "请输入真实姓名", "上传证件照片", "上传证件正面", "上传证件反面", "确认", "请输入真实姓名", "请上传证件正反面", "图片过大（最大 5 MB）", "已提交，等待审核", "您的资料正在审核中", "您已通过实名认证", "认证被拒绝，请重新提交", "请稍候...", "请求失败", "请选择图片文件"],
+  zhT: ["實名認證", "姓名", "請輸入真實姓名", "上傳證件照片", "上傳證件正面", "上傳證件反面", "確認", "請輸入真實姓名", "請上傳證件正反面", "圖片過大（最大 5 MB）", "已提交，等待審核", "您的資料正在審核中", "您已通過實名認證", "認證被拒絕，請重新提交", "請稍候...", "請求失敗", "請選擇圖片檔案"],
   ja: ["本人確認", "氏名", "本名を入力してください", "身分証の写真をアップロード", "身分証の表面をアップロード", "身分証の裏面をアップロード", "確認", "本名を入力してください", "身分証の両面をアップロードしてください", "画像が大きすぎます（最大5MB）", "送信しました。審査をお待ちください", "書類を審査中です", "本人確認が完了しました", "確認が却下されました。再送信してください", "お待ちください...", "リクエストに失敗しました", "画像ファイルを選択してください"],
   id: ["Verifikasi identitas", "Nama", "Masukkan nama asli Anda", "Unggah foto KTP", "Unggah sisi depan KTP", "Unggah sisi belakang KTP", "Konfirmasi", "Masukkan nama asli Anda", "Unggah kedua sisi KTP", "Gambar terlalu besar (maks. 5 MB)", "Terkirim. Menunggu tinjauan", "Dokumen Anda sedang ditinjau", "Identitas Anda telah terverifikasi", "Verifikasi ditolak. Kirim ulang", "Harap tunggu...", "Permintaan gagal", "Pilih file gambar"],
+  ko: ["본인 인증", "이름", "실명을 입력하세요", "신분증 사진 업로드", "신분증 앞면 업로드", "신분증 뒷면 업로드", "확인", "실명을 입력하세요", "신분증 양면 사진을 업로드하세요", "이미지가 너무 큽니다 (최대 5 MB)", "제출되었습니다. 검토 대기 중", "서류를 검토 중입니다", "본인 인증이 완료되었습니다", "인증이 거절되었습니다. 다시 제출하세요", "잠시만 기다려 주세요...", "요청 실패", "이미지 파일을 선택하세요"],
+  vi: ["Xác minh danh tính", "Tên", "Nhập tên thật của bạn", "Tải ảnh giấy tờ", "Tải mặt trước giấy tờ", "Tải mặt sau giấy tờ", "Xác nhận", "Nhập tên thật của bạn", "Vui lòng tải lên cả hai mặt giấy tờ", "Ảnh quá lớn (tối đa 5 MB)", "Đã gửi. Đang chờ duyệt", "Giấy tờ của bạn đang được xem xét", "Danh tính của bạn đã được xác minh", "Xác minh bị từ chối. Vui lòng gửi lại", "Vui lòng chờ...", "Yêu cầu thất bại", "Vui lòng chọn tệp ảnh"],
+  it: ["Verifica dell'identità", "Nome", "Inserisci il tuo vero nome", "Carica la foto del documento", "Carica il fronte del documento", "Carica il retro del documento", "Conferma", "Inserisci il tuo vero nome", "Carica entrambi i lati del documento", "Immagine troppo grande (max 5 MB)", "Inviato. In attesa di revisione", "I tuoi documenti sono in revisione", "La tua identità è verificata", "Verifica rifiutata. Invia di nuovo", "Attendere...", "Richiesta fallita", "Scegli un file immagine"],
+  el: ["Επαλήθευση ταυτότητας", "Όνομα", "Εισάγετε το πραγματικό σας όνομα", "Μεταφόρτωση φωτογραφίας ταυτότητας", "Μεταφόρτωση μπροστινής όψης", "Μεταφόρτωση πίσω όψης", "Επιβεβαίωση", "Εισάγετε το πραγματικό σας όνομα", "Ανεβάστε και τις δύο όψεις της ταυτότητας", "Η εικόνα είναι πολύ μεγάλη (μέγ. 5 MB)", "Υποβλήθηκε. Αναμονή ελέγχου", "Τα έγγραφά σας ελέγχονται", "Η ταυτότητά σας επαληθεύτηκε", "Η επαλήθευση απορρίφθηκε. Υποβάλετε ξανά", "Παρακαλώ περιμένετε...", "Το αίτημα απέτυχε", "Επιλέξτε αρχείο εικόνας"],
+  ms: ["Pengesahan identiti", "Nama", "Masukkan nama sebenar anda", "Muat naik foto ID", "Muat naik bahagian depan ID", "Muat naik bahagian belakang ID", "Sahkan", "Masukkan nama sebenar anda", "Sila muat naik kedua-dua belah ID", "Imej terlalu besar (maks. 5 MB)", "Dihantar. Menunggu semakan", "Dokumen anda sedang disemak", "Identiti anda telah disahkan", "Pengesahan ditolak. Sila hantar semula", "Sila tunggu...", "Permintaan gagal", "Sila pilih fail imej"],
+  th: ["ยืนยันตัวตน", "ชื่อ", "กรุณาใส่ชื่อจริงของคุณ", "อัปโหลดรูปบัตรประชาชน", "อัปโหลดด้านหน้าบัตร", "อัปโหลดด้านหลังบัตร", "ยืนยัน", "กรุณาใส่ชื่อจริงของคุณ", "กรุณาอัปโหลดบัตรทั้งสองด้าน", "รูปใหญ่เกินไป (สูงสุด 5 MB)", "ส่งแล้ว รอการตรวจสอบ", "เอกสารของคุณอยู่ระหว่างการตรวจสอบ", "ยืนยันตัวตนของคุณแล้ว", "การยืนยันถูกปฏิเสธ กรุณาส่งอีกครั้ง", "กรุณารอสักครู่...", "คำขอล้มเหลว", "กรุณาเลือกไฟล์รูปภาพ"],
+  la: ["Verificatio identitatis", "Nomen", "Nomen tuum verum insere", "Imaginem documenti impone", "Faciem anteriorem impone", "Faciem posteriorem impone", "Confirma", "Nomen tuum verum insere", "Utramque faciem documenti impone", "Imago nimis magna est (max. 5 MB)", "Missum. Recognitionem exspectat", "Documenta tua recognoscuntur", "Identitas tua verificata est", "Verificatio repudiata est. Iterum mitte", "Exspecta...", "Petitio defecit", "Imaginis fasciculum elige"],
+  ro: ["Verificarea identității", "Nume", "Introduceți numele real", "Încărcați fotografia actului", "Încărcați fața actului", "Încărcați verso-ul actului", "Confirmă", "Introduceți numele real", "Încărcați ambele fețe ale actului", "Imaginea este prea mare (max. 5 MB)", "Trimis. Se așteaptă verificarea", "Documentele dvs. sunt în curs de verificare", "Identitatea dvs. a fost verificată", "Verificarea a fost respinsă. Trimiteți din nou", "Vă rugăm așteptați...", "Cererea a eșuat", "Alegeți un fișier imagine"],
+  sv: ["Identitetsverifiering", "Namn", "Ange ditt riktiga namn", "Ladda upp ID-foto", "Ladda upp ID:ts framsida", "Ladda upp ID:ts baksida", "Bekräfta", "Ange ditt riktiga namn", "Ladda upp båda sidor av ID:t", "Bilden är för stor (max 5 MB)", "Skickat. Väntar på granskning", "Dina dokument granskas", "Din identitet är verifierad", "Verifieringen avvisades. Skicka igen", "Vänta...", "Begäran misslyckades", "Välj en bildfil"],
+  ht: ["Verifikasyon idantite", "Non", "Antre vrè non ou", "Voye foto kat idantite", "Voye devan kat la", "Voye dèyè kat la", "Konfime", "Antre vrè non ou", "Tanpri voye de bò kat la", "Imaj la two gwo (maks. 5 MB)", "Voye. Ap tann revizyon", "Dokiman ou yo ap revize", "Idantite ou verifye", "Verifikasyon an rejte. Tanpri voye ankò", "Tanpri tann...", "Demann echwe", "Tanpri chwazi yon fichye imaj"],
+  fa: ["تأیید هویت", "نام", "نام واقعی خود را وارد کنید", "بارگذاری تصویر مدرک شناسایی", "بارگذاری روی مدرک", "بارگذاری پشت مدرک", "تأیید", "نام واقعی خود را وارد کنید", "لطفاً هر دو طرف مدرک را بارگذاری کنید", "تصویر خیلی بزرگ است (حداکثر ۵ مگابایت)", "ارسال شد. در انتظار بررسی", "مدارک شما در حال بررسی است", "هویت شما تأیید شد", "تأیید رد شد. لطفاً دوباره ارسال کنید", "لطفاً صبر کنید...", "درخواست ناموفق بود", "لطفاً یک فایل تصویر انتخاب کنید"],
 };
 
+/* ---------- ব্যাকএন্ডের error code + ডকুমেন্ট সেকশনের টেক্সট ---------- */
+const EXTRA_KEYS = ["docType", "kycLocked", "fileBig", "fileType", "notFound", "forbidden", "yourDocs", "reason"];
+
+const EXTRA_RAW = {
+  en: ["Invalid document type", "Your verification is already submitted or approved", "Image is too large (max 5 MB)", "Only JPG or PNG images are allowed", "Not found", "Not allowed", "Your submitted documents", "Reason"],
+  bn: ["ডকুমেন্টের ধরন সঠিক নয়", "আপনার যাচাই আগেই জমা হয়েছে বা অনুমোদিত", "ছবি অনেক বড় (সর্বোচ্চ ৫ MB)", "শুধু JPG বা PNG ছবি দেওয়া যাবে", "পাওয়া যায়নি", "অনুমতি নেই", "আপনার জমা দেওয়া ডকুমেন্ট", "কারণ"],
+  hi: ["दस्तावेज़ का प्रकार गलत है", "आपका सत्यापन पहले ही जमा या स्वीकृत हो चुका है", "फोटो बहुत बड़ी है (अधिकतम 5 MB)", "केवल JPG या PNG फ़ोटो मान्य हैं", "नहीं मिला", "अनुमति नहीं है", "आपके जमा किए दस्तावेज़", "कारण"],
+  ur: ["دستاویز کی قسم درست نہیں", "آپ کی تصدیق پہلے ہی جمع یا منظور ہو چکی ہے", "تصویر بہت بڑی ہے (زیادہ سے زیادہ 5 MB)", "صرف JPG یا PNG تصاویر قابل قبول ہیں", "نہیں ملا", "اجازت نہیں", "آپ کے جمع کردہ دستاویزات", "وجہ"],
+  ar: ["نوع المستند غير صالح", "تم إرسال التحقق أو الموافقة عليه مسبقا", "الصورة كبيرة جدا (الحد الأقصى 5 MB)", "يسمح فقط بصور JPG أو PNG", "غير موجود", "غير مسموح", "المستندات التي أرسلتها", "السبب"],
+  fr: ["Type de document invalide", "Votre vérification est déjà soumise ou approuvée", "Image trop volumineuse (max 5 Mo)", "Seules les images JPG ou PNG sont acceptées", "Introuvable", "Non autorisé", "Vos documents soumis", "Motif"],
+  es: ["Tipo de documento no válido", "Su verificación ya fue enviada o aprobada", "Imagen demasiado grande (máx. 5 MB)", "Solo se permiten imágenes JPG o PNG", "No encontrado", "No permitido", "Sus documentos enviados", "Motivo"],
+  de: ["Ungültiger Dokumenttyp", "Ihre Verifizierung wurde bereits eingereicht oder genehmigt", "Bild zu groß (max. 5 MB)", "Nur JPG- oder PNG-Bilder sind erlaubt", "Nicht gefunden", "Nicht erlaubt", "Ihre eingereichten Dokumente", "Grund"],
+  pt: ["Tipo de documento inválido", "Sua verificação já foi enviada ou aprovada", "Imagem muito grande (máx. 5 MB)", "Apenas imagens JPG ou PNG são permitidas", "Não encontrado", "Não permitido", "Seus documentos enviados", "Motivo"],
+  ru: ["Недопустимый тип документа", "Ваша проверка уже отправлена или одобрена", "Файл слишком большой (макс. 5 МБ)", "Допускаются только изображения JPG или PNG", "Не найдено", "Не разрешено", "Ваши отправленные документы", "Причина"],
+  tr: ["Geçersiz belge türü", "Doğrulamanız zaten gönderildi veya onaylandı", "Görsel çok büyük (en fazla 5 MB)", "Yalnızca JPG veya PNG görsellere izin verilir", "Bulunamadı", "İzin verilmiyor", "Gönderdiğiniz belgeler", "Neden"],
+  zh: ["证件类型无效", "您的认证已提交或已通过", "图片过大（最大 5 MB）", "仅支持 JPG 或 PNG 图片", "未找到", "无权限", "您已提交的资料", "原因"],
+  zhT: ["證件類型無效", "您的認證已提交或已通過", "圖片過大（最大 5 MB）", "僅支援 JPG 或 PNG 圖片", "未找到", "無權限", "您已提交的資料", "原因"],
+  ja: ["書類の種類が無効です", "本人確認はすでに提出済みまたは承認済みです", "画像が大きすぎます（最大5MB）", "JPGまたはPNG画像のみ使用できます", "見つかりません", "許可されていません", "提出済みの書類", "理由"],
+  id: ["Jenis dokumen tidak valid", "Verifikasi Anda sudah dikirim atau disetujui", "Gambar terlalu besar (maks. 5 MB)", "Hanya gambar JPG atau PNG yang diizinkan", "Tidak ditemukan", "Tidak diizinkan", "Dokumen yang Anda kirim", "Alasan"],
+  ko: ["문서 유형이 올바르지 않습니다", "인증이 이미 제출되었거나 승인되었습니다", "이미지가 너무 큽니다 (최대 5 MB)", "JPG 또는 PNG 이미지만 허용됩니다", "찾을 수 없음", "허용되지 않음", "제출한 서류", "사유"],
+  vi: ["Loại giấy tờ không hợp lệ", "Xác minh của bạn đã được gửi hoặc phê duyệt", "Ảnh quá lớn (tối đa 5 MB)", "Chỉ cho phép ảnh JPG hoặc PNG", "Không tìm thấy", "Không được phép", "Giấy tờ bạn đã gửi", "Lý do"],
+  it: ["Tipo di documento non valido", "La tua verifica è già stata inviata o approvata", "Immagine troppo grande (max 5 MB)", "Sono consentite solo immagini JPG o PNG", "Non trovato", "Non consentito", "I tuoi documenti inviati", "Motivo"],
+  el: ["Μη έγκυρος τύπος εγγράφου", "Η επαλήθευσή σας έχει ήδη υποβληθεί ή εγκριθεί", "Η εικόνα είναι πολύ μεγάλη (μέγ. 5 MB)", "Επιτρέπονται μόνο εικόνες JPG ή PNG", "Δεν βρέθηκε", "Δεν επιτρέπεται", "Τα έγγραφα που υποβάλατε", "Λόγος"],
+  ms: ["Jenis dokumen tidak sah", "Pengesahan anda telah dihantar atau diluluskan", "Imej terlalu besar (maks. 5 MB)", "Hanya imej JPG atau PNG dibenarkan", "Tidak ditemui", "Tidak dibenarkan", "Dokumen yang anda hantar", "Sebab"],
+  th: ["ประเภทเอกสารไม่ถูกต้อง", "การยืนยันของคุณถูกส่งหรืออนุมัติแล้ว", "รูปใหญ่เกินไป (สูงสุด 5 MB)", "อนุญาตเฉพาะรูป JPG หรือ PNG", "ไม่พบ", "ไม่ได้รับอนุญาต", "เอกสารที่คุณส่งแล้ว", "เหตุผล"],
+  la: ["Genus documenti non validum", "Verificatio tua iam missa vel approbata est", "Imago nimis magna (max. 5 MB)", "Solae imagines JPG vel PNG permittuntur", "Non inventum", "Non permissum", "Documenta a te missa", "Causa"],
+  ro: ["Tip de document invalid", "Verificarea dvs. a fost deja trimisă sau aprobată", "Imaginea este prea mare (max. 5 MB)", "Sunt permise doar imagini JPG sau PNG", "Negăsit", "Nepermis", "Documentele trimise de dvs.", "Motiv"],
+  sv: ["Ogiltig dokumenttyp", "Din verifiering är redan skickad eller godkänd", "Bilden är för stor (max 5 MB)", "Endast JPG- eller PNG-bilder tillåts", "Hittades inte", "Inte tillåtet", "Dina inskickade dokument", "Orsak"],
+  ht: ["Tip dokiman pa valid", "Verifikasyon ou an deja voye oswa apwouve", "Imaj la two gwo (maks. 5 MB)", "Sèlman imaj JPG oswa PNG pèmèt", "Pa jwenn", "Pa pèmèt", "Dokiman ou te voye yo", "Rezon"],
+  fa: ["نوع مدرک نامعتبر است", "تأیید هویت شما قبلاً ارسال یا تأیید شده است", "تصویر خیلی بزرگ است (حداکثر ۵ مگابایت)", "فقط تصاویر JPG یا PNG مجاز است", "یافت نشد", "مجاز نیست", "مدارک ارسال‌شده شما", "دلیل"],
+};
+
+/* ---------- RAW + EXTRA_RAW → AUTH[lang][key] ---------- */
 const AUTH = {};
 Object.keys(RAW).forEach((l) => {
   AUTH[l] = {};
   KEYS.forEach((k, i) => { if (RAW[l][i] != null) AUTH[l][k] = RAW[l][i]; });
+  const ex = EXTRA_RAW[l] || EXTRA_RAW.en;
+  EXTRA_KEYS.forEach((k, i) => { if (ex[i] != null) AUTH[l][k] = ex[i]; });
 });
 
+const LANG_FALLBACK = { zhT: "zh" };
 
-/* ব্যাকএন্ডের error code (kyc.py) */
-const EXTRA = {
-  en: { docType: "Invalid document type", kycLocked: "Your verification is already submitted or approved", fileBig: "Image is too large (max 5 MB)", fileType: "Only JPG or PNG images are allowed", notFound: "Not found", forbidden: "Not allowed", yourDocs: "Your submitted documents", reason: "Reason" },
-  bn: { docType: "ডকুমেন্টের ধরন সঠিক নয়", kycLocked: "আপনার যাচাই আগেই জমা হয়েছে বা অনুমোদিত", fileBig: "ছবি অনেক বড় (সর্বোচ্চ ৫ MB)", fileType: "শুধু JPG বা PNG ছবি দেওয়া যাবে", notFound: "পাওয়া যায়নি", forbidden: "অনুমতি নেই", yourDocs: "আপনার জমা দেওয়া ডকুমেন্ট", reason: "কারণ" },
-};
-Object.keys(EXTRA).forEach((l) => Object.assign(AUTH[l], EXTRA[l]));
-
-/* অনুবাদ খোঁজার ক্রম: AUTH[lang] → AUTH.en → T3[lang] → T3.en → t(k) */
+/* অনুবাদ খোঁজার ক্রম: AUTH[lang] → AUTH[fallback] → AUTH.en → T3[lang] → T3.en → t(k) */
 const useTr = () => {
   const { lang, t } = useContext(LangCtx);
+  const fb = LANG_FALLBACK[lang];
   return (k) =>
     (AUTH[lang] && AUTH[lang][k]) ??
+    (fb && AUTH[fb] && AUTH[fb][k]) ??
     AUTH.en[k] ??
-    (T3[lang] && T3[lang][k]) ??
-    (T3.en && T3.en[k]) ??
+    (T3 && T3[lang] && T3[lang][k]) ??
+    (T3 && T3.en && T3.en[k]) ??
     t(k);
 };
 
 /* অনুবাদ আছে কি না (ব্যাকএন্ডের অচেনা error code হলে errGeneric দেখাতে) */
-const known = (k) => !!(AUTH.en[k] || (T3.en && T3.en[k]));
+const known = (k) => !!(AUTH.en[k] || (T3 && T3.en && T3.en[k]));
 
 /* verify_status → none | wait | ok | bad */
 const kind = (s) => {
@@ -99,37 +146,66 @@ const toJpeg = (file, max = 1600, q = 0.85) =>
   });
 
 const CamI = () => (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
+  <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M9 2L7.2 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2h-3.2L15 2zm3 15a5 5 0 110-10 5 5 0 010 10zm0-2a3 3 0 100-6 3 3 0 000 6z" />
   </svg>
 );
 
+const BackI = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M15 5l-7 7 7 7" />
+  </svg>
+);
+
+/* ---------- CSS: কোনো hard-coded dark/light রং নেই ----------
+   টেক্সট = inherit (অ্যাপের থিম), ব্যাকগ্রাউন্ড/বর্ডার = রঙিন-নিরপেক্ষ rgba(128,128,128,x)
+   তাই Night mode ও Light mode — দুটোতেই ঠিকঠাক দেখায়। */
 const CSS = `
-.cx-kc{background:#0b1520;color:#fff;min-height:100vh}
+.cx-kc{color:inherit;min-height:100vh;padding-bottom:32px}
 .cx-kc,.cx-kc *{-webkit-tap-highlight-color:transparent}
-.cx-kc-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:46px;background:#0f2030;border-bottom:1px solid #3a4b5e}
-.cx-kc-top h1{margin:0;font-size:17px;font-weight:400;text-align:center;color:#fff}
-.cx-kc-top button{font-size:30px;line-height:1;height:46px;display:grid;place-items:center;text-align:center!important;color:#fff}
+
+/* Top bar */
+.cx-kc-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:50px;
+  background:rgba(128,128,128,.10);border-bottom:1px solid rgba(128,128,128,.25)}
+.cx-kc-top h1{margin:0;font-size:16px;font-weight:600;text-align:center;color:inherit}
+.cx-kc-top button{height:50px;display:grid;place-items:center;background:none;border:0;color:inherit;cursor:pointer;opacity:.85}
 .cx[dir=rtl] .cx-kc-top button{transform:scaleX(-1)}
-.cx-kc-name{display:flex;align-items:center;gap:30px;margin:0;padding:0 16px;height:46px;background:#0f2030}
-.cx-kc-name label{font-size:14px;font-weight:600;min-width:56px}
-.cx-kc-name input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:#fff;font-size:14px}
-.cx-kc-name input::placeholder{color:#b9c1cd}
-.cx-kc-line{height:1px;background:#3a4b5e;margin:0 16px}
-.cx-kc-sec{padding:14px 16px 0;font-size:14px;color:#fff}
-.cx-kc-docs .cx-kc-box{cursor:default}
+
+/* Name */
+.cx-kc-name{display:flex;align-items:center;gap:16px;margin:16px 16px 0;padding:0 14px;height:50px;
+  background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.25);border-radius:12px;transition:border-color .15s,box-shadow .15s}
+.cx-kc-name:focus-within{border-color:#4b8bf5;box-shadow:0 0 0 3px rgba(75,139,245,.18)}
+.cx-kc-name label{font-size:13.5px;font-weight:600;min-width:52px;opacity:.9}
+.cx-kc-name input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:inherit;font-size:14px}
+.cx-kc-name input::placeholder{color:inherit;opacity:.45}
+
+/* Sections */
+.cx-kc-sec{padding:18px 16px 0;font-size:14px;font-weight:600;color:inherit;opacity:.9}
 .cx-kc-ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
-.cx-kc-up{display:flex;flex-direction:column;align-items:center;text-align:center!important;padding:0;cursor:pointer}
-.cx-kc-box{width:100%;height:190px;display:grid;place-items:center;color:#fff;overflow:hidden;border-radius:8px}
+.cx-kc-up{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0;cursor:pointer}
+.cx-kc-docs .cx-kc-up{cursor:default}
+.cx-kc-box{width:100%;height:190px;display:grid;place-items:center;color:inherit;overflow:hidden;border-radius:12px;
+  background:rgba(128,128,128,.07);border:1.5px dashed rgba(128,128,128,.45);transition:border-color .15s,background .15s}
+.cx-kc-box svg{opacity:.55}
+.cx-kc-up:hover .cx-kc-box{border-color:#4b8bf5;background:rgba(75,139,245,.07)}
+.cx-kc-docs .cx-kc-up:hover .cx-kc-box{border-color:rgba(128,128,128,.45);background:rgba(128,128,128,.07)}
+.cx-kc-box.has{border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.10)}
 .cx-kc-box img{width:100%;height:100%;object-fit:cover;display:block}
-.cx-kc-box.has{border:1px solid #2a3a50;background:#101c2d}
-.cx-kc-lb{font-size:14px;color:#fff;margin:6px 0 4px;padding:0 4px}
+.cx-kc-lb{font-size:13px;font-weight:500;color:inherit;opacity:.85;margin:8px 0 2px;padding:0 4px}
 .cx-kc-up input{display:none}
-.cx-kc-btn{display:block;width:calc(100% - 32px);margin:14px 16px 0;height:44px;border-radius:8px;background:#1a82d6!important;color:#fff!important;font-size:14px;text-align:center!important}
-.cx-kc-btn:disabled{opacity:.6}
-.cx-kc-msg{margin:12px 16px 0;padding:10px 12px;border-radius:6px;font-size:14px;background:#17304f;color:#8fc4ff}
-.cx-kc-msg.bad{background:#3b1a20;color:#ff8a95}
-.cx-kc-msg.ok{background:#0f3a2c;color:#4be0a8}
+
+/* Button */
+.cx-kc-btn{display:block;width:calc(100% - 32px);margin:20px 16px 0;height:46px;border-radius:10px;border:0;cursor:pointer;
+  background:#1a82d6;color:#fff;font-size:14.5px;font-weight:600;text-align:center;transition:opacity .15s,transform .15s}
+.cx-kc-btn:active:not(:disabled){transform:scale(.98)}
+.cx-kc-btn:disabled{opacity:.6;cursor:default}
+
+/* Messages (দুই থিমেই পড়া যায়) */
+.cx-kc-msg{margin:12px 16px 0;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.45;
+  background:rgba(75,139,245,.14);color:#4b8bf5;border:1px solid rgba(75,139,245,.3)}
+.cx-kc-msg.bad{background:rgba(240,97,109,.12);color:#e5484d;border-color:rgba(240,97,109,.35)}
+.cx-kc-msg.ok{background:rgba(47,211,155,.14);color:#1fa971;border-color:rgba(47,211,155,.35)}
+
 @media(min-width:768px){
 .cx-kc-box{height:220px}
 }
@@ -261,7 +337,7 @@ export default function Authentication({ W, go }) {
     <div className="cx-kc">
       <style>{CSS}</style>
       <div className="cx-kc-top">
-        <button type="button" onClick={() => go("home")} aria-label="Back">‹</button>
+        <button type="button" onClick={() => go("home")} aria-label="Back"><BackI /></button>
         <h1>{tr("title")}</h1>
         <span />
       </div>
@@ -305,7 +381,6 @@ export default function Authentication({ W, go }) {
               maxLength={120}
             />
           </div>
-          <div className="cx-kc-line" />
           <div className="cx-kc-sec">{tr("upPhoto")}</div>
           <div style={{ height: 8 }} />
           <div className="cx-kc-ups">
