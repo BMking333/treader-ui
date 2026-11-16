@@ -65,13 +65,8 @@ const CSS = `
 .as-sum .big{grid-column:1/-1;margin-top:14px;font-size:22px;font-weight:700;letter-spacing:-.2px}
 .as-sum .sub{grid-column:1/-1;margin-top:2px;font-size:13px;color:var(--mu)}
 
-/* hide-zero bar */
-.as-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px 0;font-size:13px;color:var(--mu)}
-.as-bar label{display:flex;align-items:center;gap:8px;cursor:pointer}
-.as-bar input{width:16px;height:16px;accent-color:var(--ac)}
-
 /* coin cards */
-.as-list{display:flex;flex-direction:column;gap:12px;padding:12px 14px 24px}
+.as-list{display:flex;flex-direction:column;gap:12px;padding:14px 14px 24px}
 .as-c{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 16px 14px;box-shadow:var(--sh);cursor:pointer;transition:transform .12s ease}
 .as-c:active{transform:scale(.985)}
 .as-h{display:flex;align-items:center;gap:10px;margin-bottom:14px}
@@ -103,7 +98,6 @@ export default function Assets({ P, W, go }) {
   const [tab, setTab] = useState("assets"); /* assets | funds | options | quant */
   const [slide, setSlide] = useState("");   /* "" | fw | bw  — অ্যানিমেশনের দিক */
   const [hide, setHide] = useState(false);
-  const [hideZero, setHideZero] = useState(false);
   const [accs, setAccs] = useState(null); /* null = এখনো লোড হয়নি */
   const guest = !!(W && W.guest);
 
@@ -209,9 +203,7 @@ export default function Assets({ P, W, go }) {
 
   const summary = [["ta", totAll], ["funds", totFunds], ["options", totOptions], ["quant", totQuant]];
 
-  const rows = sub
-    ? allCoins.filter((c) => !hideZero || availOf(sub, c) + frozenOf(sub, c) > 0)
-    : [];
+  const rows = sub ? allCoins : [];
 
   return (
     <div className="as">
@@ -256,14 +248,6 @@ export default function Assets({ P, W, go }) {
               </button>
               <div className="big num">$ {mask(subTotal.toFixed(8))}</div>
               <div className="sub num">≈ $ {mask(subTotal.toFixed(2))}</div>
-            </div>
-
-            <div className="as-bar">
-              <span>{tt("coins", "Coins")} ({rows.length})</span>
-              <label>
-                <input type="checkbox" checked={hideZero} onChange={(e) => setHideZero(e.target.checked)} />
-                {tt("hideZero", "Hide zero balances")}
-              </label>
             </div>
 
             <div className="as-list">
