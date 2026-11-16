@@ -1,15 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createChart, CandlestickSeries, LineSeries, HistogramSeries } from "lightweight-charts";
-import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, QTY, YIELD, CUP, CDN } from "./Home";
+import { useT, api, fmt, fmtV, Ic, ICON, COINS, Coin, YIELD, CUP, CDN } from "./Home";
 
 const OPEN_PATH = "/options/open"; /* POST {sym, direction, qty, seconds} */
 const STATUS_PATH = "/options/status"; /* GET -> {enabled, disabled_syms, yield, qty_min, qty_max, secs, blocked} */
 const DIR = { long: "long", short: "short" };
 const MIN_Q = 10, MAX_Q = 1000000; /* server থেকে না এলে ডিফল্ট */
+/* অ্যামাউন্ট অপশন: শুধু এই ৪টি */
+const QTY = [50, 100, 500, 1000];
 /* সময় (সেকেন্ড): 30s, 5m, 10m, 30m, 1h, 1d — server থেকে "secs" এলে সেটাই ব্যবহার হয় */
 const DEFAULT_SECS = [30, 300, 600, 1800, 3600, 86400];
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
+const fq = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 
 /* ---------------- Chart helpers ---------------- */
 const TF = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"];
@@ -408,7 +411,6 @@ function Chart({ sym, tt, dark }) {
             </>
           )}
         </div>
-        
       </div>
 
       {/* ---- indicators sheet ---- */}
@@ -429,6 +431,7 @@ function Sheet({ open, onClose, title, children }) {
   return (
     <div className="cx-op-ov" onClick={onClose}>
       <div className="cx-op-sh" onClick={(e) => e.stopPropagation()}>
+        <i className="cx-op-grab" />
         {title ? (
           <div className="cx-op-sh-h">
             <b>{title}</b>
@@ -442,7 +445,8 @@ function Sheet({ open, onClose, title, children }) {
 }
 
 const CSS = `
-.cx-op{--cx-nav-h:76px;--cx-bar-h:70px;--bd:#e4e7ec;--gray:#8a94a6;--blue:#1a82d6;--grn:#00c087;--red:#d84d5a}
+.cx-op{--cx-nav-h:76px;--cx-bar-h:76px;--bd:#e4e7ec;--gray:#8a94a6;--blue:#1a82d6;--blue2:#4aa8ff;--grn:#00c087;--red:#d84d5a;
+  --f-bg:#f6f8fc;--f-ln:#dfe5ee;--f-card:#ffffff;--f-tx:#141b29}
 
 .cx-op{background:#fff;color:#1a1a1a;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
 .cx-op,.cx-op *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
@@ -486,18 +490,18 @@ const CSS = `
 .cx-chart-legend .l3{font-size:14px}
 .cx-chart-legend .l4{font-size:14px;color:#444}
 .cx-chart-legend .l4 b{font-weight:400;color:#f57c00}
-.cx-chart-attribution{position:absolute;left:8px;bottom:26px;z-index:3;font-size:8px;line-height:1;color:rgba(100,115,135,.55);pointer-events:none}
-.cx-chart-attribution a{color:inherit;text-decoration:none;pointer-events:auto}
 
-/* Trade bar: fixed ABOVE the bottom navigation */
-.cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.25fr 1.25fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#fff;border-top:1px solid #e4e7ec}
-.cx-op-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13.5px;background:none;border:0;cursor:pointer;line-height:1.4}
-.cx-op-pick span{font-size:14.5px;text-align:center}
-.cx-op-go{display:flex;align-items:center;justify-content:center;text-align:center;height:50px;border-radius:12px;border:0;font-size:15px;font-weight:600;letter-spacing:.2px;line-height:1.15;cursor:pointer;color:#fff!important;padding:0 6px;box-shadow:0 8px 18px -10px rgba(0,0,0,.55);transition:transform .12s ease,filter .15s ease}
+/* ===== Trade bar (নেভিগেশনের ঠিক উপরে) ===== */
+.cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.15fr 1.15fr;gap:8px;align-items:center;padding:8px 12px;height:var(--cx-bar-h);background:#fff;border-top:1px solid #e4e7ec;box-shadow:0 -10px 24px -20px rgba(20,40,80,.45)}
+.cx-op-pick{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;height:52px;padding:0 12px;border-radius:12px;background:var(--f-bg);border:1.5px solid var(--f-ln);cursor:pointer;text-align:start;line-height:1.2;transition:border-color .15s ease,background .15s ease}
+.cx-op-pick:active{border-color:var(--blue)}
+.cx-op-pick span:first-child{font-size:11px;font-weight:500;color:var(--gray);letter-spacing:.2px}
+.cx-op-pick span:last-child{font-size:14.5px;font-weight:700;color:var(--f-tx);font-variant-numeric:tabular-nums;white-space:nowrap}
+.cx-op-go{display:flex;align-items:center;justify-content:center;text-align:center;height:52px;border-radius:12px;border:0;font-size:14.5px;font-weight:700;letter-spacing:.2px;line-height:1.15;cursor:pointer;color:#fff!important;padding:0 6px;box-shadow:0 10px 20px -12px rgba(0,0,0,.6);transition:transform .12s ease,filter .15s ease}
 .cx-op-go:active{transform:scale(.97);filter:brightness(.94)}
-.cx-op-go.up{background:var(--grn)}
-.cx-op-go.dn{background:var(--red)}
-.cx-op-go:disabled{opacity:.6}
+.cx-op-go.up{background:linear-gradient(135deg,#19d6a0,#00b07c)}
+.cx-op-go.dn{background:linear-gradient(135deg,#f0707b,#d23a48)}
+.cx-op-go:disabled{opacity:.55}
 
 /* toast: স্ক্রিনের ঠিক মাঝখানে */
 .cx-op-toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:600;width:max-content;max-width:calc(100% - 48px);
@@ -507,49 +511,70 @@ const CSS = `
 .cx-op-toast.ok{background:#e3f7ee;color:#0a8a5f}
 @keyframes cxtoast{from{transform:translate(-50%,-46%) scale(.94);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 
-/* sheets */
-.cx-op-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
-.cx-op-sh{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:#fff;border-radius:20px 20px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px));animation:cxup .18s ease-out}
+/* ===== sheets ===== */
+.cx-op-ov{position:fixed;inset:0;z-index:200;background:rgba(8,14,26,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);display:flex;align-items:flex-end;justify-content:center}
+.cx-op-sh{width:100%;max-width:520px;max-height:90vh;overflow:auto;background:#fff;border-radius:22px 22px 0 0;padding:10px 18px calc(22px + env(safe-area-inset-bottom,0px));animation:cxup .2s ease-out}
 @keyframes cxup{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
-.cx-op-sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:16px}
-.cx-op-sh-h button{background:none;border:0;font-size:18px;cursor:pointer}
-.cx-op-sec{margin:6px 0 12px;font-size:14.5px;font-weight:500;color:#2a3342;letter-spacing:.1px}
+.cx-op-grab{display:block;width:40px;height:4px;margin:0 auto 12px;border-radius:4px;background:#d5dae3}
+.cx-op-sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:17px;font-weight:700;letter-spacing:-.1px}
+.cx-op-sh-h button{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--f-bg);border:0;font-size:14px;cursor:pointer;color:var(--gray)}
+
+/* section title */
+.cx-op-sec{display:flex;align-items:center;gap:8px;margin:14px 0 10px;font-size:13px;font-weight:600;color:#4b566b;letter-spacing:.2px}
+.cx-op-sec::before{content:"";width:3px;height:13px;border-radius:2px;background:linear-gradient(180deg,var(--blue2),var(--blue))}
 .cx-op-sec.t2{margin-top:20px}
+
+/* option chips */
 .cx-op-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cx-op-row{display:flex;gap:10px}
 .cx-op-row>button{flex:1}
 .cx-op-row.one>button{flex:0 0 31%}
+.cx-op-row.four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .cx-op-row.six{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.cx-op-opt{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;height:42px;border-radius:9px;border:1px solid #dde1e8;background:#f7f8fa;font-size:14.5px;font-weight:500;cursor:pointer;overflow:hidden;padding:0 4px;white-space:nowrap;transition:border-color .15s ease,background .15s ease}
-.cx-op-opt.on{border-color:var(--blue);background:#eef6fd;color:var(--blue)}
-.cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:30px;height:24px;background:linear-gradient(135deg,transparent 50%,#4a86e8 50%);color:#fff;font-size:11px;line-height:30px;text-align:right;padding-right:4px}
-.cx-op-qrow{display:flex;align-items:center;gap:10px;margin:22px 10px 0 12px;border-bottom:1px solid #c9ced6}
-.cx-op-qrow input{flex:1;min-width:0;height:46px;border:0;outline:0;background:none;font-size:16px;font-weight:500;color:#222}
-.cx-op-qrow button{display:flex;align-items:center;justify-content:center;background:none;border:0;color:var(--blue)!important;font-size:14.5px;font-weight:600;cursor:pointer;padding:0 8px}
-.cx-op-g{color:var(--grn);font-size:14px;font-weight:500;line-height:1.6}
-.cx-op-g.two{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:20px}
-.cx-op-g.three{margin-top:4px}
-.cx-op-sbtn{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;padding:0 6px}
-.cx-op-sbtn .cx-op-go{height:52px;font-size:15.5px;border-radius:12px}
+.cx-op-opt{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;height:46px;border-radius:12px;border:1.5px solid var(--f-ln);background:var(--f-bg);color:var(--f-tx);font-size:14.5px;font-weight:600;cursor:pointer;overflow:hidden;padding:0 4px;white-space:nowrap;font-variant-numeric:tabular-nums;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.cx-op-opt:active{transform:scale(.98)}
+.cx-op-opt.on{border-color:var(--blue);background:#eaf4fd;color:var(--blue);box-shadow:0 0 0 3px rgba(26,130,214,.12)}
+.cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:26px;height:20px;background:linear-gradient(135deg,transparent 50%,var(--blue) 50%);color:#fff;font-size:10px;line-height:26px;text-align:right;padding-right:3px}
+
+/* amount field (বক্স + বর্ডার) */
+.cx-op-field{display:flex;align-items:center;gap:8px;height:52px;margin-top:12px;padding:0 8px 0 14px;border-radius:12px;background:var(--f-card);border:1.5px solid var(--f-ln);transition:border-color .15s ease,box-shadow .15s ease}
+.cx-op-field:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,130,214,.14)}
+.cx-op-field input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:17px;font-weight:700;color:var(--f-tx);font-variant-numeric:tabular-nums}
+.cx-op-field input::placeholder{font-size:14px;font-weight:400;color:var(--gray)}
+.cx-op-field em{font-style:normal;font-size:12.5px;font-weight:700;color:var(--gray);letter-spacing:.3px}
+.cx-op-field button{height:34px;padding:0 14px;border:0;border-radius:9px;background:rgba(26,130,214,.12);color:var(--blue)!important;font-size:13px;font-weight:700;cursor:pointer}
+.cx-op-field button:active{background:var(--blue);color:#fff!important}
+
+/* info panel */
+.cx-op-box{margin-top:18px;border-radius:14px;background:var(--f-bg);border:1px solid var(--f-ln);overflow:hidden}
+.cx-op-box div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;font-size:13px;border-bottom:1px dashed var(--f-ln)}
+.cx-op-box div:last-child{border-bottom:0}
+.cx-op-box span{color:var(--gray)}
+.cx-op-box b{font-weight:600;color:var(--f-tx);font-variant-numeric:tabular-nums;text-align:end;word-break:break-all}
+.cx-op-box b.g{color:var(--grn)}
+
+.cx-op-sbtn{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.cx-op-sbtn .cx-op-go{height:52px;font-size:15.5px;border-radius:13px}
 .cx-op-hint{margin-top:8px;font-size:12px;color:var(--gray)}
 
 /* confirm dialog (Buy Long / Sell Short) */
-.cx-op-cfo{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:0 20px}
+.cx-op-cfo{position:fixed;inset:0;z-index:400;background:rgba(8,14,26,.6);display:flex;align-items:center;justify-content:center;padding:0 20px}
 .cx-op-cf{width:100%;max-width:340px;background:#fff;color:#1a1a1a;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(0,0,0,.6);animation:cxpop .15s ease-out}
 @keyframes cxpop{from{transform:scale(.92);opacity:.4}to{transform:none;opacity:1}}
-.cx-op-cf-t{padding:17px 16px 14px;text-align:center;font-size:16px;font-weight:600;letter-spacing:.2px;border-bottom:1px solid #e4e8ee}
+.cx-op-cf-t{padding:17px 16px 14px;text-align:center;font-size:16px;font-weight:700;letter-spacing:.2px;border-bottom:1px solid #e4e8ee}
 .cx-op-cf-b{padding:16px 22px 20px;font-size:14px;line-height:1.5;border-bottom:1px solid #e4e8ee}
 .cx-op-cf-b p{margin:0 0 10px;display:flex;justify-content:space-between;gap:12px}
-.cx-op-cf-b p b{font-weight:600;font-variant-numeric:tabular-nums}
+.cx-op-cf-b p span{color:var(--gray)}
+.cx-op-cf-b p b{font-weight:700;font-variant-numeric:tabular-nums}
 .cx-op-cf-b p:last-child{margin-bottom:0}
 .cx-op-cf-a{display:grid;grid-template-columns:1fr 1fr}
 .cx-op-cf-a button{display:flex;align-items:center;justify-content:center;text-align:center;height:50px;padding:0;background:none;border:0;font-size:14px;font-weight:400;letter-spacing:.2px;color:#6b7385!important;cursor:pointer;transition:background .15s ease}
 .cx-op-cf-a button:active{background:rgba(0,0,0,.04)}
 .cx-op-cf-a button+button{border-left:1px solid #e4e8ee}
-.cx-op-cf-a button.ok{font-weight:500;color:var(--blue)!important}
+.cx-op-cf-a button.ok{font-weight:600;color:var(--blue)!important}
 .cx-op-cf-a button:disabled{opacity:.5}
 
-/* left coin drawer: কয়েন লোগো + ছোট নাম/প্রাইস, প্রিমিয়াম লুক */
+/* left coin drawer */
 .cx-op-dov{position:fixed;inset:0;z-index:200;background:rgba(8,14,26,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:cxdf .18s ease}
 .cx-op-dr{position:absolute;left:0;top:0;bottom:0;width:min(76%,290px);background:#fff;color:#1b2433;display:flex;flex-direction:column;
   border-radius:0 18px 18px 0;box-shadow:12px 0 40px -18px rgba(0,0,0,.55);animation:cxdr .26s cubic-bezier(.2,.8,.2,1);padding-top:env(safe-area-inset-top,0px)}
@@ -559,8 +584,7 @@ const CSS = `
 .cx-op-drh h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
 .cx-op-drh span{display:inline-flex;align-items:center;margin-top:10px;padding:4px 12px;border-radius:999px;background:rgba(26,130,214,.1);color:#1a82d6;font-size:12.5px;font-weight:600;letter-spacing:.3px}
 .cx-op-coin-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 12px max(16px,env(safe-area-inset-bottom,0px))}
-.cx-op-coin{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:50px;padding:0 6px;border:0;border-bottom:1px solid #edf0f4;background:none;cursor:pointer;text-align:start;
-  transition:background .15s ease}
+.cx-op-coin{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:50px;padding:0 6px;border:0;border-bottom:1px solid #edf0f4;background:none;cursor:pointer;text-align:start;transition:background .15s ease}
 .cx-op-coin:last-child{border-bottom:0}
 .cx-op-coin:active{background:#f3f6fa;border-radius:10px}
 .cx-op-cn{display:flex;align-items:center;gap:9px;min-width:0}
@@ -575,11 +599,11 @@ const CSS = `
 .cx-op-tabs button{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;height:46px;background:none;border:0;border-bottom:2px solid transparent;font-size:14px;cursor:pointer;color:var(--gray)!important}
 .cx-op-tabs button.on{color:#111!important;border-bottom-color:var(--blue)}
 .cx-op-list{flex:1;overflow:auto;padding:12px 14px;background:#f4f5f7}
-.cx-op-card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px}
+.cx-op-card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13px}
 .cx-op-card .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;font-size:15px}
-.cx-op-card .r{display:flex;justify-content:space-between;padding:2px 0}
+.cx-op-card .r{display:flex;justify-content:space-between;padding:3px 0}
 .cx-op-card .r i{font-style:normal;color:var(--gray)}
-.cx-op-tag{padding:2px 8px;border-radius:4px;font-size:12px;color:#fff}
+.cx-op-tag{padding:2px 8px;border-radius:6px;font-size:12px;color:#fff}
 .cx-op-none{text-align:center;color:var(--gray);padding:40px 0;font-size:14px}
 
 /* Mobile */
@@ -594,9 +618,11 @@ const CSS = `
 @media(max-width:380px){
   .cx-tb-cell{padding:0 10px}
   .cx-chart-status{display:none}
-  .cx-op-sbtn{gap:12px;padding:0}
-  .cx-op-sec,.cx-op-g{font-size:13.5px}
+  .cx-op-bar{gap:6px;padding:8px}
+  .cx-op-pick{padding:0 8px}
+  .cx-op-go{font-size:13px}
   .cx-op-opt{font-size:13.5px}
+  .cx-op-row.four,.cx-op-row.six{gap:8px}
 }
 
 /* PC */
@@ -612,8 +638,8 @@ const CSS = `
 }
 @media(prefers-reduced-motion:reduce){.cx-op-toast,.cx-op-dr,.cx-op-dov,.cx-op-sh,.cx-op-cf{animation:none!important}}
 
-/* ================= NIGHT MODE (backend dark = true → .cx-op.dk) ================= */
-.cx-op.dk{--bd:#243148;--gray:#8d98ad;background:#0d1626;color:#e8ecf3}
+/* ================= NIGHT MODE (.cx-op.dk) ================= */
+.cx-op.dk{--bd:#243148;--gray:#8d98ad;--f-bg:#101c30;--f-ln:#2a3a56;--f-card:#0d1829;--f-tx:#e8ecf3;background:#0d1626;color:#e8ecf3}
 .cx-op.dk .cx-op-top{background:#0d1626;border-bottom-color:#243148}
 .cx-op.dk .cx-op-info{background:#0d1626}
 .cx-op.dk .cx-op-off{background:#3b1a20;color:#ff8a95}
@@ -628,12 +654,15 @@ const CSS = `
 .cx-op.dk .cx-chart-legend .l4{color:#aab3c5}
 .cx-op.dk .cx-chart-legend .box{border-color:#9aa6bb}
 .cx-op.dk .cx-chart-legend .box::after{background:#9aa6bb}
-.cx-op.dk .cx-chart-attribution{color:rgba(170,179,197,.5)}
-.cx-op.dk .cx-op-bar{background:#0d1626;border-top-color:#243148}
+.cx-op.dk .cx-op-bar{background:#0d1626;border-top-color:#243148;box-shadow:0 -10px 24px -18px rgba(0,0,0,.8)}
 .cx-op.dk .cx-op-toast{background:#17304f;color:#8fc4ff;box-shadow:0 14px 40px -12px rgba(0,0,0,.8)}
 .cx-op.dk .cx-op-toast.bad{background:#3b1a20;color:#ff8a95}
 .cx-op.dk .cx-op-toast.ok{background:#0f3a2c;color:#4be0a8}
 .cx-op.dk .cx-op-sh{background:#17263d;color:#e8ecf3}
+.cx-op.dk .cx-op-grab{background:#2c3c58}
+.cx-op.dk .cx-op-sec{color:#b4bfd3}
+.cx-op.dk .cx-op-opt.on{background:#142a47;color:#6cb6f5;box-shadow:0 0 0 3px rgba(74,163,240,.16)}
+.cx-op.dk .cx-op-field button{background:rgba(74,163,240,.16);color:#6cb6f5!important}
 .cx-op.dk .cx-op-dr{background:#101e34;color:#e9eef6;box-shadow:12px 0 40px -18px rgba(0,0,0,.9)}
 .cx-op.dk .cx-op-coin{border-bottom-color:#1f2f4a}
 .cx-op.dk .cx-op-coin:active{background:#0b1626}
@@ -646,11 +675,6 @@ const CSS = `
 .cx-op.dk .cx-op-cf-a button.ok{color:#4aa3f0!important}
 .cx-op.dk .cx-op-cf-a button:active{background:rgba(255,255,255,.05)}
 .cx-op.dk .cx-op-cf-a button+button{border-left-color:#2c3c58}
-.cx-op.dk .cx-op-sec{color:#dfe5f0}
-.cx-op.dk .cx-op-opt{background:#101c30;border-color:#2c3c58;color:#e8ecf3}
-.cx-op.dk .cx-op-opt.on{border-color:var(--blue);background:#142a47;color:#6cb6f5}
-.cx-op.dk .cx-op-qrow{border-bottom-color:#3a4a66}
-.cx-op.dk .cx-op-qrow input{color:#e8ecf3}
 .cx-op.dk .cx-op-pn{background:#0d1626}
 .cx-op.dk .cx-op-tabs{background:#0d1626}
 .cx-op.dk .cx-op-tabs button.on{color:#fff!important}
@@ -667,8 +691,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     return v && v !== k ? v : fb;
   };
 
-  /* নাইট মোড: ব্যাকেন্ডের সেটিং App-এর .cx.dark ক্লাসে সিঙ্ক হয় — সেটাই অনুসরণ করে।
-     ব্যাকেন্ডে নাইট মোড অফ থাকলে ন্যাচারাল (লাইট) থাকবে */
+  /* নাইট মোড: App-এর .cx.dark ক্লাস অনুসরণ করে */
   const rootRef = useRef(null);
   const [domDark, setDomDark] = useState(false);
   useEffect(() => {
@@ -692,7 +715,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState({ k: "", s: "bad" });
   const [now, setNow] = useState(Date.now());
-  const [st, setSt] = useState(null); /* অ্যাডমিন সেটিংস: enabled, disabled_syms, yield, qty_min, qty_max, secs, blocked */
+  const [st, setSt] = useState(null); /* অ্যাডমিন সেটিংস */
   const tm = useRef(null);
 
   useEffect(() => {
@@ -724,7 +747,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     tm.current = setTimeout(() => setMsg({ k: "", s: "bad" }), 2600);
   };
 
-  /* সময়ের তালিকা: server থেকে, না এলে ডিফল্ট (30s, 5m, 10m, 30m, 1h, 1d) */
+  /* সময়ের তালিকা: server থেকে, না এলে ডিফল্ট */
   const secList = st && Array.isArray(st.secs) && st.secs.length ? st.secs : DEFAULT_SECS;
   useEffect(() => {
     if (!secList.includes(secs)) setSecs(secList[0]);
@@ -756,8 +779,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const maxQ = st && st.qty_max > 0 ? st.qty_max : MAX_Q;
   const yld = st && st.yield > 0 ? st.yield : YIELD;
 
-  /* ট্রেড খোলার আগের যাচাই */
-  /* withBal=false: কনফার্ম কার্ড খোলার আগে ব্যালেন্স চেক হয় না; Confirm চাপলে (open → check()) তখন চেক হয় */
+  /* withBal=false: কনফার্ম কার্ড খোলার আগে ব্যালেন্স চেক হয় না; Confirm চাপলে তখন চেক হয় */
   const check = (withBal = true) => {
     if (W.guest) { W.needLogin(); return false; }
     if (paused) { flash(pausedMsg); return false; }
@@ -798,7 +820,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     if (ok && c.fromSheet) setSh("");
   };
 
-  const pickQty = (q) => { setQty(q); setQIn(q.toFixed(2)); };
+  const pickQty = (q) => { setQty(q); setQIn(String(q)); };
   const typeQty = (v) => {
     setQIn(v);
     const n = parseFloat(v);
@@ -853,7 +875,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         </div>
       </div>
 
-      {/* ---- Paused banner (অ্যাডমিন বন্ধ করলে) ---- */}
+      {/* ---- Paused banner ---- */}
       {paused && <div className="cx-op-off">{pausedMsg}</div>}
 
       {/* ---- Chart + trade bar ---- */}
@@ -864,7 +886,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
 
         <div className="cx-op-bar">
           <button type="button" className="cx-op-pick" onClick={() => { setQIn(qty ? String(qty) : ""); setSh("trade"); }}>
-            <span>{t("qty")} ⌄</span><span>{qty.toFixed(2)}</span>
+            <span>{t("qty")} ⌄</span><span>{fq(qty)}</span>
           </button>
           <button type="button" className="cx-op-pick" onClick={() => setSh("trade")}>
             <span>{t("time")} ⌄</span><span>{fmtDur(secs)}</span>
@@ -877,21 +899,22 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
       {/* ---- Toast (স্ক্রিনের মাঝখানে) ---- */}
       {msg.k && <div className={"cx-op-toast " + msg.s}>{msg.k}</div>}
 
-      {/* ---- Trade sheet (Transaction mode / quantity / time) ---- */}
-      <Sheet open={sh === "trade"} onClose={() => setSh("")}>
+      {/* ---- Trade sheet ---- */}
+      <Sheet open={sh === "trade"} onClose={() => setSh("")} title={sym + "/USDT"}>
         <div className="cx-op-sec">{tt("tmode", "Transaction mode")}</div>
         <div className="cx-op-row one">
           <button type="button" className="cx-op-opt on">USDT</button>
         </div>
 
         <div className="cx-op-sec t2">{t("oq")}</div>
-        <div className="cx-op-row">
+        <div className="cx-op-row four">
           {QTY.map((q) => (
-            <button key={q} type="button" className={"cx-op-opt" + (q === qty ? " on" : "")} onClick={() => pickQty(q)}>{q.toFixed(2)}</button>
+            <button key={q} type="button" className={"cx-op-opt" + (q === qty ? " on" : "")} onClick={() => pickQty(q)}>{fq(q)}</button>
           ))}
         </div>
-        <div className="cx-op-qrow">
+        <div className="cx-op-field">
           <input type="number" inputMode="decimal" value={qIn} onChange={(e) => typeQty(e.target.value)} placeholder={minQ + " - " + maxQ} />
+          <em>USDT</em>
           <button type="button" onClick={allQty}>{tt("all", "All")}</button>
         </div>
 
@@ -902,13 +925,13 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
           ))}
         </div>
 
-        <div className="cx-op-g two">
-          <span>{t("bal")} : {bal.toFixed(8)}</span>
-          <span>{t("yld")} : {yieldPct}</span>
+        <div className="cx-op-box">
+          <div><span>{t("bal")}</span><b>{bal.toFixed(8)} USDT</b></div>
+          <div><span>{t("yld")}</span><b className="g">{yieldPct}</b></div>
+          <div><span>{t("oq")}</span><b>{fq(minQ)} - {fq(maxQ)}</b></div>
         </div>
-        <div className="cx-op-g three">{t("oq")} : {Number(minQ).toFixed(2)} - {Number(maxQ).toFixed(2)}</div>
 
-        {paused && <div className="cx-op-off" style={{ marginTop: 14, borderRadius: 8 }}>{pausedMsg}</div>}
+        {paused && <div className="cx-op-off" style={{ marginTop: 14, borderRadius: 10 }}>{pausedMsg}</div>}
 
         <div className="cx-op-sbtn">
           <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => ask(DIR.long, true)}>{t("bl")}</button>
@@ -922,7 +945,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
           <div className="cx-op-cf" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="cx-op-cf-t">{cf.dir === DIR.long ? t("bl") : t("ss")}</div>
             <div className="cx-op-cf-b">
-              <p><span>{t("oq")}</span><b>{qty.toFixed(2)}</b></p>
+              <p><span>{t("oq")}</span><b>{fq(qty)} USDT</b></p>
               <p><span>{tt("otime", "Opening time")}</span><b>{fmtDur(secs)}</b></p>
             </div>
             <div className="cx-op-cf-a">
@@ -933,7 +956,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         </div>
       )}
 
-      {/* ---- Left coin drawer (ট্রেডিং পেজের মতো: কয়েন লোগো + কয়েন + প্রাইস) ---- */}
+      {/* ---- Left coin drawer ---- */}
       {sh === "coin" && (
         <div className="cx-op-dov" onClick={() => setSh("")}>
           <div className="cx-op-dr" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
