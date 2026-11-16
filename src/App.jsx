@@ -8,25 +8,32 @@ import { RTL, LangCtx, isLang, translate } from "./lib/i18n";
 import Dashboard from "./pages/Dashboard";
 import { Login, Register } from "./pages/Register_Login";
 
-// Admin Pages
-import Admin_Dashbord from "./pages/Admin_Dashbord";
-import Admin_PaymentMethod from "./pages/Admin_PaymentMethod";
-import Admin_Deposit from "./pages/Admin_Deposit";
+// Admin Pages (src/pages/admin/)
+import Admin_Login from "./pages/admin/Admin_Login";
+import Admin_Dashbord from "./pages/admin/Admin_Dashbord";
+import Admin_PaymentMethod from "./pages/admin/Admin_PaymentMethod";
+import Admin_Deposit from "./pages/admin/Admin_Deposit";
+import AdminOptions from "./pages/admin/AdminOptions";
 
 /* =========================================================
    APP ROUTING
+   Admin base path:  example.com/v2/admin-dashbord
 ========================================================= */
+
+const ADMIN_BASE = "/v2/admin-dashbord";
 
 const AUTH_PATH = {
   login: "/login",
   register: "/register",
   forgot: "/forgot",
+  adminLogin: ADMIN_BASE + "/login",
 };
 
 const ADMIN_PATH = {
-  admin: "/admin",
-  adminPaymentMethods: "/admin/payment-methods",
-  adminDeposits: "/admin/deposits",
+  admin: ADMIN_BASE,
+  adminPaymentMethods: ADMIN_BASE + "/payment-methods",
+  adminDeposits: ADMIN_BASE + "/deposits",
+  adminOptions: ADMIN_BASE + "/options",
 };
 
 const cleanPath = () =>
@@ -37,9 +44,12 @@ const pathToView = (path) => {
   if (path === "/register") return "register";
   if (path === "/forgot") return "forgot";
 
-  if (path === "/admin") return "admin";
-  if (path === "/admin/payment-methods") return "adminPaymentMethods";
-  if (path === "/admin/deposits") return "adminDeposits";
+  if (path === AUTH_PATH.adminLogin) return "adminLogin";
+
+  if (path === ADMIN_PATH.admin) return "admin";
+  if (path === ADMIN_PATH.adminPaymentMethods) return "adminPaymentMethods";
+  if (path === ADMIN_PATH.adminDeposits) return "adminDeposits";
+  if (path === ADMIN_PATH.adminOptions) return "adminOptions";
 
   return "app";
 };
@@ -49,9 +59,15 @@ const isAuthPath = (path) =>
   path === "/register" ||
   path === "/forgot";
 
+const isAdminLoginPath = (path) => path === AUTH_PATH.adminLogin;
+
+// any path under /v2/admin-dashbord (login page included)
+const isAdminArea = (path) =>
+  path === ADMIN_BASE || path.startsWith(ADMIN_BASE + "/");
+
+// protected admin pages (login page excluded)
 const isAdminPath = (path) =>
-  path === "/admin" ||
-  path.startsWith("/admin/");
+  isAdminArea(path) && !isAdminLoginPath(path);
 
 const pushUrl = (url) => {
   if (url !== window.location.pathname + window.location.search) {
@@ -166,8 +182,8 @@ export default function App() {
     // Admin pages require an authenticated admin
     if (ADMIN_PATH[target]) {
       if (!TOKEN || !isAdmin(me)) {
-        setView("login");
-        pushUrl("/login");
+        setView("adminLogin");
+        pushUrl(AUTH_PATH.adminLogin);
         setFlash("Please login with an admin account.");
         return;
       }
@@ -191,11 +207,20 @@ export default function App() {
   ===================================================== */
 
   const logout = () => {
+    // admin area থেকে logout করলে admin login পেজে যাবে
+    const fromAdmin = isAdminArea(cleanPath());
+
     setToken("");
     setMe(null);
     setFlash("");
-    setView("login");
-    replaceUrl("/login");
+
+    if (fromAdmin) {
+      setView("adminLogin");
+      replaceUrl(AUTH_PATH.adminLogin);
+    } else {
+      setView("login");
+      replaceUrl("/login");
+    }
   };
 
   useEffect(() => {
@@ -236,6 +261,7 @@ export default function App() {
     setToken(token);
 
     const isNew = view === "register";
+    const fromAdminLogin = view === "adminLogin";
 
     if (isNew) {
       await api("/user/settings", {
@@ -263,16 +289,25 @@ export default function App() {
     } catch (error) {
       setToken("");
       setMe(null);
-      setView("login");
-      replaceUrl("/login");
+      setView(fromAdminLogin ? "adminLogin" : "login");
+      replaceUrl(fromAdminLogin ? AUTH_PATH.adminLogin : "/login");
       throw error;
+    }
+
+    // Admin login page: only admin accounts are allowed
+    if (fromAdminLogin && !isAdmin(user)) {
+      setToken("");
+      setMe(null);
+      setView("adminLogin");
+      replaceUrl(AUTH_PATH.adminLogin);
+      throw new Error("Admin access only");
     }
 
     setMe(user);
 
     if (isAdmin(user)) {
       setView("admin");
-      replaceUrl("/admin");
+      replaceUrl(ADMIN_PATH.admin);
     } else {
       setView("app");
       replaceUrl("/");
@@ -286,8 +321,8 @@ export default function App() {
   useEffect(() => {
     if (!TOKEN) {
       if (isAdminPath(cleanPath())) {
-        replaceUrl("/login");
-        setView("login");
+        replaceUrl(AUTH_PATH.adminLogin);
+        setView("adminLogin");
       }
       return;
     }
@@ -308,9 +343,9 @@ export default function App() {
             replaceUrl("/");
             setView("app");
           }
-        } else if (isAuthPath(currentPath)) {
+        } else if (isAdminLoginPath(currentPath) || isAuthPath(currentPath)) {
           if (isAdmin(user)) {
-            replaceUrl("/admin");
+            replaceUrl(ADMIN_PATH.admin);
             setView("admin");
           } else {
             replaceUrl("/");
@@ -325,8 +360,8 @@ export default function App() {
         setMe(null);
 
         if (isAdminPath(cleanPath())) {
-          replaceUrl("/login");
-          setView("login");
+          replaceUrl(AUTH_PATH.adminLogin);
+          setView("adminLogin");
         } else {
           setView("app");
         }
@@ -341,9 +376,9 @@ export default function App() {
     const onPop = () => {
       const path = cleanPath();
 
-      if (TOKEN && isAuthPath(path)) {
+      if (TOKEN && (isAuthPath(path) || isAdminLoginPath(path))) {
         if (isAdmin(me)) {
-          replaceUrl("/admin");
+          replaceUrl(ADMIN_PATH.admin);
           setView("admin");
         } else {
           replaceUrl("/");
@@ -353,9 +388,14 @@ export default function App() {
       }
 
       if (isAdminPath(path)) {
-        if (!TOKEN || !isAdmin(me)) {
-          replaceUrl(TOKEN ? "/" : "/login");
-          setView(TOKEN ? "app" : "login");
+        if (!TOKEN) {
+          replaceUrl(AUTH_PATH.adminLogin);
+          setView("adminLogin");
+          return;
+        }
+        if (!isAdmin(me)) {
+          replaceUrl("/");
+          setView("app");
           return;
         }
       }
@@ -417,6 +457,16 @@ export default function App() {
           />
         )}
 
+        {view === "adminLogin" && (
+          <Admin_Login
+            onLogin={onLogin}
+            lang={lang}
+            setLang={setLang}
+            go={go}
+            flash={flash}
+          />
+        )}
+
         {view === "app" && (
           <Dashboard
             key={me ? (me.uid ?? me.email) : "guest"}
@@ -448,6 +498,14 @@ export default function App() {
 
         {view === "adminDeposits" && isAdmin(me) && (
           <Admin_Deposit
+            me={me}
+            go={go}
+            logout={logout}
+          />
+        )}
+
+        {view === "adminOptions" && isAdmin(me) && (
+          <AdminOptions
             me={me}
             go={go}
             logout={logout}
