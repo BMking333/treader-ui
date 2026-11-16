@@ -1,4 +1,3 @@
-
 import React, { useContext, useEffect, useRef, useState } from "react";
 import img1 from "../assets/Image1.png";
 import img2 from "../assets/Image2.png";
@@ -114,6 +113,20 @@ export const YIELD = 0.2;
 
 export const ASSET_COINS = ["USDT", "USDC", "ETH", "BTC"];
 export const TOPUP = 1000;
+
+/* ====================== NFT DATA ====================== */
+/* NFT কালেকশনের নমুনা ডাটা (floor = ETH-এ)। পরে backend থেকে আনতে চাইলে এই অ্যারে বদলালেই হবে */
+
+export const NFTS = [
+  { id: "cosmic-apes",  name: "Cosmic Apes",   floor: 2.35,  chg: 3.42,  items: 10000, owners: 5210, vol: 1280.5 },
+  { id: "pixel-punks",  name: "Pixel Punks",   floor: 1.18,  chg: -1.27, items: 8888,  owners: 4120, vol: 842.3 },
+  { id: "moon-cats",    name: "Moon Cats",     floor: 0.62,  chg: 5.81,  items: 6000,  owners: 3015, vol: 516.9 },
+  { id: "neon-samurai", name: "Neon Samurai",  floor: 0.94,  chg: 0.35,  items: 7777,  owners: 3688, vol: 402.7 },
+  { id: "zen-pandas",   name: "Zen Pandas",    floor: 0.41,  chg: -2.64, items: 5555,  owners: 2470, vol: 233.4 },
+  { id: "cyber-foxes",  name: "Cyber Foxes",   floor: 0.27,  chg: 1.92,  items: 9999,  owners: 4302, vol: 188.1 },
+  { id: "astro-owls",   name: "Astro Owls",    floor: 0.186, chg: -0.48, items: 4444,  owners: 1986, vol: 97.6 },
+  { id: "lava-lions",   name: "Lava Lions",    floor: 0.092, chg: 7.15,  items: 3333,  owners: 1410, vol: 54.2 },
+];
 
 /* ====================== TRANSLATION ====================== */
 
@@ -519,7 +532,8 @@ export function CSheet({ open, onClose }) {
   );
 }
 
-/* ====================== PREMIUM STYLES (Home + Market list) ====================== */
+/* ====================== PREMIUM STYLES (Home + Market list + NFT list) ====================== */
+/* সব লেখা ছোট ও প্রফেশনাল (ট্যাব "All"-এর মতো 12–13px)। সংখ্যায় tabular-nums */
 
 const HM_CSS = `
 .hm{
@@ -547,47 +561,55 @@ const HM_CSS = `
 
 /* ticker */
 .hm-tk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 12px 0}
-.hm-tk button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 4px 11px;background:var(--card);
+.hm-tk button{display:flex;flex-direction:column;align-items:center;gap:4px;padding:11px 4px 10px;background:var(--card);
   border:1px solid var(--ln);border-radius:12px;color:var(--tx);transition:transform .12s ease}
 .hm-tk button:active{transform:scale(.97)}
-.hm-tk span{font-size:12px;font-weight:500;color:var(--mu);letter-spacing:.1px}
-.hm-tk b{font-size:18px;font-weight:600;letter-spacing:-.2px;line-height:1.1;font-variant-numeric:tabular-nums}
-.hm-tk em{font-style:normal;font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+.hm-tk span{font-size:11.5px;font-weight:500;color:var(--mu);letter-spacing:.1px}
+.hm-tk b{font-size:15px;font-weight:600;letter-spacing:-.2px;line-height:1.1;font-variant-numeric:tabular-nums}
+.hm-tk em{font-style:normal;font-size:11.5px;font-weight:500;font-variant-numeric:tabular-nums}
 
 /* quick menu */
 .hm-gr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
-.hm-gr button{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 12px;min-width:0;text-align:left;
-  background:var(--card);border:1px solid var(--ln);border-radius:12px;color:var(--tx);font-size:14.5px;font-weight:500;letter-spacing:.1px;
+.hm-gr button{display:flex;align-items:center;gap:10px;min-height:52px;padding:8px 12px;min-width:0;text-align:left;
+  background:var(--card);border:1px solid var(--ln);border-radius:12px;color:var(--tx);font-size:13px;font-weight:500;letter-spacing:.1px;
   transition:transform .12s ease,background .15s ease}
 .hm-gr button:active{transform:scale(.975)}
-.hm-gr .ic{display:flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:10px;background:var(--acbg);color:var(--ac)}
+.hm-gr .ic{display:flex;align-items:center;justify-content:center;flex:none;width:32px;height:32px;border-radius:10px;background:var(--acbg);color:var(--ac)}
+.hm-gr .ic svg{width:19px;height:19px}
 .hm-gr .tx{flex:1;min-width:0;white-space:normal;overflow-wrap:break-word;line-height:1.25}
 
 /* list */
-.hm-h{margin:8px 16px 6px;font-size:18px;font-weight:600;letter-spacing:-.1px}
-.ls-th,.ls-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 72px;align-items:center;gap:8px;padding:0 16px}
-.ls-th{height:36px;font-size:12px;color:var(--mu);font-weight:500;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
+.hm-h{margin:8px 16px 6px;font-size:15px;font-weight:600;letter-spacing:-.1px}
+.ls-th,.ls-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 68px;align-items:center;gap:8px;padding:0 16px}
+.ls-th{height:32px;font-size:11.5px;color:var(--mu);font-weight:500;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
 .ls-th span:last-child{text-align:right}
-.ls-row{width:100%;height:60px;background:transparent;border:0;border-bottom:1px solid var(--ln);color:var(--tx);text-align:left;
+.ls-row{width:100%;height:56px;background:transparent;border:0;border-bottom:1px solid var(--ln);color:var(--tx);text-align:left;
   transition:background .15s ease}
 .ls-row:active{background:var(--card)}
 .ls-nm{display:flex;align-items:center;gap:10px;min-width:0}
 .ls-nm>span{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ls-nm b{font-size:15px;font-weight:600;letter-spacing:-.1px;white-space:nowrap}
-.ls-nm b small{font-size:11.5px;font-weight:400;color:var(--mu);margin-left:1px}
-.ls-nm>span>small{font-size:11.5px;color:var(--mu);font-variant-numeric:tabular-nums}
+.ls-nm b{font-size:13.5px;font-weight:600;letter-spacing:-.1px;white-space:nowrap}
+.ls-nm b small{font-size:11px;font-weight:400;color:var(--mu);margin-left:1px}
+.ls-nm>span>small{font-size:11px;color:var(--mu);font-variant-numeric:tabular-nums}
 .ls-pr{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ls-pr b{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ls-pr small{font-size:11.5px;color:var(--mu);font-variant-numeric:tabular-nums}
-.ls-pill{display:flex;align-items:center;justify-content:center;height:28px;border-radius:6px;color:#fff;font-size:12.5px;font-weight:500;
+.ls-pr b{font-size:13.5px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ls-pr small{font-size:11px;color:var(--mu);font-variant-numeric:tabular-nums}
+.ls-pill{display:flex;align-items:center;justify-content:center;height:26px;border-radius:6px;color:#fff;font-size:12px;font-weight:500;
   font-variant-numeric:tabular-nums;letter-spacing:.1px}
 
-/* market page header + tabs */
-.hm .cx-top h1{font-size:17px;font-weight:600;letter-spacing:-.1px}
-.hm .cx-tabs button{font-size:14px!important;font-weight:500;letter-spacing:.1px}
+/* NFT list */
+.nft-av{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:#fff;font-size:11.5px;font-weight:700;
+  letter-spacing:.3px;text-shadow:0 1px 2px rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.ls-row.nft{cursor:default}
+
+/* market page header + tabs — ছোট, প্রফেশনাল */
+.hm .cx-top h1{font-size:16px;font-weight:600;letter-spacing:-.1px}
+.hm .cx-tabs button{font-size:12.5px!important;font-weight:500;letter-spacing:.1px}
 .hm .cx-tabs button.on{font-weight:600}
+.hm .cx-tabs.two button{font-size:12px!important}
+.hm .cx-empty{font-size:12.5px;color:var(--mu)}
 @media(max-width:360px){
-  .hm-tk b{font-size:16px}.hm-gr button{font-size:13.5px;padding:0 10px;gap:8px}.ls-th,.ls-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 70px}
+  .hm-tk b{font-size:14px}.hm-gr button{font-size:12.5px;padding:0 10px;gap:8px}.ls-th,.ls-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 64px}
 }
 @media(prefers-reduced-motion:reduce){.hm *{transition:none!important}}
 `;
@@ -771,7 +793,7 @@ export function List({ P = {}, go, names, quote = "USDT" }) {
             <span className="ls-nm">
               <Coin
                 s={s}
-                size={names ? 36 : 38}
+                size={names ? 34 : 36}
               />
 
               {names ? (
@@ -814,6 +836,86 @@ export function List({ P = {}, go, names, quote = "USDT" }) {
               %
             </span>
           </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ====================== NFT LIST ====================== */
+/* Market পেজের NFT ট্যাবে এই তালিকা দেখায়। floor দাম ETH-এ, নিচে ≈ $ হিসাব */
+
+const nftHue = (s) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i += 1) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+};
+
+const nftInit = (name) =>
+  String(name || "?")
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+const kfmt = (n) => {
+  const v = Number(n) || 0;
+  return v >= 1e3 ? (v / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : String(v);
+};
+
+const nftFloor = (v) => (v >= 1 ? v.toFixed(2) : v.toFixed(3));
+
+export function NftList({ P = {} }) {
+  const t = useT();
+  const tt = (k, fb) => {
+    let v;
+    try { v = t(k); } catch (_) { v = k; }
+    return v && v !== k ? v : fb;
+  };
+
+  const eth = Number(P.ETH && P.ETH.price) || FALL.ETH[0];
+
+  return (
+    <div className="hm">
+      <style>{HM_CSS}</style>
+
+      <div className="ls-th">
+        <span>{tt("collection", "Collection")}</span>
+        <span>{tt("floor", "Floor price")}</span>
+        <span>{t("chg")}</span>
+      </div>
+
+      {NFTS.map((n) => {
+        const h = nftHue(n.id);
+        return (
+          <div key={n.id} className="ls-row nft">
+            <span className="ls-nm">
+              <i
+                className="nft-av"
+                style={{ background: `linear-gradient(135deg,hsl(${h} 72% 56%),hsl(${(h + 45) % 360} 78% 44%))` }}
+              >
+                {nftInit(n.name)}
+              </i>
+              <span>
+                <b>{n.name}</b>
+                <small className="num">{kfmt(n.items)} {tt("items", "items")} · {kfmt(n.owners)} {tt("owners", "owners")}</small>
+              </span>
+            </span>
+
+            <span className="ls-pr">
+              <b>{nftFloor(n.floor)} ETH</b>
+              <small>≈ $ {(n.floor * eth).toFixed(2)}</small>
+            </span>
+
+            <span
+              className="ls-pill"
+              style={{ background: n.chg >= 0 ? GREEN : RED }}
+            >
+              {n.chg >= 0 ? "+" : ""}
+              {n.chg.toFixed(2)}%
+            </span>
+          </div>
         );
       })}
     </div>
