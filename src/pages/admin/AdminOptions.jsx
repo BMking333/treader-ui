@@ -2,12 +2,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../Home";
 
-/* =========================================================
-   src/pages/admin/AdminOptions.jsx
-   Admin -> Options trading
-   Props: me, go, logout
-   API: /admin/options/*
-   ========================================================= */
+
 
 const n2 = (v) =>
   Number(v || 0).toLocaleString("en-US", {
@@ -74,6 +69,9 @@ const CSS = `
 .ao-brand small{color:#8a94a6;font-size:11px}
 .ao-user{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .ao-user span{font-size:12px;color:#6b7183;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ao-top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ao-btn.back{background:#fff;border-color:#cfd3d9;color:#26364a;font-weight:700}
+.ao-btn.back:hover{background:#eaf2fb;border-color:#1a82d6;color:#1a82d6}
 .ao-nav{display:flex;gap:8px;margin-bottom:16px;padding:6px;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow-x:auto;scrollbar-width:none}
 .ao-nav::-webkit-scrollbar{display:none}
 .ao-nav button{flex:1 0 auto;min-width:120px;height:38px;padding:0 14px;border-radius:8px;border:1px solid transparent;background:transparent;color:#5b6475;font-weight:600;font-size:13px;white-space:nowrap}
@@ -161,6 +159,7 @@ export default function AdminOptions({ me, go, logout }) {
   });
   const [pnlForm, setPnlForm] = useState({
     pnl: "",
+    adjustment: "",
     close_price: "",
     reason: "",
   });
@@ -401,7 +400,6 @@ export default function AdminOptions({ me, go, logout }) {
 
     const action = modal.action;
     const userId = modal.user.user_id;
-
     const verb = action === "add" ? "Add" : "Deduct";
 
     if (
@@ -432,12 +430,14 @@ export default function AdminOptions({ me, go, logout }) {
   };
 
   /* =========================
-     Closed PnL Adjustment
+     Closed P&L Adjustment
+     adjustment = new P&L - old P&L
      ========================= */
 
   const openPnlModal = (x) => {
     setPnlForm({
-      pnl: String(x.pnl ?? "0"),
+      pnl: "",
+      adjustment: "",
       close_price: "",
       reason: "",
     });
@@ -451,21 +451,32 @@ export default function AdminOptions({ me, go, logout }) {
   const submitPnl = () => {
     if (!modal?.trade) return;
 
-    if (pnlForm.pnl.trim() === "" || !Number.isFinite(Number(pnlForm.pnl))) {
-      setErr("Enter a valid P&L amount.");
-      return;
-    }
+    const raw = pnlForm.adjustment.trim();
+    const adjustment = Number(raw);
 
-    if (!pnlForm.reason.trim()) {
-      setErr("Reason is required.");
+    if (
+      raw === "" ||
+      !Number.isFinite(adjustment) ||
+      adjustment === 0
+    ) {
+      setErr("Enter a valid non-zero adjustment amount.");
       return;
     }
 
     const x = modal.trade;
+    const oldPnl = Number(x.pnl || 0);
+    const newPnl = oldPnl + adjustment;
+
+    if (newPnl < -Number(x.qty)) {
+      setErr("New P&L cannot be lower than negative stake.");
+      return;
+    }
+
+    const direction = adjustment > 0 ? "credit" : "debit";
 
     if (
       !window.confirm(
-        `Change trade #${x.id} P&L from ${n2(x.pnl)} to ${n2(pnlForm.pnl)} USDT?`
+        `Trade #${x.id}\nOld P&L: ${n2(oldPnl)} USDT\nAdjustment: ${adjustment > 0 ? "+" : ""}${n2(adjustment)} USDT\nNew P&L: ${n2(newPnl)} USDT\n\nWallet will be ${direction}ed by ${n2(Math.abs(adjustment))} USDT. Continue?`
       )
     ) return;
 
@@ -473,13 +484,15 @@ export default function AdminOptions({ me, go, logout }) {
       await api(`/admin/options/positions/${x.id}/adjust-pnl`, {
         method: "POST",
         body: {
-          pnl: String(pnlForm.pnl),
-          reason: pnlForm.reason.trim(),
+          adjustment: String(raw),
+          reason: pnlForm.reason.trim() || null,
         },
       });
 
       setModal(null);
-      setSuccess("Closed trade P&L updated.");
+      setSuccess(
+        `P&L adjusted: ${n2(oldPnl)} → ${n2(newPnl)} USDT. Wallet ${direction}: ${n2(Math.abs(adjustment))} USDT.`
+      );
       refresh();
     });
   };
@@ -491,6 +504,7 @@ export default function AdminOptions({ me, go, logout }) {
   const openSettlementModal = (x) => {
     setPnlForm({
       pnl: "",
+      adjustment: "",
       close_price: "",
       reason: "",
     });
@@ -594,15 +608,26 @@ export default function AdminOptions({ me, go, logout }) {
           </div>
         </div>
 
-        <div className="ao-user">
-          <span>{adminLabel}</span>
+        <div className="ao-top-actions">
           <button
             type="button"
-            className="ao-btn out"
-            onClick={() => logout && logout()}
+            className="ao-btn back"
+            onClick={() => open("admin")}
+            title="Back to Admin Dashboard"
           >
-            Logout
+            ← Back
           </button>
+
+          <div className="ao-user">
+            <span>{adminLabel}</span>
+            <button
+              type="button"
+              className="ao-btn out"
+              onClick={() => logout && logout()}
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -1228,23 +1253,43 @@ export default function AdminOptions({ me, go, logout }) {
                 <>
                   <br />
                   Current P&amp;L: <b>{n2(modal.trade.pnl)} USDT</b>
+                  <br />
+                  New P&amp;L preview:{" "}
+                  <b>
+                    {n2(Number(modal.trade.pnl || 0) + Number(pnlForm.adjustment || 0))} USDT
+                  </b>
                 </>
               )}
             </div>
 
             <div className="ao-row" style={{ marginTop: 15 }}>
-              <label className="full">
-                {modal.type === "pnl" ? "New P&L (USDT)" : "Settlement P&L (USDT)"}
-                <input
-                  type="number"
-                  step="0.00000001"
-                  value={pnlForm.pnl}
-                  onChange={(e) =>
-                    setPnlForm({ ...pnlForm, pnl: e.target.value })
-                  }
-                  placeholder="Positive = profit, negative = loss"
-                />
-              </label>
+              {modal.type === "pnl" ? (
+                <label className="full">
+                  P&amp;L Adjustment (USDT)
+                  <input
+                    type="number"
+                    step="0.00000001"
+                    value={pnlForm.adjustment}
+                    onChange={(e) =>
+                      setPnlForm({ ...pnlForm, adjustment: e.target.value })
+                    }
+                    placeholder="Example: 5 or -3.5"
+                  />
+                </label>
+              ) : (
+                <label className="full">
+                  Settlement P&amp;L (USDT)
+                  <input
+                    type="number"
+                    step="0.00000001"
+                    value={pnlForm.pnl}
+                    onChange={(e) =>
+                      setPnlForm({ ...pnlForm, pnl: e.target.value })
+                    }
+                    placeholder="Positive = profit, negative = loss"
+                  />
+                </label>
+              )}
 
               {modal.type === "settlement" && (
                 <label className="full">
@@ -1263,7 +1308,7 @@ export default function AdminOptions({ me, go, logout }) {
               )}
 
               <label className="full">
-                Reason (required)
+                Reason {modal.type === "pnl" ? "(optional)" : "(required)"}
                 <textarea
                   value={pnlForm.reason}
                   onChange={(e) =>
@@ -1276,7 +1321,7 @@ export default function AdminOptions({ me, go, logout }) {
 
             <div className="ao-note">
               {modal.type === "pnl"
-                ? "The wallet will be adjusted by the difference between the old and new P&L. If the user has insufficient available balance for a deduction, the API should reject the change."
+                ? "Positive adjustment credits the user's available USDT wallet. Negative adjustment debits the available wallet. Frozen balance is not changed. Insufficient available balance will reject the entire adjustment."
                 : "This closes the open trade. The backend calculates the payout as stake + P&L. P&L cannot be lower than the negative stake."}
             </div>
 
