@@ -2,12 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useT, api } from "./Home";
 import { NETS } from "./depsoted";
 
-/* =====================================================================
-   src/pages/withdrew.jsx — Withdraw পেজ (ন্যাচারাল প্রিমিয়াম ডিজাইন, নীল রঙ নেই, হিস্ট্রি নেই)
-   নোটিফিকেশন: স্ক্রিনের ঠিক মাঝখানে কার্ড-স্টাইল টোস্ট
-   ===================================================================== */
-
-const WFEE = { USDT: 1, USDC: 1, ETH: 0.002, BTC: 0.0002 };
+const WFEE = { USDT: 1, USDC: 1, ETH: 0.003, BTC: 0.0002 };
 const TOAST_MS = 2600;
 
 const CSS = `
@@ -22,7 +17,6 @@ const CSS = `
 .wd,.wd *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 .wd button{font-family:inherit;cursor:pointer}
 
-/* balance hero (ন্যাচারাল ডার্ক কার্ড) */
 .wd-hero{position:relative;overflow:hidden;margin:12px 0;padding:20px 20px 18px;border-radius:18px;color:#fff;text-align:center;
   background:linear-gradient(135deg,#1d222c 0%,#2a303c 100%);box-shadow:0 14px 30px -18px rgba(0,0,0,.6)}
 .wd-hero::after{content:"";position:absolute;right:-50px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
@@ -30,12 +24,10 @@ const CSS = `
 .wd-hero b{position:relative;z-index:1;display:block;margin-top:8px;font-size:24px;font-weight:700;letter-spacing:-.3px;font-variant-numeric:tabular-nums;word-break:break-all}
 .wd-hero b em{font-style:normal;font-size:13px;font-weight:600;opacity:.8;margin-inline-start:6px}
 
-/* cards */
 .wd-card{margin-bottom:12px;padding:16px;border-radius:16px;background:var(--w-card);border:1px solid var(--w-ln);box-shadow:var(--w-sh)}
 .wd-card h4{margin:0 0 10px;font-size:12.5px;font-weight:600;color:var(--w-mu);letter-spacing:.3px}
 .wd-card h4:not(:first-child){margin-top:18px}
 
-/* coin / network pills */
 .wd-pills{display:flex;flex-wrap:wrap;gap:8px}
 .wd .wd-pill{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
   min-width:68px;height:40px;padding:0 16px!important;border-radius:11px!important;
@@ -44,7 +36,6 @@ const CSS = `
 .wd .wd-pill:active{transform:scale(.97)}
 .wd .wd-pill.on{background:var(--w-ink)!important;border-color:var(--w-ink)!important;color:var(--w-inkx)!important}
 
-/* inputs */
 .wd-in{display:flex;align-items:center;gap:8px;height:50px;padding:0 8px 0 14px;border-radius:12px;background:var(--w-soft);border:1.5px solid var(--w-bd);transition:border-color .2s,box-shadow .2s}
 .wd-in:focus-within{border-color:var(--w-ink);box-shadow:none}
 .wd .wd-in input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0!important;border-radius:0!important;outline:0!important;box-shadow:none!important;
@@ -58,7 +49,6 @@ const CSS = `
   background:var(--w-card)!important;color:var(--w-tx)!important;font-size:12.5px;font-weight:700;line-height:1}
 .wd .wd-in .all:active{background:var(--w-ink)!important;color:var(--w-inkx)!important}
 
-/* summary rows */
 .wd-sum{margin-bottom:12px;padding:6px 16px;border-radius:16px;background:var(--w-card);border:1px solid var(--w-ln);box-shadow:var(--w-sh)}
 .wd-sum .r{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;font-size:13px;border-bottom:1px dashed var(--w-bd)}
 .wd-sum .r:last-child{border-bottom:0}
@@ -66,7 +56,6 @@ const CSS = `
 .wd-sum .r b{font-weight:600;text-align:end;font-variant-numeric:tabular-nums;word-break:break-all}
 .wd-sum .r.rv b{font-size:15px;font-weight:700;color:var(--w-gr)}
 
-/* submit */
 .wd .wd-go{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
   width:100%;height:52px;padding:0 20px!important;border:0!important;border-radius:14px!important;
   background:linear-gradient(135deg,#2a303c,#141b29)!important;color:#fff!important;font-size:15px;font-weight:600;letter-spacing:.3px;line-height:1;
@@ -75,7 +64,6 @@ const CSS = `
 .wd .wd-go:active{transform:scale(.985)}
 .wd .wd-go:disabled{opacity:.6}
 
-/* ===== নোটিফিকেশন: স্ক্রিনের ঠিক মাঝখানে কার্ড ===== */
 .wd-tov{position:fixed;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;padding:0 28px;
   background:rgba(8,14,26,.28);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:wdfade .18s ease}
 .wd-toast{width:100%;max-width:300px;padding:24px 22px 22px;border-radius:20px;text-align:center;background:var(--w-card);color:var(--w-tx);
@@ -94,7 +82,6 @@ const CSS = `
 @media(prefers-reduced-motion:reduce){.wd-tov,.wd-toast,.wd-toast em::after{animation:none!important}}
 `;
 
-/* coin / network বাছাইয়ের বাটন */
 function Pills({ list, v, set }) {
   return (
     <div className="wd-pills">
@@ -108,15 +95,24 @@ function Pills({ list, v, set }) {
 export default function Withdraw({ W, go }) {
   const t = useT();
   const [coin, setCoin] = useState("USDT"), [net, setNet] = useState("TRC20"), [addr, setAddr] = useState(""), [amt, setAmt] = useState(""), [busy, setBusy] = useState(false);
+  const [rules, setRules] = useState({});
   const [msg, setMsg] = useState({ k: "", ok: false, n: 0 });
   const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
   const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
-  const held = W.w[coin] || 0, fee = WFEE[coin], a = parseFloat(amt) || 0;
+  const held = W.w[coin] || 0;
+  const rule = rules[coin];
+  const fee = rule ? parseFloat(rule.fee) : (WFEE[coin] || 0);
+  const min = rule ? parseFloat(rule.min) : 0;
+  const a = parseFloat(amt) || 0;
 
-  /* টোস্ট দেখানো (একই মেসেজ আবার এলেও টাইমার নতুন করে চলে) */
   const flash = (k, ok = false) => setMsg({ k, ok, n: Date.now() });
 
-  /* অটো বন্ধ */
+  useEffect(() => {
+    let alive = true;
+    api("/withdraw/rules").then((r) => { if (alive && r) setRules(r); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     if (!msg.k) return undefined;
     const id = setTimeout(() => setMsg((m) => ({ ...m, k: "" })), TOAST_MS);
@@ -131,6 +127,7 @@ export default function Withdraw({ W, go }) {
     if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return flash("bAddr");
     if (!(a > 0)) return flash("eAmt");
     if (a <= fee) return flash("feeLow");
+    if (a < min) return flash("badAmt");
     if (a > held) return flash("iB");
     setBusy(true);
     try {
@@ -140,6 +137,7 @@ export default function Withdraw({ W, go }) {
     } catch (e) { flash(e.message, false); }
     setBusy(false);
   };
+
   return (
     <>
       <style>{CSS}</style>
@@ -176,7 +174,6 @@ export default function Withdraw({ W, go }) {
 
         <button type="button" className="wd-go" disabled={busy} onClick={submit}>{t("submit")}</button>
 
-        {/* ---- নোটিফিকেশন কার্ড (মাঝখানে) ---- */}
         {msg.k && (
           <div className="wd-tov" key={msg.n} onClick={() => setMsg((m) => ({ ...m, k: "" }))}>
             <div className={"wd-toast " + (msg.ok ? "ok" : "bad")} role="alert" onClick={(e) => e.stopPropagation()}>
