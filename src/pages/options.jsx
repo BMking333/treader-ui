@@ -9,8 +9,7 @@ const STATUS_PATH = "/options/status";
 const DIR = { long: "long", short: "short" };
 const MIN_Q = 10, MAX_Q = 100000;
 const QTY = [10, 1000, 10000, 100000];
-const DEFAULT_SECS = [20, 30, 70, 90, 180];
-const SEC_MIN = 5, SEC_MAX = 86400;
+const SECS = [10, 30, 70, 90, 180];
 
 const isLong = (d) => /long|up|buy|call|rise/i.test(String(d));
 const fq = (n) => Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
@@ -681,10 +680,17 @@ const CSS = `
 .cx-op-opt.on{border-color:var(--blue);background:#eaf4fd;color:var(--blue);box-shadow:0 0 0 3px rgba(26,130,214,.12)}
 .cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:26px;height:20px;background:linear-gradient(135deg,transparent 50%,var(--blue) 50%);color:#fff;font-size:10px;line-height:26px;text-align:right;padding-right:3px}
 
-.cx-op-field{display:flex;align-items:center;gap:8px;height:52px;margin-top:12px;padding:0 8px 0 14px;border-radius:12px;background:var(--f-card);border:1.5px solid var(--f-bd);transition:border-color .15s ease,box-shadow .15s ease}
+.cx-op-field{display:flex;align-items:center;gap:8px;height:52px;margin-top:12px;padding:0 8px 0 14px;border-radius:12px;background:var(--f-card);border:1.5px solid var(--f-bd);overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease}
 .cx-op-field:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,130,214,.14)}
 .cx-op-field input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:17px;font-weight:700;color:var(--f-tx);font-variant-numeric:tabular-nums}
 .cx-op-field input::placeholder{font-size:14px;font-weight:400;color:var(--gray)}
+.cx-op .cx-op-field input,
+.cx-op .cx-op-field input:hover,
+.cx-op .cx-op-field input:focus,
+.cx-op .cx-op-field input:focus-visible,
+.cx-op .cx-op-field input:active{outline:none!important;box-shadow:none!important;border:0!important;border-radius:0!important;background:transparent!important;-webkit-appearance:none;-moz-appearance:textfield;appearance:none}
+.cx-op .cx-op-field input::-webkit-outer-spin-button,
+.cx-op .cx-op-field input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .cx-op-field em{font-style:normal;font-size:12.5px;font-weight:700;color:var(--gray);letter-spacing:.3px;padding-right:6px}
 .cx-op-field button{height:34px;padding:0 14px;border:0;border-radius:9px;background:rgba(26,130,214,.12);color:var(--blue)!important;font-size:13px;font-weight:700;cursor:pointer}
 .cx-op-field button:active{background:var(--blue);color:#fff!important}
@@ -856,8 +862,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const isDark = domDark || dark === true;
 
   const [qty, setQty] = useState(QTY[0]);
-  const [secs, setSecs] = useState(DEFAULT_SECS[0]);
-  const [sIn, setSIn] = useState(String(DEFAULT_SECS[0]));
+  const [secs, setSecs] = useState(SECS[0]);
   const [sh, setSh] = useState("");
   const [cf, setCf] = useState(null);
   const [panel, setPanel] = useState(false);
@@ -896,10 +901,6 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     tm.current = setTimeout(() => setMsg({ k: "", s: "bad" }), 2600);
   };
 
-  const secList = st && Array.isArray(st.secs) && st.secs.length ? st.secs : DEFAULT_SECS;
-  const sMin = st && st.sec_min > 0 ? st.sec_min : SEC_MIN;
-  const sMax = st && st.sec_max > 0 ? st.sec_max : SEC_MAX;
-
   const fmtDur = (s) => {
     s = Number(s) || 0;
     if (s >= 86400 && s % 86400 === 0) return (s / 86400) + tt("dday", "d");
@@ -927,7 +928,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     if (W.guest) { W.needLogin(); return false; }
     if (paused) { flash(pausedMsg); return false; }
     if (!(qty >= minQ && qty <= maxQ)) { flash(t("badQ")); return false; }
-    if (!(Number.isInteger(secs) && secs >= sMin && secs <= sMax)) { flash(tt("badSec", "Invalid time")); return false; }
+    if (!SECS.includes(secs)) { flash(tt("badSec", "Invalid time")); return false; }
     if (withBal && bal < qty) { flash(t("iB")); return false; }
     return true;
   };
@@ -973,13 +974,6 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     const v = Math.min(bal, maxQ);
     setQty(v);
     setQIn(String(v));
-  };
-
-  const pickSec = (s) => { setSecs(s); setSIn(String(s)); };
-  const typeSec = (v) => {
-    setSIn(v);
-    const n = parseInt(v, 10);
-    setSecs(isNaN(n) ? 0 : n);
   };
 
   const left = (end) => {
@@ -1063,13 +1057,9 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
 
         <div className="cx-op-sec t2">{tt("otime", "Opening time")}</div>
         <div className="cx-op-row six">
-          {secList.map((s) => (
-            <button key={s} type="button" className={"cx-op-opt" + (s === secs ? " on" : "")} onClick={() => pickSec(s)}>{fmtDur(s)}</button>
+          {SECS.map((s) => (
+            <button key={s} type="button" className={"cx-op-opt" + (s === secs ? " on" : "")} onClick={() => setSecs(s)}>{fmtDur(s)}</button>
           ))}
-        </div>
-        <div className="cx-op-field">
-          <input type="number" inputMode="numeric" value={sIn} onChange={(e) => typeSec(e.target.value)} placeholder={sMin + " - " + sMax} />
-          <em>{tt("secs", "SEC")}</em>
         </div>
 
         <div className="cx-op-box">
