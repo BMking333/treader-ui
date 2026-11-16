@@ -499,9 +499,14 @@ const CSS = `
 .cx-op-go.up{background:var(--grn)}
 .cx-op-go.dn{background:var(--red)}
 .cx-op-go:disabled{opacity:.6}
-.cx-op-toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);z-index:500;max-width:90%;padding:10px 16px;border-radius:8px;font-size:14px;background:#e8f2fc;color:#1a6fb8;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+
+/* toast: স্ক্রিনের ঠিক মাঝখানে */
+.cx-op-toast{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:600;width:max-content;max-width:calc(100% - 48px);
+  padding:13px 22px;border-radius:14px;font-size:14.5px;font-weight:500;line-height:1.4;text-align:center;pointer-events:none;
+  background:#e8f2fc;color:#1a6fb8;box-shadow:0 14px 40px -12px rgba(0,0,0,.45);animation:cxtoast .2s cubic-bezier(.2,.8,.2,1)}
 .cx-op-toast.bad{background:#fdecee;color:#c8323f}
 .cx-op-toast.ok{background:#e3f7ee;color:#0a8a5f}
+@keyframes cxtoast{from{transform:translate(-50%,-46%) scale(.94);opacity:0}to{transform:translate(-50%,-50%) scale(1);opacity:1}}
 
 /* sheets */
 .cx-op-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
@@ -542,18 +547,25 @@ const CSS = `
 .cx-op-cf-a button+button{border-left:1px solid #dfe3e9}
 .cx-op-cf-a button.ok{font-weight:600;color:var(--blue)!important}
 
-/* left coin drawer */
-.cx-op-dov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.62)}
-.cx-op-dr{position:absolute;left:0;top:0;bottom:0;width:70%;max-width:380px;background:#fff;overflow:auto;animation:cxdr .2s ease-out}
-@keyframes cxdr{from{transform:translateX(-100%)}to{transform:none}}
-.cx-op-dr h2{margin:0;padding:52px 16px 0;font-size:22px;font-weight:400}
-.cx-op-dr .cur{padding:32px 16px 24px;font-size:22px;font-weight:700;color:var(--blue);border-bottom:1px solid #eef0f3}
-.cx-op-coin{display:flex;align-items:center;justify-content:space-between;width:calc(100% - 32px);margin:0 16px;height:48px;padding:0;border:0;border-bottom:1px solid #d9dde3;background:none;font-size:17px;cursor:pointer;text-align:start}
-.cx-op-coin b{font-weight:700}
-.cx-op-coin b small{font-weight:400;color:var(--gray);font-size:14px}
-.cx-op-coin span{font-size:17px}
-.cx-op-coin.on b{color:var(--blue)}
-.cx-op-coin-wrap{padding-bottom:20px}
+/* left coin drawer: কয়েন লোগো + ছোট নাম/প্রাইস, প্রিমিয়াম লুক */
+.cx-op-dov{position:fixed;inset:0;z-index:200;background:rgba(8,14,26,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:cxdf .18s ease}
+.cx-op-dr{position:absolute;left:0;top:0;bottom:0;width:min(76%,290px);background:#fff;color:#1b2433;display:flex;flex-direction:column;
+  border-radius:0 18px 18px 0;box-shadow:12px 0 40px -18px rgba(0,0,0,.55);animation:cxdr .26s cubic-bezier(.2,.8,.2,1);padding-top:env(safe-area-inset-top,0px)}
+@keyframes cxdr{from{transform:translateX(-30px);opacity:.6}to{transform:none;opacity:1}}
+@keyframes cxdf{from{opacity:0}to{opacity:1}}
+.cx-op-drh{padding:22px 18px 12px;flex:none}
+.cx-op-drh h2{margin:0;font-size:18px;font-weight:700;letter-spacing:-.2px;line-height:1.2}
+.cx-op-drh span{display:inline-flex;align-items:center;margin-top:10px;padding:4px 12px;border-radius:999px;background:rgba(26,130,214,.1);color:#1a82d6;font-size:12.5px;font-weight:600;letter-spacing:.3px}
+.cx-op-coin-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:2px 12px max(16px,env(safe-area-inset-bottom,0px))}
+.cx-op-coin{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:50px;padding:0 6px;border:0;border-bottom:1px solid #edf0f4;background:none;cursor:pointer;text-align:start;
+  transition:background .15s ease}
+.cx-op-coin:last-child{border-bottom:0}
+.cx-op-coin:active{background:#f3f6fa;border-radius:10px}
+.cx-op-cn{display:flex;align-items:center;gap:9px;min-width:0}
+.cx-op-cn b{font-size:13.5px;font-weight:600;white-space:nowrap}
+.cx-op-cn b small{font-size:10.5px;font-weight:500;color:var(--gray);margin-left:1px}
+.cx-op-cp{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cx-op-coin.on .cx-op-cn b{color:var(--blue)}
 
 /* positions panel */
 .cx-op-pn{position:fixed;inset:0;z-index:150;background:#fff;display:flex;flex-direction:column}
@@ -596,8 +608,9 @@ const CSS = `
   .cx-op-sh{border-radius:16px}
   .cx-op-pn{left:auto;width:420px;border-left:1px solid var(--bd)}
 }
+@media(prefers-reduced-motion:reduce){.cx-op-toast,.cx-op-dr,.cx-op-dov,.cx-op-sh,.cx-op-cf{animation:none!important}}
 
-/* ================= NIGHT MODE (dark = true → .cx-op.dk) ================= */
+/* ================= NIGHT MODE (backend dark = true → .cx-op.dk) ================= */
 .cx-op.dk{--bd:#243148;--gray:#8d98ad;background:#0d1626;color:#e8ecf3}
 .cx-op.dk .cx-op-top{background:#0d1626;border-bottom-color:#243148}
 .cx-op.dk .cx-op-info{background:#0d1626}
@@ -615,10 +628,16 @@ const CSS = `
 .cx-op.dk .cx-chart-legend .box::after{background:#9aa6bb}
 .cx-op.dk .cx-chart-attribution{color:rgba(170,179,197,.5)}
 .cx-op.dk .cx-op-bar{background:#0d1626;border-top-color:#243148}
-.cx-op.dk .cx-op-toast{background:#17304f;color:#8fc4ff}
+.cx-op.dk .cx-op-toast{background:#17304f;color:#8fc4ff;box-shadow:0 14px 40px -12px rgba(0,0,0,.8)}
 .cx-op.dk .cx-op-toast.bad{background:#3b1a20;color:#ff8a95}
 .cx-op.dk .cx-op-toast.ok{background:#0f3a2c;color:#4be0a8}
-.cx-op.dk .cx-op-sh,.cx-op.dk .cx-op-dr{background:#17263d;color:#e8ecf3}
+.cx-op.dk .cx-op-sh{background:#17263d;color:#e8ecf3}
+.cx-op.dk .cx-op-dr{background:#101e34;color:#e9eef6;box-shadow:12px 0 40px -18px rgba(0,0,0,.9)}
+.cx-op.dk .cx-op-coin{border-bottom-color:#1f2f4a}
+.cx-op.dk .cx-op-coin:active{background:#0b1626}
+.cx-op.dk .cx-op-cn b small{color:#8a97ad}
+.cx-op.dk .cx-op-coin.on .cx-op-cn b{color:#6cb6f5}
+.cx-op.dk .cx-op-drh span{background:rgba(74,163,240,.14);color:#6cb6f5}
 .cx-op.dk .cx-op-cf{background:#12203a;color:#e8ecf3}
 .cx-op.dk .cx-op-cf-t,.cx-op.dk .cx-op-cf-b{border-bottom-color:#2c3c58}
 .cx-op.dk .cx-op-cf-a button+button{border-left-color:#2c3c58}
@@ -627,8 +646,6 @@ const CSS = `
 .cx-op.dk .cx-op-opt.on{border-color:var(--blue)}
 .cx-op.dk .cx-op-qrow{border-bottom-color:#3a4a66}
 .cx-op.dk .cx-op-qrow input{color:#e8ecf3}
-.cx-op.dk .cx-op-dr .cur{border-bottom-color:#243148}
-.cx-op.dk .cx-op-coin{border-bottom-color:#2a3a56}
 .cx-op.dk .cx-op-pn{background:#0d1626}
 .cx-op.dk .cx-op-tabs{background:#0d1626}
 .cx-op.dk .cx-op-tabs button.on{color:#fff!important}
@@ -636,7 +653,7 @@ const CSS = `
 .cx-op.dk .cx-op-card{background:#17263d;border-color:#243148}
 `;
 
-export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark = false }) {
+export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark }) {
   const t = useT();
   /* translate with fallback when the key does not exist */
   const tt = (k, fb) => {
@@ -644,6 +661,21 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
     try { v = t(k); } catch (_) { v = k; }
     return v && v !== k ? v : fb;
   };
+
+  /* নাইট মোড: ব্যাকেন্ডের সেটিং App-এর .cx.dark ক্লাসে সিঙ্ক হয় — সেটাই অনুসরণ করে।
+     ব্যাকেন্ডে নাইট মোড অফ থাকলে ন্যাচারাল (লাইট) থাকবে */
+  const rootRef = useRef(null);
+  const [domDark, setDomDark] = useState(false);
+  useEffect(() => {
+    const el = rootRef.current && rootRef.current.closest(".cx");
+    if (!el) return undefined;
+    const sync = () => setDomDark(el.classList.contains("dark"));
+    sync();
+    const mo = new MutationObserver(sync);
+    mo.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => mo.disconnect();
+  }, []);
+  const isDark = domDark || dark === true;
 
   const [qty, setQty] = useState(QTY[0]);
   const [secs, setSecs] = useState(DEFAULT_SECS[0]);
@@ -684,7 +716,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const flash = (k, s = "bad") => {
     setMsg({ k, s });
     clearTimeout(tm.current);
-    tm.current = setTimeout(() => setMsg({ k: "", s: "bad" }), 3000);
+    tm.current = setTimeout(() => setMsg({ k: "", s: "bad" }), 2600);
   };
 
   /* সময়ের তালিকা: server থেকে, না এলে ডিফল্ট (30s, 5m, 10m, 30m, 1h, 1d) */
@@ -789,7 +821,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const yieldPct = Math.round(yld * 100) + "%";
 
   return (
-    <div className={"cx-op" + (dark ? " dk" : "")}>
+    <div className={"cx-op" + (isDark ? " dk" : "")} ref={rootRef}>
       <style>{CSS}</style>
 
       {/* ---- Header ---- */}
@@ -821,7 +853,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
       {/* ---- Chart + trade bar ---- */}
       <div className="cx-op-body">
         <div className="cx-op-chart">
-          <Chart sym={sym} tt={tt} dark={dark} />
+          <Chart sym={sym} tt={tt} dark={isDark} />
         </div>
 
         <div className="cx-op-bar">
@@ -836,6 +868,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         </div>
       </div>
 
+      {/* ---- Toast (স্ক্রিনের মাঝখানে) ---- */}
       {msg.k && <div className={"cx-op-toast " + msg.s}>{msg.k}</div>}
 
       {/* ---- Trade sheet (Transaction mode / quantity / time) ---- */}
@@ -894,19 +927,21 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
         </div>
       )}
 
-      {/* ---- Left coin drawer ---- */}
+      {/* ---- Left coin drawer (ট্রেডিং পেজের মতো: কয়েন লোগো + কয়েন + প্রাইস) ---- */}
       {sh === "coin" && (
         <div className="cx-op-dov" onClick={() => setSh("")}>
-          <div className="cx-op-dr" onClick={(e) => e.stopPropagation()}>
-            <h2>{tt("spot", "Spot trading")}</h2>
-            <div className="cur">USDT</div>
+          <div className="cx-op-dr" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cx-op-drh">
+              <h2>{tt("spot", "Spot trading")}</h2>
+              <span>USDT</span>
+            </div>
             <div className="cx-op-coin-wrap">
               {COINS.map((c) => {
                 const pc = P && P[c] ? P[c] : null;
                 return (
                   <button key={c} type="button" className={"cx-op-coin" + (c === sym ? " on" : "")} onClick={() => { setSym(c); setSh(""); }}>
-                    <b>{c}<small>/USDT</small></b>
-                    {pc && <span style={{ color: pc.chg >= 0 ? CUP : CDN }}>{fmt(pc.price)}</span>}
+                    <span className="cx-op-cn"><Coin s={c} size={24} /><b>{c}<small>/USDT</small></b></span>
+                    {pc && <span className="cx-op-cp" style={{ color: pc.chg >= 0 ? CUP : CDN }}>{fmt(pc.price)}</span>}
                   </button>
                 );
               })}
@@ -959,4 +994,4 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
       )}
     </div>
   );
-    }
+}
