@@ -471,7 +471,7 @@ const CSS = `
 .cx-chart-status{margin-left:auto;align-self:center;padding:0 8px;color:var(--gray);font-size:10px;white-space:nowrap}
 .cx-pop{position:absolute;top:100%;left:0;z-index:12;display:flex;flex-wrap:wrap;gap:4px;width:max-content;max-width:100%;padding:8px;background:#fff;border:1px solid #d6dae0;border-radius:6px;box-shadow:0 6px 18px rgba(0,0,0,.14)}
 .cx-pop.type{left:52px}
-.cx-pop button{min-width:46px;height:34px;padding:0 12px;border:1px solid #e1e4e9;border-radius:6px;background:#fff;font-size:14px;cursor:pointer}
+.cx-pop button{display:flex;align-items:center;justify-content:center;text-align:center;min-width:46px;height:34px;padding:0 12px;border:1px solid #e1e4e9;border-radius:6px;background:#fff;font-size:14px;cursor:pointer}
 .cx-pop button.on{border-color:var(--blue);background:#eaf4fd;color:var(--blue)}
 
 /* chart area */
@@ -493,9 +493,10 @@ const CSS = `
 
 /* Trade bar: fixed ABOVE the bottom navigation */
 .cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.25fr 1.25fr;gap:10px;align-items:center;padding:6px 12px;height:var(--cx-bar-h);background:#fff;border-top:1px solid #e4e7ec}
-.cx-op-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:15px;background:none;border:0;cursor:pointer;line-height:1.35}
-.cx-op-pick span{font-size:16px}
-.cx-op-go{height:54px;border-radius:10px;border:0;font-size:16px;line-height:1.15;cursor:pointer;color:#fff!important;padding:0 6px}
+.cx-op-pick{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:13.5px;background:none;border:0;cursor:pointer;line-height:1.4}
+.cx-op-pick span{font-size:14.5px;text-align:center}
+.cx-op-go{display:flex;align-items:center;justify-content:center;text-align:center;height:50px;border-radius:12px;border:0;font-size:15px;font-weight:600;letter-spacing:.2px;line-height:1.15;cursor:pointer;color:#fff!important;padding:0 6px;box-shadow:0 8px 18px -10px rgba(0,0,0,.55);transition:transform .12s ease,filter .15s ease}
+.cx-op-go:active{transform:scale(.97);filter:brightness(.94)}
 .cx-op-go.up{background:var(--grn)}
 .cx-op-go.dn{background:var(--red)}
 .cx-op-go:disabled{opacity:.6}
@@ -512,40 +513,43 @@ const CSS = `
 .cx-op-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
 .cx-op-sh{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:#fff;border-radius:20px 20px 0 0;padding:22px 20px calc(24px + env(safe-area-inset-bottom,0px));animation:cxup .18s ease-out}
 @keyframes cxup{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
-.cx-op-sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:18px}
+.cx-op-sh-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:16px}
 .cx-op-sh-h button{background:none;border:0;font-size:18px;cursor:pointer}
-.cx-op-sec{margin:6px 0 12px;font-size:19px;color:#222}
+.cx-op-sec{margin:6px 0 12px;font-size:14.5px;font-weight:500;color:#2a3342;letter-spacing:.1px}
 .cx-op-sec.t2{margin-top:20px}
 .cx-op-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .cx-op-row{display:flex;gap:10px}
 .cx-op-row>button{flex:1}
 .cx-op-row.one>button{flex:0 0 31%}
 .cx-op-row.six{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.cx-op-opt{position:relative;height:44px;border-radius:2px;border:1px solid #cfd3d9;background:#fff;font-size:17px;cursor:pointer;overflow:hidden;padding:0 2px}
-.cx-op-opt.on{border-color:var(--blue)}
+.cx-op-opt{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;height:42px;border-radius:9px;border:1px solid #dde1e8;background:#f7f8fa;font-size:14.5px;font-weight:500;cursor:pointer;overflow:hidden;padding:0 4px;white-space:nowrap;transition:border-color .15s ease,background .15s ease}
+.cx-op-opt.on{border-color:var(--blue);background:#eef6fd;color:var(--blue)}
 .cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:30px;height:24px;background:linear-gradient(135deg,transparent 50%,#4a86e8 50%);color:#fff;font-size:11px;line-height:30px;text-align:right;padding-right:4px}
 .cx-op-qrow{display:flex;align-items:center;gap:10px;margin:22px 10px 0 12px;border-bottom:1px solid #c9ced6}
-.cx-op-qrow input{flex:1;min-width:0;height:48px;border:0;outline:0;background:none;font-size:20px;color:#222}
-.cx-op-qrow button{background:none;border:0;color:var(--blue)!important;font-size:19px;cursor:pointer;padding:0 8px}
-.cx-op-g{color:var(--grn);font-size:19px;line-height:1.5}
-.cx-op-g.two{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:22px}
-.cx-op-g.three{margin-top:10px}
-.cx-op-sbtn{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:22px;padding:0 14px}
-.cx-op-sbtn .cx-op-go{height:62px;font-size:19px;border-radius:12px}
+.cx-op-qrow input{flex:1;min-width:0;height:46px;border:0;outline:0;background:none;font-size:16px;font-weight:500;color:#222}
+.cx-op-qrow button{display:flex;align-items:center;justify-content:center;background:none;border:0;color:var(--blue)!important;font-size:14.5px;font-weight:600;cursor:pointer;padding:0 8px}
+.cx-op-g{color:var(--grn);font-size:14px;font-weight:500;line-height:1.6}
+.cx-op-g.two{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:20px}
+.cx-op-g.three{margin-top:4px}
+.cx-op-sbtn{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:20px;padding:0 6px}
+.cx-op-sbtn .cx-op-go{height:52px;font-size:15.5px;border-radius:12px}
 .cx-op-hint{margin-top:8px;font-size:12px;color:var(--gray)}
 
 /* confirm dialog (Buy Long / Sell Short) */
 .cx-op-cfo{position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:0 20px}
-.cx-op-cf{width:100%;max-width:420px;background:#fff;color:#1a1a1a;border-radius:20px;overflow:hidden;animation:cxpop .15s ease-out}
+.cx-op-cf{width:100%;max-width:340px;background:#fff;color:#1a1a1a;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px -20px rgba(0,0,0,.6);animation:cxpop .15s ease-out}
 @keyframes cxpop{from{transform:scale(.92);opacity:.4}to{transform:none;opacity:1}}
-.cx-op-cf-t{padding:22px 16px 18px;text-align:center;font-size:21px;font-weight:700;border-bottom:1px solid #dfe3e9}
-.cx-op-cf-b{padding:18px 26px 34px;font-size:21px;line-height:1.5;border-bottom:1px solid #dfe3e9}
-.cx-op-cf-b p{margin:0 0 14px}
+.cx-op-cf-t{padding:17px 16px 14px;text-align:center;font-size:16px;font-weight:600;letter-spacing:.2px;border-bottom:1px solid #e4e8ee}
+.cx-op-cf-b{padding:16px 22px 20px;font-size:14px;line-height:1.5;border-bottom:1px solid #e4e8ee}
+.cx-op-cf-b p{margin:0 0 10px;display:flex;justify-content:space-between;gap:12px}
+.cx-op-cf-b p b{font-weight:600;font-variant-numeric:tabular-nums}
 .cx-op-cf-b p:last-child{margin-bottom:0}
 .cx-op-cf-a{display:grid;grid-template-columns:1fr 1fr}
-.cx-op-cf-a button{height:68px;background:none;border:0;font-size:21px;cursor:pointer}
-.cx-op-cf-a button+button{border-left:1px solid #dfe3e9}
-.cx-op-cf-a button.ok{font-weight:600;color:var(--blue)!important}
+.cx-op-cf-a button{display:flex;align-items:center;justify-content:center;text-align:center;height:50px;padding:0;background:none;border:0;font-size:14px;font-weight:400;letter-spacing:.2px;color:#6b7385!important;cursor:pointer;transition:background .15s ease}
+.cx-op-cf-a button:active{background:rgba(0,0,0,.04)}
+.cx-op-cf-a button+button{border-left:1px solid #e4e8ee}
+.cx-op-cf-a button.ok{font-weight:500;color:var(--blue)!important}
+.cx-op-cf-a button:disabled{opacity:.5}
 
 /* left coin drawer: কয়েন লোগো + ছোট নাম/প্রাইস, প্রিমিয়াম লুক */
 .cx-op-dov{position:fixed;inset:0;z-index:200;background:rgba(8,14,26,.5);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:cxdf .18s ease}
@@ -570,7 +574,7 @@ const CSS = `
 /* positions panel */
 .cx-op-pn{position:fixed;inset:0;z-index:150;background:#fff;display:flex;flex-direction:column}
 .cx-op-tabs{display:flex;border-bottom:1px solid var(--bd);background:#fff;flex:none}
-.cx-op-tabs button{flex:1;height:46px;background:none;border:0;border-bottom:2px solid transparent;font-size:15px;cursor:pointer;color:var(--gray)!important}
+.cx-op-tabs button{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;height:46px;background:none;border:0;border-bottom:2px solid transparent;font-size:14px;cursor:pointer;color:var(--gray)!important}
 .cx-op-tabs button.on{color:#111!important;border-bottom-color:var(--blue)}
 .cx-op-list{flex:1;overflow:auto;padding:12px 14px;background:#f4f5f7}
 .cx-op-card{background:#fff;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px}
@@ -592,9 +596,9 @@ const CSS = `
 @media(max-width:380px){
   .cx-tb-cell{padding:0 10px}
   .cx-chart-status{display:none}
-  .cx-op-sbtn{gap:14px;padding:0}
-  .cx-op-sec,.cx-op-g{font-size:16px}
-  .cx-op-cf-t,.cx-op-cf-b,.cx-op-cf-a button{font-size:18px}
+  .cx-op-sbtn{gap:12px;padding:0}
+  .cx-op-sec,.cx-op-g{font-size:13.5px}
+  .cx-op-opt{font-size:13.5px}
 }
 
 /* PC */
@@ -640,10 +644,13 @@ const CSS = `
 .cx-op.dk .cx-op-drh span{background:rgba(74,163,240,.14);color:#6cb6f5}
 .cx-op.dk .cx-op-cf{background:#12203a;color:#e8ecf3}
 .cx-op.dk .cx-op-cf-t,.cx-op.dk .cx-op-cf-b{border-bottom-color:#2c3c58}
+.cx-op.dk .cx-op-cf-a button{color:#9aa6bb!important}
+.cx-op.dk .cx-op-cf-a button.ok{color:#4aa3f0!important}
+.cx-op.dk .cx-op-cf-a button:active{background:rgba(255,255,255,.05)}
 .cx-op.dk .cx-op-cf-a button+button{border-left-color:#2c3c58}
-.cx-op.dk .cx-op-sec{color:#e8ecf3}
-.cx-op.dk .cx-op-opt{background:#101c30;border-color:#3a4a66;color:#e8ecf3}
-.cx-op.dk .cx-op-opt.on{border-color:var(--blue)}
+.cx-op.dk .cx-op-sec{color:#dfe5f0}
+.cx-op.dk .cx-op-opt{background:#101c30;border-color:#2c3c58;color:#e8ecf3}
+.cx-op.dk .cx-op-opt.on{border-color:var(--blue);background:#142a47;color:#6cb6f5}
 .cx-op.dk .cx-op-qrow{border-bottom-color:#3a4a66}
 .cx-op.dk .cx-op-qrow input{color:#e8ecf3}
 .cx-op.dk .cx-op-pn{background:#0d1626}
@@ -752,11 +759,12 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   const yld = st && st.yield > 0 ? st.yield : YIELD;
 
   /* ট্রেড খোলার আগের যাচাই */
-  const check = () => {
+  /* withBal=false: কনফার্ম কার্ড খোলার আগে ব্যালেন্স চেক হয় না; Confirm চাপলে (open → check()) তখন চেক হয় */
+  const check = (withBal = true) => {
     if (W.guest) { W.needLogin(); return false; }
     if (paused) { flash(pausedMsg); return false; }
     if (!(qty >= minQ && qty <= maxQ)) { flash(t("badQ")); return false; }
-    if (bal < qty) { flash(t("iB")); return false; }
+    if (withBal && bal < qty) { flash(t("iB")); return false; }
     return true;
   };
 
@@ -780,7 +788,7 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
   /* Buy Long / Sell Short চাপলে আগে কনফার্ম কার্ড; Confirm চাপলে তবেই ট্রেড */
   const ask = (dir, fromSheet = false) => {
     if (busy) return;
-    if (!check()) return;
+    if (!check(false)) return;
     setCf({ dir, fromSheet });
   };
 
@@ -916,8 +924,8 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
           <div className="cx-op-cf" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="cx-op-cf-t">{cf.dir === DIR.long ? t("bl") : t("ss")}</div>
             <div className="cx-op-cf-b">
-              <p>{t("oq")}: {qty.toFixed(2)}</p>
-              <p>{tt("otime", "Opening time")}: {fmtDur(secs)}</p>
+              <p><span>{t("oq")}</span><b>{qty.toFixed(2)}</b></p>
+              <p><span>{tt("otime", "Opening time")}</span><b>{fmtDur(secs)}</b></p>
             </div>
             <div className="cx-op-cf-a">
               <button type="button" onClick={() => setCf(null)}>{tt("cancel", "Cancel")}</button>
