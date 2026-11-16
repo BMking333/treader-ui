@@ -1,12 +1,6 @@
 import React, { useState } from "react";
 import { useT, api } from "./Home";
 
-/* =====================================================================
-   src/pages/ChangePassword.jsx — পাসওয়ার্ড পরিবর্তন
-   Props: go, notify, me
-   Backend: POST /user/change-password { old_password, new_password }
-   ===================================================================== */
-
 const CSS = `
 .cx-cp{padding:16px 18px 32px;max-width:480px;margin:0 auto}
 .cx-cp-h{display:flex;align-items:center;gap:10px;margin-bottom:20px}
@@ -15,7 +9,7 @@ const CSS = `
 .cx-cp-f{margin-bottom:14px}
 .cx-cp-f label{display:block;font-size:12px;font-weight:500;opacity:.75;margin-bottom:6px}
 .cx-cp-w{position:relative}
-.cx-cp-w input{width:100%;box-sizing:border-box;padding:12px 56px 12px 12px;font-size:14px;color:inherit;
+.cx-cp-w input{width:100%;box-sizing:border-box;padding:12px 64px 12px 12px;font-size:14px;color:inherit;
   background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.25);border-radius:8px;outline:none;transition:border-color .15s}
 .cx-cp-w input:focus{border-color:#4b8bf5}
 .cx-cp-w button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;
@@ -29,10 +23,6 @@ const CSS = `
 
 export default function ChangePassword({ go, notify, me }) {
   const t = useT();
-  const tx = (key, fb) => {
-    const v = t(key);
-    return v && v !== key ? v : fb;
-  };
 
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
@@ -48,10 +38,10 @@ export default function ChangePassword({ go, notify, me }) {
     if (busy) return;
     setErr("");
 
-    if (!oldPw || !newPw || !conf) return setErr("সব ঘর পূরণ করুন");
-    if (newPw.length < 6) return setErr("নতুন পাসওয়ার্ড কমপক্ষে ৬ অক্ষরের হতে হবে");
-    if (newPw === oldPw) return setErr("নতুন পাসওয়ার্ড পুরনোটির মতো হতে পারবে না");
-    if (newPw !== conf) return setErr("নতুন পাসওয়ার্ড দুটি মিলছে না");
+    if (!oldPw || !newPw || !conf) return setErr(t("cpFill"));
+    if (newPw.length < 6) return setErr(t("cpMin"));
+    if (newPw === oldPw) return setErr(t("cpSame"));
+    if (newPw !== conf) return setErr(t("cpMatch"));
 
     setBusy(true);
     try {
@@ -59,15 +49,19 @@ export default function ChangePassword({ go, notify, me }) {
         method: "POST",
         body: JSON.stringify({ old_password: oldPw, new_password: newPw }),
       });
-      notify(tx("pwChanged", "পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে"));
-      setOldPw(""); setNewPw(""); setConf("");
+      notify(t("cpOk"));
+      setOldPw("");
+      setNewPw("");
+      setConf("");
       go("home");
     } catch (ex) {
-      const msg =
+      const raw =
         (ex && (ex.detail || ex.message)) ||
         (typeof ex === "string" ? ex : "") ||
-        "পাসওয়ার্ড পরিবর্তন করা যায়নি";
-      setErr(String(msg));
+        "";
+      const key = String(raw);
+      const tr = key ? t(key) : "";
+      setErr(tr && tr !== key ? tr : key || t("cpFail"));
     } finally {
       setBusy(false);
     }
@@ -85,7 +79,7 @@ export default function ChangePassword({ go, notify, me }) {
           autoComplete={id === "o" ? "current-password" : "new-password"}
         />
         <button type="button" onClick={() => toggle(id)}>
-          {show[id] ? "লুকান" : "দেখান"}
+          {show[id] ? t("cpHide") : t("cpShow")}
         </button>
       </div>
     </div>
@@ -97,19 +91,19 @@ export default function ChangePassword({ go, notify, me }) {
 
       <div className="cx-cp-h">
         <button className="cx-cp-back" onClick={() => go("home")} aria-label="back">‹</button>
-        <h2>{tx("chpwd", "পাসওয়ার্ড পরিবর্তন")}</h2>
+        <h2>{t("chpwd")}</h2>
       </div>
 
       <form onSubmit={submit}>
-        {Field({ id: "o", label: "বর্তমান পাসওয়ার্ড", value: oldPw, set: setOldPw })}
-        {Field({ id: "n", label: "নতুন পাসওয়ার্ড", value: newPw, set: setNewPw })}
-        <p className="cx-cp-hint">কমপক্ষে ৬ অক্ষর</p>
-        {Field({ id: "c", label: "নতুন পাসওয়ার্ড নিশ্চিত করুন", value: conf, set: setConf })}
+        {Field({ id: "o", label: t("cpOld"), value: oldPw, set: setOldPw })}
+        {Field({ id: "n", label: t("cpNew"), value: newPw, set: setNewPw })}
+        <p className="cx-cp-hint">{t("cpHint")}</p>
+        {Field({ id: "c", label: t("cpConf"), value: conf, set: setConf })}
 
         {err && <p className="cx-cp-err">{err}</p>}
 
         <button type="submit" className="cx-cp-btn" disabled={busy}>
-          {busy ? "অপেক্ষা করুন..." : tx("confirm", "নিশ্চিত করুন")}
+          {busy ? t("wait2") : t("confirm")}
         </button>
       </form>
     </div>
