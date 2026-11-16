@@ -1,4 +1,3 @@
-
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   api,
@@ -10,9 +9,12 @@ import {
 } from "../Home";
 
 /* =========================================================
-   src/pages/Admin_Dashbord.jsx
+   src/pages/admin/Admin_Dashbord.jsx
    Admin Dashboard
    API: GET /admin/deposits
+   Navigation targets (App.jsx go()):
+     admin, adminDeposits, adminWithdrawals,
+     adminPaymentMethods, adminOptions
    ========================================================= */
 
 const CSS = `
@@ -26,7 +28,7 @@ const CSS = `
 .ad-container {max-width:1450px;margin:auto}
 .ad-top {
   display:flex;align-items:center;justify-content:space-between;
-  gap:15px;margin-bottom:28px;flex-wrap:wrap;
+  gap:15px;margin-bottom:18px;flex-wrap:wrap;
 }
 .ad-brand {display:flex;align-items:center;gap:12px}
 .ad-brand-icon {
@@ -49,6 +51,27 @@ const CSS = `
 .ad-btn.primary {background:#1f7acb;border-color:#1f7acb;color:#fff}
 .ad-btn.primary:hover {background:#1768ad}
 .ad-btn.danger {color:#f6465d;border-color:#63313a}
+
+/* ---------- Top navigation (all admin pages) ---------- */
+.ad-nav {
+  display:flex;gap:8px;margin-bottom:26px;padding:8px;
+  background:#151a22;border:1px solid #252b35;border-radius:13px;
+  overflow-x:auto;scrollbar-width:none;
+}
+.ad-nav::-webkit-scrollbar {display:none}
+.ad-nav-btn {
+  flex:1 0 auto;min-width:140px;
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px 16px;border-radius:9px;border:1px solid transparent;
+  background:transparent;color:#aeb7c2;cursor:pointer;
+  font-size:13px;font-weight:700;white-space:nowrap;transition:.2s;
+}
+.ad-nav-btn:hover {background:#1d2531;color:#fff}
+.ad-nav-btn.on {
+  background:linear-gradient(135deg,#1f7acb,#1768ad);
+  color:#fff;border-color:#1f7acb;
+}
+
 .ad-heading {margin-bottom:23px}
 .ad-heading h1 {font-size:25px;margin:0 0 7px;font-weight:800}
 .ad-heading p {color:#848e9c;font-size:13px;margin:0}
@@ -60,6 +83,8 @@ const CSS = `
   background:#151a22;border:1px solid #252b35;
   border-radius:14px;padding:19px;min-width:0;
 }
+.ad-card.click {cursor:pointer;transition:.2s}
+.ad-card.click:hover {border-color:#1f7acb;background:#18202b}
 .ad-card-head {
   display:flex;justify-content:space-between;
   align-items:center;gap:10px;
@@ -167,8 +192,50 @@ const CSS = `
   .ad-card {padding:14px}
   .ad-card-value {font-size:23px}
   .ad-card-icon {width:32px;height:32px}
+  .ad-nav-btn {min-width:120px;padding:11px 12px}
 }
 `;
+
+/* All admin pages (used by the top nav + quick actions) */
+const ADMIN_LINKS = [
+  {
+    key: "admin",
+    label: "Dashboard",
+    icon: ICON.trade,
+    title: "Dashboard",
+    desc: "Platform overview and statistics",
+  },
+  {
+    key: "adminDeposits",
+    label: "Deposits",
+    icon: ICON.doc,
+    title: "Deposit Requests",
+    desc: "Review, approve and reject user deposits",
+  },
+  {
+    key: "adminWithdrawals",
+    label: "Withdrawals",
+    icon: ICON.card,
+    title: "Withdrawal Requests",
+    desc: "Review, approve and reject user withdrawals",
+  },
+  {
+    key: "adminPaymentMethods",
+    label: "Payment Methods",
+    icon: ICON.card,
+    title: "Payment Methods",
+    desc: "Manage crypto, bKash, Nagad and bank methods",
+  },
+  {
+    key: "adminOptions",
+    label: "Options",
+    icon: ICON.eye,
+    title: "Options",
+    desc: "Manage trading options and platform settings",
+  },
+];
+
+const CURRENT_PAGE = "admin";
 
 const getRows = (data) => {
   if (Array.isArray(data)) return data;
@@ -287,13 +354,17 @@ export default function Admin_Dashbord({ me, go, logout }) {
       .slice(0, 5);
   }, [deposits]);
 
-  const goPaymentMethods = () => {
-    if (go) go("adminPaymentMethods");
+  const open = (key) => {
+    if (key === CURRENT_PAGE) {
+      loadDashboard(true);
+      return;
+    }
+    if (go) go(key);
   };
 
-  const goDeposits = () => {
-    if (go) go("adminDeposits");
-  };
+  const goDeposits = () => open("adminDeposits");
+
+  const quickLinks = ADMIN_LINKS.filter((l) => l.key !== CURRENT_PAGE);
 
   return (
     <div className="ad-wrap">
@@ -341,6 +412,23 @@ export default function Admin_Dashbord({ me, go, logout }) {
           </div>
         </header>
 
+        {/* Navigation: all admin pages */}
+        <nav className="ad-nav">
+          {ADMIN_LINKS.map((link) => (
+            <button
+              key={link.key}
+              type="button"
+              className={
+                "ad-nav-btn" + (link.key === CURRENT_PAGE ? " on" : "")
+              }
+              onClick={() => open(link.key)}
+            >
+              <Ic d={link.icon} s={16} />
+              {link.label}
+            </button>
+          ))}
+        </nav>
+
         {/* Page title */}
         <section className="ad-heading">
           <h1>Dashboard Overview</h1>
@@ -366,7 +454,7 @@ export default function Admin_Dashbord({ me, go, logout }) {
         {/* Statistics */}
         <section className="ad-grid">
 
-          <div className="ad-card">
+          <div className="ad-card click" onClick={goDeposits}>
             <div className="ad-card-head">
               <span className="ad-card-label">
                 Total Deposit Requests
@@ -383,7 +471,7 @@ export default function Admin_Dashbord({ me, go, logout }) {
             </div>
           </div>
 
-          <div className="ad-card">
+          <div className="ad-card click" onClick={goDeposits}>
             <div className="ad-card-head">
               <span className="ad-card-label">Pending Requests</span>
               <span
@@ -401,7 +489,7 @@ export default function Admin_Dashbord({ me, go, logout }) {
             </div>
           </div>
 
-          <div className="ad-card">
+          <div className="ad-card click" onClick={goDeposits}>
             <div className="ad-card-head">
               <span className="ad-card-label">Approved Requests</span>
               <span
@@ -419,7 +507,7 @@ export default function Admin_Dashbord({ me, go, logout }) {
             </div>
           </div>
 
-          <div className="ad-card">
+          <div className="ad-card click" onClick={goDeposits}>
             <div className="ad-card-head">
               <span className="ad-card-label">Rejected Requests</span>
               <span
@@ -452,39 +540,23 @@ export default function Admin_Dashbord({ me, go, logout }) {
             <div className="ad-panel-body">
               <div className="ad-quick-list">
 
-                <button
-                  type="button"
-                  className="ad-quick"
-                  onClick={goDeposits}
-                >
-                  <span className="ad-quick-icon">
-                    <Ic d={ICON.doc} s={21} />
-                  </span>
-                  <span className="ad-quick-text">
-                    <b>Deposit Requests</b>
-                    <small>
-                      Review, approve and reject user deposits
-                    </small>
-                  </span>
-                  <span className="ad-arrow">›</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="ad-quick"
-                  onClick={goPaymentMethods}
-                >
-                  <span className="ad-quick-icon">
-                    <Ic d={ICON.card} s={21} />
-                  </span>
-                  <span className="ad-quick-text">
-                    <b>Payment Methods</b>
-                    <small>
-                      Manage crypto, bKash, Nagad and bank methods
-                    </small>
-                  </span>
-                  <span className="ad-arrow">›</span>
-                </button>
+                {quickLinks.map((link) => (
+                  <button
+                    key={link.key}
+                    type="button"
+                    className="ad-quick"
+                    onClick={() => open(link.key)}
+                  >
+                    <span className="ad-quick-icon">
+                      <Ic d={link.icon} s={21} />
+                    </span>
+                    <span className="ad-quick-text">
+                      <b>{link.title}</b>
+                      <small>{link.desc}</small>
+                    </span>
+                    <span className="ad-arrow">›</span>
+                  </button>
+                ))}
 
                 <button
                   type="button"
@@ -499,6 +571,24 @@ export default function Admin_Dashbord({ me, go, logout }) {
                     <small>
                       Load the latest deposit request information
                     </small>
+                  </span>
+                  <span className="ad-arrow">›</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="ad-quick"
+                  onClick={() => logout?.()}
+                >
+                  <span
+                    className="ad-quick-icon"
+                    style={{ background: "#4a2028", color: "#f6465d" }}
+                  >
+                    <Ic d={ICON.lock} s={21} />
+                  </span>
+                  <span className="ad-quick-text">
+                    <b>Logout</b>
+                    <small>Sign out from the admin panel</small>
                   </span>
                   <span className="ad-arrow">›</span>
                 </button>
