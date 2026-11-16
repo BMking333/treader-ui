@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LangCtx, API, TOKEN, api, T3 } from "./Home";
 
 /* =====================================================================
@@ -7,7 +7,7 @@ import { LangCtx, API, TOKEN, api, T3 } from "./Home";
             GET  /kyc/status
             GET  /kyc/file/{doc_id}/{front|back}  (Bearer token লাগে → blob হিসেবে আনা হয়)
 
-   ✔ Night / Light mode: কোনো রং hard-code নেই — অ্যাপের থিমের রং (color/background) inherit করে
+   ✔ Night / Light mode: সাইডবারের নাইট মোড সুইচ অনুযায়ী নাইটে নাইট, লাইটে লাইট (অটো-ডিটেক্ট)
    ✔ ভাষা: সব ২৬টি ভাষার অনুবাদ আছে (আগে অনেক ভাষায় English দেখাত)
    ===================================================================== */
 
@@ -157,63 +157,142 @@ const BackI = () => (
   </svg>
 );
 
-/* ---------- CSS: কোনো hard-coded dark/light রং নেই ----------
-   টেক্সট = inherit (অ্যাপের থিম), ব্যাকগ্রাউন্ড/বর্ডার = রঙিন-নিরপেক্ষ rgba(128,128,128,x)
-   তাই Night mode ও Light mode — দুটোতেই ঠিকঠাক দেখায়। */
+/* ---------- থিম (Night / Light) ----------
+   অ্যাপের আসল ব্যাকগ্রাউন্ড দেখে থিম ঠিক করা হয়, আর থিম বদলালে (সাইডবারের নাইট মোড সুইচ)
+   নিজে থেকেই আপডেট হয় — তাই সাইডবারের মতোই নাইটে নাইট, লাইটে লাইট। */
+const parseColor = (s) => {
+  const n = String(s || "").match(/[\d.]+/g);
+  if (!n || n.length < 3) return null;
+  return { r: +n[0], g: +n[1], b: +n[2], a: n.length > 3 ? +n[3] : 1 };
+};
+
+const detectDark = (el) => {
+  try {
+    let n = el && el.parentElement;
+    while (n && n.nodeType === 1) {
+      const c = parseColor(getComputedStyle(n).backgroundColor);
+      if (c && c.a > 0.5) return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b < 140;
+      n = n.parentElement;
+    }
+  } catch {}
+  return !!(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+};
+
+const useTheme = (ref, forced) => {
+  const [dark, setDark] = useState(true);
+  useLayoutEffect(() => {
+    if (typeof forced === "boolean") { setDark(forced); return undefined; }
+    let raf = 0;
+    const run = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const d = detectDark(ref.current);
+        setDark((p) => (p === d ? p : d));
+      });
+    };
+    setDark(detectDark(ref.current));
+
+    /* প্রতিটি parent-এর class/style বদলালে আবার চেক (subtree নয়, তাই হালকা) */
+    const mo = new MutationObserver(run);
+    const opts = { attributes: true, attributeFilter: ["class", "style", "data-theme", "data-bs-theme"] };
+    let n = ref.current && ref.current.parentElement;
+    while (n) { mo.observe(n, opts); n = n.parentElement; }
+
+    const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    if (mq && mq.addEventListener) mq.addEventListener("change", run);
+    return () => {
+      cancelAnimationFrame(raf);
+      mo.disconnect();
+      if (mq && mq.removeEventListener) mq.removeEventListener("change", run);
+    };
+  }, [forced]); // eslint-disable-line
+  return dark;
+};
+
+/* ---------- CSS ----------
+   রং এখন CSS variable — data-th="dark" | "light" অনুযায়ী বদলায়।
+   অ্যাপের গ্লোবাল button/input স্টাইল যেন ভাঙতে না পারে, তাই দরকারি জায়গায় !important। */
 const CSS = `
-.cx-kc{color:inherit;min-height:100vh;padding-bottom:32px}
+.cx-kc{--fg:#e8edf5;--fg2:rgba(232,237,245,.72);--ph:rgba(232,237,245,.42);
+  --sf:rgba(255,255,255,.06);--sf2:rgba(255,255,255,.10);--bd:rgba(255,255,255,.18);--bd2:rgba(255,255,255,.30);
+  --acc:#4b8bf5;--accbg:rgba(75,139,245,.10);
+  --ok:#4be0a8;--okbg:rgba(47,211,155,.14);--okbd:rgba(47,211,155,.35);
+  --bad:#ff8a95;--badbg:rgba(240,97,109,.14);--badbd:rgba(240,97,109,.38);
+  --inf:#8fc4ff;--infbg:rgba(75,139,245,.16);--infbd:rgba(75,139,245,.38)}
+.cx-kc[data-th="light"]{--fg:#1a2230;--fg2:rgba(26,34,48,.68);--ph:rgba(26,34,48,.40);
+  --sf:rgba(0,0,0,.04);--sf2:rgba(0,0,0,.07);--bd:rgba(0,0,0,.14);--bd2:rgba(0,0,0,.26);
+  --ok:#15803d;--okbg:rgba(21,128,61,.10);--okbd:rgba(21,128,61,.30);
+  --bad:#c62828;--badbg:rgba(198,40,40,.08);--badbd:rgba(198,40,40,.30);
+  --inf:#1d4ed8;--infbg:rgba(29,78,216,.08);--infbd:rgba(29,78,216,.28)}
+
+.cx-kc{color:var(--fg);min-height:100vh;padding-bottom:32px;box-sizing:border-box}
 .cx-kc,.cx-kc *{-webkit-tap-highlight-color:transparent}
 
 /* Top bar */
-.cx-kc-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:50px;
-  background:rgba(128,128,128,.10);border-bottom:1px solid rgba(128,128,128,.25)}
-.cx-kc-top h1{margin:0;font-size:16px;font-weight:600;text-align:center;color:inherit}
-.cx-kc-top button{height:50px;display:grid;place-items:center;background:none;border:0;color:inherit;cursor:pointer;opacity:.85}
+.cx-kc .cx-kc-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:50px;
+  background:var(--sf);border-bottom:1px solid var(--bd)}
+.cx-kc .cx-kc-top h1{margin:0;font-size:16px;font-weight:600;text-align:center;color:var(--fg)!important}
+.cx-kc .cx-kc-top button{height:50px;display:grid;place-items:center;background:none!important;border:0!important;
+  color:var(--fg)!important;cursor:pointer;padding:0;text-align:center!important}
 .cx[dir=rtl] .cx-kc-top button{transform:scaleX(-1)}
 
-/* Name */
-.cx-kc-name{display:flex;align-items:center;gap:16px;margin:16px 16px 0;padding:0 14px;height:50px;
-  background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.25);border-radius:12px;transition:border-color .15s,box-shadow .15s}
-.cx-kc-name:focus-within{border-color:#4b8bf5;box-shadow:0 0 0 3px rgba(75,139,245,.18)}
-.cx-kc-name label{font-size:13.5px;font-weight:600;min-width:52px;opacity:.9}
-.cx-kc-name input{flex:1;min-width:0;height:100%;border:0;outline:0;background:transparent;color:inherit;font-size:14px}
-.cx-kc-name input::placeholder{color:inherit;opacity:.45}
+/* Name field — একটাই পরিষ্কার বর্ডার (ভেতরের input-এর আলাদা নীল বক্স নেই) */
+.cx-kc .cx-kc-name{display:flex;align-items:center;gap:16px;margin:16px 16px 0;padding:0 14px;height:52px;box-sizing:border-box;
+  background:var(--sf);border:1px solid var(--bd);border-radius:12px;transition:border-color .15s,box-shadow .15s}
+.cx-kc .cx-kc-name:focus-within{border-color:var(--acc);box-shadow:0 0 0 3px rgba(75,139,245,.14)}
+.cx-kc .cx-kc-name label{font-size:13.5px;font-weight:600;min-width:52px;color:var(--fg)}
+.cx-kc .cx-kc-name input,
+.cx-kc .cx-kc-name input:focus,
+.cx-kc .cx-kc-name input:active{flex:1;min-width:0;width:100%;height:100%;margin:0;padding:0;box-sizing:border-box;
+  border:0!important;outline:0!important;box-shadow:none!important;border-radius:0!important;
+  background:transparent!important;color:var(--fg)!important;font-size:14px;-webkit-appearance:none;appearance:none}
+.cx-kc .cx-kc-name input::placeholder{color:var(--ph)!important;opacity:1}
 
 /* Sections */
-.cx-kc-sec{padding:18px 16px 0;font-size:14px;font-weight:600;color:inherit;opacity:.9}
-.cx-kc-ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
-.cx-kc-up{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0;cursor:pointer}
-.cx-kc-docs .cx-kc-up{cursor:default}
-.cx-kc-box{width:100%;height:190px;display:grid;place-items:center;color:inherit;overflow:hidden;border-radius:12px;
-  background:rgba(128,128,128,.07);border:1.5px dashed rgba(128,128,128,.45);transition:border-color .15s,background .15s}
-.cx-kc-box svg{opacity:.55}
-.cx-kc-up:hover .cx-kc-box{border-color:#4b8bf5;background:rgba(75,139,245,.07)}
-.cx-kc-docs .cx-kc-up:hover .cx-kc-box{border-color:rgba(128,128,128,.45);background:rgba(128,128,128,.07)}
-.cx-kc-box.has{border:1px solid rgba(128,128,128,.35);background:rgba(128,128,128,.10)}
-.cx-kc-box img{width:100%;height:100%;object-fit:cover;display:block}
-.cx-kc-lb{font-size:13px;font-weight:500;color:inherit;opacity:.85;margin:8px 0 2px;padding:0 4px}
-.cx-kc-up input{display:none}
+.cx-kc .cx-kc-sec{padding:20px 16px 0;font-size:14px;font-weight:600;color:var(--fg)}
+.cx-kc .cx-kc-ups{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
+.cx-kc .cx-kc-up{display:flex;flex-direction:column;align-items:center;text-align:center;padding:0;cursor:pointer}
+.cx-kc .cx-kc-docs .cx-kc-up{cursor:default}
+.cx-kc .cx-kc-box{width:100%;height:190px;display:grid;place-items:center;color:var(--fg2);overflow:hidden;border-radius:12px;
+  background:var(--sf);border:1.5px dashed var(--bd2);transition:border-color .15s,background .15s}
+.cx-kc .cx-kc-up:hover .cx-kc-box{border-color:var(--acc);background:var(--accbg)}
+.cx-kc .cx-kc-docs .cx-kc-up:hover .cx-kc-box{border-color:var(--bd2);background:var(--sf)}
+.cx-kc .cx-kc-box.has{border:1px solid var(--bd2);background:var(--sf2)}
+.cx-kc .cx-kc-box img{width:100%;height:100%;object-fit:cover;display:block}
+.cx-kc .cx-kc-lb{font-size:13px;font-weight:500;color:var(--fg2);margin:8px 0 2px;padding:0 4px}
+.cx-kc .cx-kc-up input{display:none}
 
-/* Button */
-.cx-kc-btn{display:block;width:calc(100% - 32px);margin:20px 16px 0;height:46px;border-radius:10px;border:0;cursor:pointer;
-  background:#1a82d6;color:#fff;font-size:14.5px;font-weight:600;text-align:center;transition:opacity .15s,transform .15s}
-.cx-kc-btn:active:not(:disabled){transform:scale(.98)}
-.cx-kc-btn:disabled{opacity:.6;cursor:default}
+/* Confirm button — মাঝখানে, গ্র্যাডিয়েন্ট পিল (গ্লোবাল button স্টাইল override করা হয়েছে) */
+.cx-kc .cx-kc-act{display:flex!important;justify-content:center!important;align-items:center;padding:0 16px;margin-top:28px}
+.cx-kc .cx-kc-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px;
+  width:auto!important;min-width:min(240px,100%);max-width:100%;height:48px;margin:0!important;padding:0 44px!important;
+  border:0!important;border-radius:999px!important;
+  background:linear-gradient(135deg,#2f80ed 0%,#5b6cff 100%)!important;color:#fff!important;
+  font-size:15px!important;font-weight:600!important;letter-spacing:.3px;text-align:center!important;cursor:pointer;
+  box-shadow:0 8px 22px rgba(75,110,245,.35);transition:transform .15s,box-shadow .15s,opacity .15s}
+.cx-kc .cx-kc-btn:hover:not(:disabled){box-shadow:0 12px 28px rgba(75,110,245,.45);transform:translateY(-1px)}
+.cx-kc .cx-kc-btn:active:not(:disabled){transform:scale(.97)}
+.cx-kc .cx-kc-btn:disabled{opacity:.6;cursor:default;box-shadow:none}
+.cx-kc .cx-kc-spin{width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+  animation:cxkcspin .7s linear infinite}
+@keyframes cxkcspin{to{transform:rotate(360deg)}}
 
-/* Messages (দুই থিমেই পড়া যায়) */
-.cx-kc-msg{margin:12px 16px 0;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.45;
-  background:rgba(75,139,245,.14);color:#4b8bf5;border:1px solid rgba(75,139,245,.3)}
-.cx-kc-msg.bad{background:rgba(240,97,109,.12);color:#e5484d;border-color:rgba(240,97,109,.35)}
-.cx-kc-msg.ok{background:rgba(47,211,155,.14);color:#1fa971;border-color:rgba(47,211,155,.35)}
+/* Messages */
+.cx-kc .cx-kc-msg{margin:12px 16px 0;padding:10px 12px;border-radius:10px;font-size:13.5px;line-height:1.45;
+  background:var(--infbg);color:var(--inf);border:1px solid var(--infbd)}
+.cx-kc .cx-kc-msg.bad{background:var(--badbg);color:var(--bad);border-color:var(--badbd)}
+.cx-kc .cx-kc-msg.ok{background:var(--okbg);color:var(--ok);border-color:var(--okbd)}
 
 @media(min-width:768px){
-.cx-kc-box{height:220px}
+.cx-kc .cx-kc-box{height:220px}
 }
 `;
 
 export default function Authentication({ W, go }) {
   const tr = useTr();
   const alive = useRef(true);
+  const rootRef = useRef(null);
+  const dark = useTheme(rootRef, W && typeof W.dark === "boolean" ? W.dark : undefined);
   const [name, setName] = useState("");
   const [front, setFront] = useState(null);
   const [back, setBack] = useState(null);
@@ -334,7 +413,7 @@ export default function Authentication({ W, go }) {
   const locked = st === "wait" || st === "ok";
 
   return (
-    <div className="cx-kc">
+    <div className="cx-kc" ref={rootRef} data-th={dark ? "dark" : "light"}>
       <style>{CSS}</style>
       <div className="cx-kc-top">
         <button type="button" onClick={() => go("home")} aria-label="Back"><BackI /></button>
@@ -402,9 +481,12 @@ export default function Authentication({ W, go }) {
             </p>
           )}
 
-          <button type="button" className="cx-kc-btn" onClick={submit} disabled={busy}>
-            {busy ? tr("wait2") : tr("confirm")}
-          </button>
+          <div className="cx-kc-act">
+            <button type="button" className="cx-kc-btn" onClick={submit} disabled={busy}>
+              {busy && <span className="cx-kc-spin" />}
+              {busy ? tr("wait2") : tr("confirm")}
+            </button>
+          </div>
         </>
       )}
     </div>
