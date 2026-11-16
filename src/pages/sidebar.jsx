@@ -54,12 +54,19 @@ const PATHS = {
       <path d="M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
     </>
   ),
+  logout: (
+    <>
+      <path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </>
+  ),
 };
 
-const Icon = ({ name }) => (
+const Icon = ({ name, size = 20 }) => (
   <svg
-    width="20"
-    height="20"
+    width={size}
+    height={size}
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -82,7 +89,7 @@ const CSS = `
   color:inherit;text-align:left;transition:background .15s;cursor:pointer}
 .cx-md .cx-mr:active{background:rgba(128,128,128,.12)}
 .cx-md .cx-mi2{display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;
-  background:rgba(75,139,245,.14);color:#4b8bf5;flex:none}
+  background:rgba(128,128,128,.14);color:inherit;flex:none}
 .cx-md .cx-ml{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cx-md .cx-mv{font-size:12px;font-weight:500;opacity:.95;white-space:nowrap}
 .cx-md .cx-mv.red{color:#f0616d}
@@ -92,11 +99,16 @@ const CSS = `
   background:rgba(128,128,128,.4);transition:background .25s ease}
 .cx-md .cx-tg i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;
   box-shadow:0 1px 3px rgba(0,0,0,.35);transition:transform .25s ease}
-.cx-md .cx-tg.on{background:#4b8bf5}
+.cx-md .cx-tg.on{background:#2fd39b}
 .cx-md .cx-tg.on i{transform:translateX(18px)}
-.cx-md .cx-lo2{display:block;margin:18px 20px;width:calc(100% - 40px);padding:12px 0;font-size:14px;font-weight:600;
-  color:#fff;background:#4b8bf5;border:0;border-radius:10px;cursor:pointer}
-.cx-md .cx-lo2:active{opacity:.85}
+
+/* Logout – neutral/danger style (no blue) */
+.cx-md .cx-lo2{display:flex;align-items:center;justify-content:center;gap:8px;
+  margin:18px 20px;width:calc(100% - 40px);padding:12px 0;font-size:14px;font-weight:600;
+  color:#f0616d;background:rgba(240,97,109,.10);border:1px solid rgba(240,97,109,.35);
+  border-radius:10px;cursor:pointer;transition:background .15s,transform .15s}
+.cx-md .cx-lo2:hover{background:rgba(240,97,109,.16)}
+.cx-md .cx-lo2:active{transform:scale(.98);background:rgba(240,97,109,.22)}
 `;
 
 export default function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify, guest, askLogin }) {
@@ -107,15 +119,22 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
     return v && v !== key ? v : fb;
   };
 
+  const origin = () => (typeof window !== "undefined" ? window.location.origin : "");
+
   const share = async () => {
-    if (!me) { onClose(); return askLogin("login", "needLogin"); }
-    let link = (typeof window !== "undefined" ? window.location.origin : "") + "/?ref=" + me.uid;
+    if (!me) {
+      onClose();
+      return askLogin("login", "needLogin");
+    }
+    let link = origin() + "/?ref=" + me.uid;
     try {
       const j = await api("/user/share-link");
       const p = typeof j === "string" ? j : j && j.path;
-      if (p) link = p.startsWith("/") ? (typeof window !== "undefined" ? window.location.origin : "") + p : p;
+      if (p) link = p.startsWith("/") ? origin() + p : p;
     } catch {}
-    try { navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {}); } catch {}
+    try {
+      navigator.clipboard && navigator.clipboard.writeText(link).catch(() => {});
+    } catch {}
     notify(t("copied"));
   };
 
@@ -128,10 +147,16 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
   };
 
   const k = kind(me && me.verify_status);
-  const authLabel = k === "wait" ? t("wait") : k === "ok" ? t("verified") : k === "bad" ? t("rejected") : t("notset");
+  const authLabel =
+    k === "wait" ? t("wait") : k === "ok" ? t("verified") : k === "bad" ? t("rejected") : t("notset");
   const authTone = k === "ok" ? "green" : "red";
   const authLocked = k === "wait" || k === "ok";
-  const authFn = authLocked ? null : () => { onClose(); go("auth"); };
+  const authFn = authLocked
+    ? null
+    : () => {
+        onClose();
+        go("auth");
+      };
 
   const rows = [
     ["idcard", t("auth"), authLabel, authTone, authFn],
@@ -156,8 +181,12 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
           </div>
         ) : (
           <div className="cx-mp">
-            <button className="cx-a1 flat cx-cap" onClick={() => { onClose(); askLogin("login"); }}>{t("login")}</button>
-            <button className="cx-a1 flat cx-cap" onClick={() => { onClose(); askLogin("register"); }}>{t("register")}</button>
+            <button className="cx-a1 flat cx-cap" onClick={() => { onClose(); askLogin("login"); }}>
+              {t("login")}
+            </button>
+            <button className="cx-a1 flat cx-cap" onClick={() => { onClose(); askLogin("register"); }}>
+              {t("register")}
+            </button>
           </div>
         )}
 
@@ -189,7 +218,18 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
           );
         })}
 
-        {me && <button className="cx-lo2" onClick={() => { onClose(); logout(); }}>{t("logout")}</button>}
+        {me && (
+          <button
+            className="cx-lo2"
+            onClick={() => {
+              onClose();
+              logout();
+            }}
+          >
+            <Icon name="logout" size={18} />
+            {t("logout")}
+          </button>
+        )}
       </aside>
     </div>
   );
