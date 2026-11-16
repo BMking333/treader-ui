@@ -13,6 +13,7 @@ import Admin_Login from "./pages/admin/Admin_Login";
 import Admin_Dashbord from "./pages/admin/Admin_Dashbord";
 import Admin_PaymentMethod from "./pages/admin/Admin_PaymentMethod";
 import Admin_Deposit from "./pages/admin/Admin_Deposit";
+import Admin_Withdrew from "./pages/admin/Admin_Withdrew";
 import AdminOptions from "./pages/admin/AdminOptions";
 
 /* =========================================================
@@ -33,6 +34,7 @@ const ADMIN_PATH = {
   admin: ADMIN_BASE,
   adminPaymentMethods: ADMIN_BASE + "/payment-methods",
   adminDeposits: ADMIN_BASE + "/deposits",
+  adminWithdrawals: ADMIN_BASE + "/withdrawals",
   adminOptions: ADMIN_BASE + "/options",
 };
 
@@ -49,6 +51,7 @@ const pathToView = (path) => {
   if (path === ADMIN_PATH.admin) return "admin";
   if (path === ADMIN_PATH.adminPaymentMethods) return "adminPaymentMethods";
   if (path === ADMIN_PATH.adminDeposits) return "adminDeposits";
+  if (path === ADMIN_PATH.adminWithdrawals) return "adminWithdrawals";
   if (path === ADMIN_PATH.adminOptions) return "adminOptions";
 
   return "app";
@@ -504,6 +507,14 @@ export default function App() {
           />
         )}
 
+        {view === "adminWithdrawals" && isAdmin(me) && (
+          <Admin_Withdrew
+            me={me}
+            go={go}
+            logout={logout}
+          />
+        )}
+
         {view === "adminOptions" && isAdmin(me) && (
           <AdminOptions
             me={me}
@@ -924,7 +935,7 @@ const CSS = `
 .cx-tbl{font-size:14px}
 .cx-norec{font-size:18px}
 }
-/* Options পেজ (src/pages/options.jsx): পুরো প্রস্থ নেয়, PC-তে চার্ট বামে + ট্রেড প্যানেল ডানে */
+
 .cx-pg:has(.cx-op){max-width:none;padding-bottom:0;box-shadow:none}
 .cx:has(.cx-op) .cx-nav{max-width:none}
 `;
