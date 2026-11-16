@@ -129,7 +129,8 @@ const EX_CSS = `
 .cx2-pc button:active{transform:scale(.95);background:var(--fh)}
 .cx2-msg{font-size:13px;margin:10px 0 0;color:var(--dn);line-height:1.4}
 .cx2-msg.ok{color:var(--up)}
-.cx2-cta{margin-top:22px;height:56px;border:0;border-radius:3px;color:#fff;font-size:17px;font-weight:500;letter-spacing:.2px;
+.cx2-cta{display:flex;align-items:center;justify-content:center;text-align:center;width:100%;padding:0;line-height:1;white-space:nowrap;
+  margin-top:22px;height:56px;border:0;border-radius:3px;color:#fff;font-size:17px;font-weight:500;letter-spacing:.2px;
   box-shadow:0 6px 16px -8px rgba(0,0,0,.45);transition:transform .12s ease,filter .15s ease,opacity .2s ease}
 .cx2-cta:active{transform:scale(.985);filter:brightness(.94)}
 
