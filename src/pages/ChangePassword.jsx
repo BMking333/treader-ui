@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useT, api } from "./Home";
 
 const CSS = `
@@ -61,6 +61,25 @@ const CSS = `
 .cx-cp-spin{width:15px;height:15px;border-radius:50%;border:2px solid rgba(255,255,255,.4);
   border-top-color:#fff;animation:cxcpspin .7s linear infinite}
 @keyframes cxcpspin{to{transform:rotate(360deg)}}
+
+/* Popup — স্ক্রিনের ঠিক মাঝখানে নোটিফিকেশন */
+.cx-cp-ov{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:rgba(8,14,28,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);animation:cxcpfade .18s ease}
+.cx-cp-pop{width:100%;max-width:320px;text-align:center;padding:28px 22px 22px;border-radius:22px;
+  background:#fff;color:#1a2230;border:1px solid rgba(128,128,128,.22);
+  box-shadow:0 24px 60px rgba(0,0,0,.35);animation:cxcppop .26s cubic-bezier(.2,.9,.3,1.2)}
+.cx.dark .cx-cp-pop{background:#17263d;color:#e8ecf3;border-color:#2a3a56}
+.cx-cp-pi{width:64px;height:64px;margin:0 auto 16px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff}
+.cx-cp-pi.ok{background:linear-gradient(135deg,#34d399,#10b981);box-shadow:0 10px 24px rgba(16,185,129,.4)}
+.cx-cp-pi.bad{background:linear-gradient(135deg,#ff7a85,#e5484d);box-shadow:0 10px 24px rgba(229,72,77,.4)}
+.cx-cp-pt{margin:0 0 6px;font-size:17px;font-weight:700}
+.cx-cp-pm{margin:0 0 20px;font-size:13.5px;line-height:1.55;opacity:.75;word-break:break-word}
+.cx-cp-pb{display:inline-flex!important;align-items:center;justify-content:center;min-width:140px;padding:12px 32px!important;
+  border:0!important;border-radius:999px!important;color:#fff!important;font-size:14.5px;font-weight:700;text-align:center!important;
+  background:linear-gradient(135deg,#4b8bf5 0%,#7a5cff 100%)!important;box-shadow:0 8px 20px rgba(91,110,255,.38);cursor:pointer}
+.cx-cp-pb:active{transform:scale(.97)}
+@keyframes cxcpfade{from{opacity:0}to{opacity:1}}
+@keyframes cxcppop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
 `;
 
 const IconLock = ({ s = 16 }) => (
@@ -82,6 +101,30 @@ const IconBack = () => (
   </svg>
 );
 
+/* ব্যাকএন্ড নিয়ম: পাসওয়ার্ড ৬–১২ অক্ষর */
+const PW_MIN = 6;
+const PW_MAX = 12;
+
+/* ব্যাকএন্ডের error code → fallback টেক্সট (অনুবাদ না থাকলে) */
+const ERR_FB = {
+  wrongPw: "Current password is incorrect",
+  pwRule: "Password must be 6–12 characters",
+  bMatch: "Passwords do not match",
+  unauthorized: "Session expired. Please login again",
+  neterr: "Network error. Please try again",
+};
+
+const IconCheck = () => (
+  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+const IconX = () => (
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M6 6l12 12M18 6L6 18" />
+  </svg>
+);
+
 const strength = (p) => {
   if (!p) return 0;
   let s = 0;
@@ -98,8 +141,23 @@ export default function ChangePassword({ go, notify, me }) {
   const [newPw, setNewPw] = useState("");
   const [conf, setConf] = useState("");
   const [show, setShow] = useState({ o: false, n: false, c: false });
-  const [err, setErr] = useState("");
+  const [pop, setPop] = useState(null); /* { type: "ok" | "bad", msg } */
   const [busy, setBusy] = useState(false);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
+  const closePop = () => {
+    const ok = pop && pop.type === "ok";
+    setPop(null);
+    if (ok) go("home");
+  };
+
+  /* সফল হলে ২ সেকেন্ড পর নিজে বন্ধ হয়ে হোমে যাবে */
+  useEffect(() => {
+    if (!pop || pop.type !== "ok") return undefined;
+    const id = setTimeout(() => { if (alive.current) { setPop(null); go("home"); } }, 2200);
+    return () => clearTimeout(id);
+  }, [pop]); // eslint-disable-line
 
   const toggle = (k) => setShow((s) => ({ ...s, [k]: !s[k] }));
   const st = strength(newPw);
@@ -107,24 +165,25 @@ export default function ChangePassword({ go, notify, me }) {
   const submit = async (e) => {
     e && e.preventDefault();
     if (busy) return;
-    setErr("");
+    const bad = (msg) => setPop({ type: "bad", msg });
 
-    if (!oldPw || !newPw || !conf) return setErr(t("cpFill"));
-    if (newPw.length < 6) return setErr(t("cpMin"));
-    if (newPw === oldPw) return setErr(t("cpSame"));
-    if (newPw !== conf) return setErr(t("cpMatch"));
+    if (!oldPw || !newPw || !conf) return bad(t("cpFill"));
+    if (newPw.length < PW_MIN || newPw.length > PW_MAX) return bad(t("cpMin"));
+    if (newPw === oldPw) return bad(t("cpSame"));
+    if (newPw !== conf) return bad(t("cpMatch"));
 
     setBusy(true);
     try {
       await api("/user/change-password", {
         method: "POST",
-        body: JSON.stringify({ old_password: oldPw, new_password: newPw }),
+        /* api() নিজেই JSON.stringify করে — তাই এখানে সরাসরি object; ব্যাকএন্ডের ফিল্ড: old_password, password, password2 */
+        body: { old_password: oldPw, password: newPw, password2: conf },
       });
-      notify(t("cpOk"));
+      if (!alive.current) return;
       setOldPw("");
       setNewPw("");
       setConf("");
-      go("home");
+      setPop({ type: "ok", msg: t("cpOk") });
     } catch (ex) {
       const raw =
         (ex && (ex.detail || ex.message)) ||
@@ -132,7 +191,7 @@ export default function ChangePassword({ go, notify, me }) {
         "";
       const key = String(raw);
       const tr = key ? t(key) : "";
-      setErr(tr && tr !== key ? tr : key || t("cpFail"));
+      if (alive.current) setPop({ type: "bad", msg: tr && tr !== key ? tr : ERR_FB[key] || t("cpFail") });
     } finally {
       setBusy(false);
     }
@@ -149,6 +208,7 @@ export default function ChangePassword({ go, notify, me }) {
           value={value}
           onChange={(e) => set(e.target.value)}
           autoComplete={id === "o" ? "current-password" : "new-password"}
+          maxLength={PW_MAX}
         />
         <button
           type="button"
@@ -190,8 +250,6 @@ export default function ChangePassword({ go, notify, me }) {
 
         {Field({ id: "c", label: t("cpConf"), value: conf, set: setConf })}
 
-        {err && <p className="cx-cp-err">{err}</p>}
-
         <div className="cx-cp-act">
           <button type="submit" className="cx-cp-btn" disabled={busy}>
             {busy && <span className="cx-cp-spin" />}
@@ -199,6 +257,17 @@ export default function ChangePassword({ go, notify, me }) {
           </button>
         </div>
       </form>
+
+      {pop && (
+        <div className="cx-cp-ov" onClick={closePop}>
+          <div className="cx-cp-pop" role="alertdialog" aria-live="assertive" onClick={(e) => e.stopPropagation()}>
+            <div className={"cx-cp-pi " + pop.type}>{pop.type === "ok" ? <IconCheck /> : <IconX />}</div>
+            <p className="cx-cp-pt">{pop.type === "ok" ? t("cpOk") : t("cpFail")}</p>
+            {pop.type === "bad" && <p className="cx-cp-pm">{pop.msg}</p>}
+            <button type="button" className="cx-cp-pb" onClick={closePop} autoFocus>OK</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
