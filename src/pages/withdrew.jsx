@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useT, api } from "./Home";
 import { NETS } from "./depsoted";
 
 /* =====================================================================
    src/pages/withdrew.jsx — Withdraw পেজ (ন্যাচারাল প্রিমিয়াম ডিজাইন, নীল রঙ নেই, হিস্ট্রি নেই)
+   নোটিফিকেশন: স্ক্রিনের ঠিক মাঝখানে কার্ড-স্টাইল টোস্ট
    ===================================================================== */
 
 const WFEE = { USDT: 1, USDC: 1, ETH: 0.002, BTC: 0.0002 };
+const TOAST_MS = 2600;
 
 const CSS = `
 .wd{
@@ -33,7 +35,7 @@ const CSS = `
 .wd-card h4{margin:0 0 10px;font-size:12.5px;font-weight:600;color:var(--w-mu);letter-spacing:.3px}
 .wd-card h4:not(:first-child){margin-top:18px}
 
-/* coin / network pills — নিজস্ব স্টাইল, বর্ডার সবসময় দেখা যাবে */
+/* coin / network pills */
 .wd-pills{display:flex;flex-wrap:wrap;gap:8px}
 .wd .wd-pill{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
   min-width:68px;height:40px;padding:0 16px!important;border-radius:11px!important;
@@ -64,9 +66,7 @@ const CSS = `
 .wd-sum .r b{font-weight:600;text-align:end;font-variant-numeric:tabular-nums;word-break:break-all}
 .wd-sum .r.rv b{font-size:15px;font-weight:700;color:var(--w-gr)}
 
-/* message + submit */
-.wd-msg{margin:0 0 12px;padding:11px 14px;border-radius:12px;font-size:13px;line-height:1.4;text-align:center;background:rgba(10,159,114,.12);color:var(--w-gr)}
-.wd-msg.bad{background:rgba(216,77,90,.12);color:var(--w-rd)}
+/* submit */
 .wd .wd-go{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
   width:100%;height:52px;padding:0 20px!important;border:0!important;border-radius:14px!important;
   background:linear-gradient(135deg,#2a303c,#141b29)!important;color:#fff!important;font-size:15px;font-weight:600;letter-spacing:.3px;line-height:1;
@@ -74,6 +74,24 @@ const CSS = `
 .cx.dark .wd .wd-go{background:linear-gradient(135deg,#f4f7fb,#cfd7e4)!important;color:#0d1626!important;box-shadow:0 12px 24px -14px rgba(0,0,0,.7)}
 .wd .wd-go:active{transform:scale(.985)}
 .wd .wd-go:disabled{opacity:.6}
+
+/* ===== নোটিফিকেশন: স্ক্রিনের ঠিক মাঝখানে কার্ড ===== */
+.wd-tov{position:fixed;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;padding:0 28px;
+  background:rgba(8,14,26,.28);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);animation:wdfade .18s ease}
+.wd-toast{width:100%;max-width:300px;padding:24px 22px 22px;border-radius:20px;text-align:center;background:var(--w-card);color:var(--w-tx);
+  border:1px solid var(--w-ln);box-shadow:0 28px 60px -22px rgba(0,0,0,.55);animation:wdpop .22s cubic-bezier(.2,.8,.2,1)}
+.wd-toast i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 14px;border-radius:50%;font-style:normal;font-size:26px;font-weight:700;line-height:1;color:#fff}
+.wd-toast.ok i{background:linear-gradient(135deg,#22c493,#0a9f72);box-shadow:0 10px 20px -10px var(--w-gr)}
+.wd-toast.bad i{background:linear-gradient(135deg,#ee6a75,#d84d5a);box-shadow:0 10px 20px -10px var(--w-rd)}
+.wd-toast p{margin:0;font-size:14.5px;font-weight:600;line-height:1.45;word-break:break-word}
+.wd-toast em{display:block;margin-top:14px;height:3px;border-radius:3px;background:var(--w-ln);overflow:hidden;font-style:normal}
+.wd-toast em::after{content:"";display:block;height:100%;border-radius:3px;transform-origin:left;animation:wdbar ${TOAST_MS}ms linear forwards}
+.wd-toast.ok em::after{background:var(--w-gr)}
+.wd-toast.bad em::after{background:var(--w-rd)}
+@keyframes wdpop{from{transform:scale(.9) translateY(6px);opacity:0}to{transform:none;opacity:1}}
+@keyframes wdfade{from{opacity:0}to{opacity:1}}
+@keyframes wdbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media(prefers-reduced-motion:reduce){.wd-tov,.wd-toast,.wd-toast em::after{animation:none!important}}
 `;
 
 /* coin / network বাছাইয়ের বাটন */
@@ -90,25 +108,36 @@ function Pills({ list, v, set }) {
 export default function Withdraw({ W, go }) {
   const t = useT();
   const [coin, setCoin] = useState("USDT"), [net, setNet] = useState("TRC20"), [addr, setAddr] = useState(""), [amt, setAmt] = useState(""), [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState({ k: "", ok: false });
+  const [msg, setMsg] = useState({ k: "", ok: false, n: 0 });
   const nl = NETS[coin], nn = nl.includes(net) ? net : nl[0];
   const pickCoin = (c) => { setCoin(c); setNet(NETS[c][0]); };
   const held = W.w[coin] || 0, fee = WFEE[coin], a = parseFloat(amt) || 0;
+
+  /* টোস্ট দেখানো (একই মেসেজ আবার এলেও টাইমার নতুন করে চলে) */
+  const flash = (k, ok = false) => setMsg({ k, ok, n: Date.now() });
+
+  /* অটো বন্ধ */
+  useEffect(() => {
+    if (!msg.k) return undefined;
+    const id = setTimeout(() => setMsg((m) => ({ ...m, k: "" })), TOAST_MS);
+    return () => clearTimeout(id);
+  }, [msg.n, msg.k]);
+
   const submit = async () => {
     if (busy) return;
     if (W.guest) return W.needLogin();
     const ad = addr.trim();
-    if (!ad) return setMsg({ k: "eAddr", ok: false });
-    if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return setMsg({ k: "bAddr", ok: false });
-    if (!(a > 0)) return setMsg({ k: "eAmt", ok: false });
-    if (a <= fee) return setMsg({ k: "feeLow", ok: false });
-    if (a > held) return setMsg({ k: "iB", ok: false });
+    if (!ad) return flash("eAddr");
+    if (!/^[A-Za-z0-9]{20,100}$/.test(ad)) return flash("bAddr");
+    if (!(a > 0)) return flash("eAmt");
+    if (a <= fee) return flash("feeLow");
+    if (a > held) return flash("iB");
     setBusy(true);
     try {
       await api("/withdraw", { method: "POST", body: { coin, net: nn, address: ad, amount: a } });
       await W.reload();
-      setAmt(""); setAddr(""); setMsg({ k: "wdOk", ok: true });
-    } catch (e) { setMsg({ k: e.message, ok: false }); }
+      setAmt(""); setAddr(""); flash("wdOk", true);
+    } catch (e) { flash(e.message, false); }
     setBusy(false);
   };
   return (
@@ -145,9 +174,18 @@ export default function Withdraw({ W, go }) {
           <div className="r rv"><span>{t("recv")}</span><b>{Math.max(0, a - fee).toFixed(8)} {coin}</b></div>
         </div>
 
-        {msg.k && <p className={"wd-msg" + (msg.ok ? "" : " bad")}>{t(msg.k)}</p>}
-
         <button type="button" className="wd-go" disabled={busy} onClick={submit}>{t("submit")}</button>
+
+        {/* ---- নোটিফিকেশন কার্ড (মাঝখানে) ---- */}
+        {msg.k && (
+          <div className="wd-tov" key={msg.n} onClick={() => setMsg((m) => ({ ...m, k: "" }))}>
+            <div className={"wd-toast " + (msg.ok ? "ok" : "bad")} role="alert" onClick={(e) => e.stopPropagation()}>
+              <i>{msg.ok ? "✓" : "!"}</i>
+              <p>{t(msg.k)}</p>
+              <em />
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
