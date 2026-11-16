@@ -446,7 +446,7 @@ function Sheet({ open, onClose, title, children }) {
 
 const CSS = `
 .cx-op{--cx-nav-h:76px;--cx-bar-h:76px;--bd:#e4e7ec;--gray:#8a94a6;--blue:#1a82d6;--blue2:#4aa8ff;--grn:#00c087;--red:#d84d5a;
-  --f-bg:#f6f8fc;--f-ln:#dfe5ee;--f-card:#ffffff;--f-tx:#141b29}
+  --f-bg:#f6f8fc;--f-ln:#dfe5ee;--f-bd:#9aa6b8;--f-card:#ffffff;--f-tx:#141b29}
 
 .cx-op{background:#fff;color:#1a1a1a;display:flex;flex-direction:column;height:100vh;box-sizing:border-box;padding-bottom:calc(var(--cx-bar-h) + var(--cx-nav-h) + env(safe-area-inset-bottom,0px))}
 .cx-op,.cx-op *{-webkit-tap-highlight-color:transparent;box-sizing:border-box}
@@ -493,7 +493,7 @@ const CSS = `
 
 /* ===== Trade bar (নেভিগেশনের ঠিক উপরে) ===== */
 .cx-op-bar{position:fixed;left:0;right:0;bottom:calc(var(--cx-nav-h) + env(safe-area-inset-bottom,0px));z-index:60;display:grid;grid-template-columns:1fr 1fr 1.15fr 1.15fr;gap:8px;align-items:center;padding:8px 12px;height:var(--cx-bar-h);background:#fff;border-top:1px solid #e4e7ec;box-shadow:0 -10px 24px -20px rgba(20,40,80,.45)}
-.cx-op-pick{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;height:52px;padding:0 12px;border-radius:12px;background:var(--f-bg);border:1.5px solid var(--f-ln);cursor:pointer;text-align:start;line-height:1.2;transition:border-color .15s ease,background .15s ease}
+.cx-op-pick{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;height:52px;padding:0 12px;border-radius:12px;background:var(--f-card);border:1.5px solid var(--f-bd);cursor:pointer;text-align:start;line-height:1.2;transition:border-color .15s ease,background .15s ease}
 .cx-op-pick:active{border-color:var(--blue)}
 .cx-op-pick span:first-child{font-size:11px;font-weight:500;color:var(--gray);letter-spacing:.2px}
 .cx-op-pick span:last-child{font-size:14.5px;font-weight:700;color:var(--f-tx);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -531,13 +531,13 @@ const CSS = `
 .cx-op-row.one>button{flex:0 0 31%}
 .cx-op-row.four{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .cx-op-row.six{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.cx-op-opt{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;height:46px;border-radius:12px;border:1.5px solid var(--f-ln);background:var(--f-bg);color:var(--f-tx);font-size:14.5px;font-weight:600;cursor:pointer;overflow:hidden;padding:0 4px;white-space:nowrap;font-variant-numeric:tabular-nums;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.cx-op-opt{position:relative;display:flex;align-items:center;justify-content:center;text-align:center;height:46px;border-radius:12px;border:1.5px solid var(--f-bd);background:var(--f-card);color:var(--f-tx);font-size:14.5px;font-weight:600;cursor:pointer;overflow:hidden;padding:0 4px;white-space:nowrap;font-variant-numeric:tabular-nums;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
 .cx-op-opt:active{transform:scale(.98)}
 .cx-op-opt.on{border-color:var(--blue);background:#eaf4fd;color:var(--blue);box-shadow:0 0 0 3px rgba(26,130,214,.12)}
 .cx-op-opt.on::after{content:"✓";position:absolute;right:0;bottom:0;width:26px;height:20px;background:linear-gradient(135deg,transparent 50%,var(--blue) 50%);color:#fff;font-size:10px;line-height:26px;text-align:right;padding-right:3px}
 
 /* amount field (বক্স + বর্ডার) */
-.cx-op-field{display:flex;align-items:center;gap:8px;height:52px;margin-top:12px;padding:0 8px 0 14px;border-radius:12px;background:var(--f-card);border:1.5px solid var(--f-ln);transition:border-color .15s ease,box-shadow .15s ease}
+.cx-op-field{display:flex;align-items:center;gap:8px;height:52px;margin-top:12px;padding:0 8px 0 14px;border-radius:12px;background:var(--f-card);border:1.5px solid var(--f-bd);transition:border-color .15s ease,box-shadow .15s ease}
 .cx-op-field:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,130,214,.14)}
 .cx-op-field input{flex:1;min-width:0;height:100%;border:0;outline:0;background:none;font-size:17px;font-weight:700;color:var(--f-tx);font-variant-numeric:tabular-nums}
 .cx-op-field input::placeholder{font-size:14px;font-weight:400;color:var(--gray)}
@@ -546,7 +546,7 @@ const CSS = `
 .cx-op-field button:active{background:var(--blue);color:#fff!important}
 
 /* info panel */
-.cx-op-box{margin-top:18px;border-radius:14px;background:var(--f-bg);border:1px solid var(--f-ln);overflow:hidden}
+.cx-op-box{margin-top:18px;border-radius:14px;background:var(--f-bg);border:1.5px solid var(--f-bd);overflow:hidden}
 .cx-op-box div{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;font-size:13px;border-bottom:1px dashed var(--f-ln)}
 .cx-op-box div:last-child{border-bottom:0}
 .cx-op-box span{color:var(--gray)}
@@ -639,7 +639,7 @@ const CSS = `
 @media(prefers-reduced-motion:reduce){.cx-op-toast,.cx-op-dr,.cx-op-dov,.cx-op-sh,.cx-op-cf{animation:none!important}}
 
 /* ================= NIGHT MODE (.cx-op.dk) ================= */
-.cx-op.dk{--bd:#243148;--gray:#8d98ad;--f-bg:#101c30;--f-ln:#2a3a56;--f-card:#0d1829;--f-tx:#e8ecf3;background:#0d1626;color:#e8ecf3}
+.cx-op.dk{--bd:#243148;--gray:#8d98ad;--f-bg:#101c30;--f-ln:#2a3a56;--f-bd:#5a6f94;--f-card:#0d1829;--f-tx:#e8ecf3;background:#0d1626;color:#e8ecf3}
 .cx-op.dk .cx-op-top{background:#0d1626;border-bottom-color:#243148}
 .cx-op.dk .cx-op-info{background:#0d1626}
 .cx-op.dk .cx-op-off{background:#3b1a20;color:#ff8a95}
