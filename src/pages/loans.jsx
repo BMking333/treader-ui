@@ -13,7 +13,7 @@ const ORDERS_PATH = "/loans/orders"; /* GET  -> [{id,order_no,name,amount,total_
 const APPLY_PATH = "/loans/apply"; /* POST {product_id, amount, id_front, id_back, id_hold}  (ছবি = base64 data URL) */
 const CANCEL_PATH = "/loans/cancel"; /* POST {id} */
 
-/* API না থাকলে/ফাঁকা এলে স্ক্রিনশটের ডিফল্ট প্রোডাক্ট */
+/* API না থাকলে/ফাঁকা এলে ডিফল্ট প্রোডাক্ট */
 const DEFAULT_PRODUCTS = [
   { id: 1, name: "Nexo crypto lending institution", inst: "Banco Santander branches", min: 6000, max: 10000, rate: 1, days: 15 },
   { id: 2, name: "Nexo crypto lending institution", inst: "Banco Santander branches", min: 20000, max: 50000, rate: 0.5, days: 30 },
@@ -50,7 +50,7 @@ const normOrder = (x) => {
 };
 
 const STATUS = {
-  applying: { label: "Applying", color: "#00c087" },
+  applying: { label: "Applying", color: "#00a97a" },
   approved: { label: "Approved", color: "#1a82d6" },
   repaid: { label: "Repaid", color: "#8a94a6" },
   rejected: { label: "Rejected", color: "#d84d5a" },
@@ -90,52 +90,78 @@ const readImg = (file) =>
   });
 
 const CSS = `
-.cx-ln-tabs{display:grid;grid-template-columns:1fr 1fr;background:#fff}
-.cx-sp .cx-ln-tabs button{position:relative;height:60px;text-align:center;font-size:20px;color:#8a94a6}
-.cx-sp .cx-ln-tabs button.on{color:#111}
-.cx-sp .cx-ln-tabs button.on::after{content:"";position:absolute;left:50%;bottom:0;width:56px;height:4px;margin-left:-28px;border-radius:2px;background:#1a82d6}
-.cx-ln-body{padding:14px 14px 0}
-.cx-sp .cx-ln-sel{display:flex;align-items:center;justify-content:space-between;width:100%;height:58px;padding:0 30px 0 18px;background:#fff;font-size:21px;margin-bottom:14px}
-.cx-ln-card{background:#fff;padding:18px 18px 20px;margin-bottom:14px;font-size:18px}
-.cx-ln-card .r{padding:7px 0;line-height:1.35;word-break:break-word}
-.cx-ln-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:7px}
-.cx-ln-foot .tot{font-size:18px}
-.cx-ln-foot .tot b{font-weight:600}
-.cx-ln-acts{display:flex;align-items:center;gap:16px;font-size:18px;white-space:nowrap}
-.cx-sp .cx-ln-acts button{color:#1a82d6;font-size:18px;padding:0}
-.cx-ln-end{margin-top:-14px;background:#fff;border-top:1px solid #e7e9ef;text-align:center;color:#9aa0ad;padding:24px 0;font-size:21px}
-.cx-ln-prod{position:relative;min-height:150px}
-.cx-sp .cx-ln-prod .go{position:absolute;right:16px;bottom:14px;height:56px;padding:0 24px;border-radius:12px;background:#00c087;color:#fff;font-size:19px;text-align:center}
-.cx-ln-prod .r:last-of-type{padding-right:200px}
-.cx-ln-none{padding:60px 0;text-align:center;color:#9aa0ad;font-size:17px}
+.cx-sp{
+  --l-card:#ffffff;--l-tx:#141b29;--l-mu:#8793a8;--l-ln:#e8ecf3;--l-ac:#1a82d6;--l-ac2:#4aa8ff;--l-gr:#00a97a;--l-rd:#d84d5a;--l-soft:#f1f5fb;
+  --l-sh:0 10px 28px -18px rgba(20,40,80,.38),0 1px 0 rgba(255,255,255,.6) inset;
+}
+.cx.dark .cx-sp{--l-card:#14233b;--l-tx:#eaf0f8;--l-mu:#8795ac;--l-ln:#22324f;--l-soft:#0f1c31;--l-sh:none}
 
-/* apply page */
-.cx-lp-h{display:flex;align-items:center;gap:14px;margin:14px 14px 14px;padding:14px 12px;border-radius:14px;background:#fff;font-size:27px;font-weight:700}
-.cx-lp-c{margin:0 14px 14px;border-radius:14px;background:#fff;padding:26px 24px 22px}
-.cx-lp-c .r{padding:20px 0 20px 0;font-size:19px;line-height:1.3}
-.cx-lp-m{display:flex;justify-content:space-between;align-items:center;padding:18px 0 14px;font-size:20px;border-bottom:1px solid #d7dbe3}
-.cx-lp-a{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:20px 0 0;font-size:20px}
-.cx-lp-a .ctl{display:flex;align-items:center;gap:10px}
-.cx-sp .cx-lp-a .circ{width:46px;height:46px;border-radius:50%;border:1.5px solid #222;display:grid;place-items:center;font-size:32px;line-height:1;padding:0 0 3px}
-.cx-sp .cx-lp-a .circ:disabled{border-color:#c9ced6;color:#c9ced6}
-.cx-lp-a input{width:100px;height:46px;border:0;border-bottom:1px solid #999;outline:0;text-align:center;font-size:21px;background:transparent;color:inherit}
-.cx-lp-t{margin:0 14px 14px;border-radius:14px;background:#fff;padding:26px 16px 22px}
-.cx-lp-t>p{margin:0 0 22px;padding:0 0 22px;font-size:20px;border-bottom:1px solid #9aa0ad}
-.cx-lp-ups{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.cx-lp-up{text-align:center;font-size:19px;line-height:1.15;word-break:break-word}
-.cx-lp-up label{display:grid;place-items:center;width:100%;aspect-ratio:1/1;max-width:112px;margin:0 auto 14px;background:#e0e1ea center/cover no-repeat;cursor:pointer;color:#111}
+/* ---- tabs (pill) ---- */
+.cx-sp .cx-ln-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:12px 14px 0;padding:4px;border-radius:14px;background:var(--l-soft);border:1px solid var(--l-ln)}
+.cx-sp .cx-ln-tabs button{height:38px;border-radius:11px;text-align:center;font-size:13.5px;font-weight:500;color:var(--l-mu);transition:all .2s ease}
+.cx-sp .cx-ln-tabs button.on{background:var(--l-card);color:var(--l-tx);font-weight:600;box-shadow:0 4px 12px -6px rgba(20,40,80,.35)}
+
+.cx-ln-body{padding:12px 14px 0}
+
+/* ---- filter select ---- */
+.cx-sp .cx-ln-sel{display:flex;align-items:center;justify-content:space-between;width:100%;height:44px;padding:0 26px 0 14px;margin-bottom:12px;border-radius:12px;background:var(--l-card);border:1px solid var(--l-ln);font-size:13.5px;font-weight:500;color:var(--l-tx);box-shadow:var(--l-sh)}
+
+/* ---- cards ---- */
+.cx-ln-card{position:relative;overflow:hidden;background:var(--l-card);border:1px solid var(--l-ln);border-radius:16px;padding:14px 16px 14px;margin-bottom:12px;box-shadow:var(--l-sh);color:var(--l-tx);font-size:13px}
+.cx-ln-card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:3px;border-radius:0 3px 3px 0;background:linear-gradient(180deg,var(--l-ac2),var(--l-ac))}
+.cx-ln-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:10px;margin-bottom:4px;border-bottom:1px dashed var(--l-ln)}
+.cx-ln-head b{min-width:0;font-size:14px;font-weight:700;letter-spacing:-.1px;line-height:1.3;word-break:break-word}
+.cx-ln-pill{flex:none;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.cx-ln-card .r{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:6px 0;font-size:12.5px;line-height:1.35}
+.cx-ln-card .r span{color:var(--l-mu);flex:none}
+.cx-ln-card .r b{font-weight:600;text-align:end;word-break:break-word;font-variant-numeric:tabular-nums}
+.cx-ln-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding:10px 12px;border-radius:12px;background:var(--l-soft)}
+.cx-ln-foot .tot{font-size:12.5px;color:var(--l-mu);line-height:1.35}
+.cx-ln-foot .tot b{display:block;margin-top:2px;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.cx-ln-foot .tot b em{font-style:normal;font-size:11px;font-weight:500;margin-inline-start:4px}
+.cx-sp .cx-ln-foot button{padding:7px 16px;border-radius:20px;border:1px solid var(--l-ac);color:var(--l-ac);font-size:12.5px;font-weight:600}
+.cx-sp .cx-ln-foot button:active{background:var(--l-ac);color:#fff}
+.cx-ln-end{padding:14px 0 26px;text-align:center;color:var(--l-mu);font-size:12px}
+.cx-ln-none{padding:36px 0;text-align:center;color:var(--l-mu);font-size:13px}
+
+/* ---- product card ---- */
+.cx-ln-prod .rate{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:2px 0 8px}
+.cx-ln-prod .rate div{font-size:11.5px;color:var(--l-mu)}
+.cx-ln-prod .rate div b{display:block;margin-top:2px;font-size:22px;font-weight:700;letter-spacing:-.3px;color:var(--l-gr);font-variant-numeric:tabular-nums}
+.cx-ln-prod .rate .chip{padding:5px 12px;border-radius:20px;background:var(--l-soft);color:var(--l-ac);font-size:12px;font-weight:600}
+.cx-sp .cx-ln-prod .go{width:100%;height:42px;margin-top:10px;border-radius:12px;background:linear-gradient(135deg,var(--l-ac2),var(--l-ac));color:#fff;font-size:14px;font-weight:600;text-align:center;box-shadow:0 8px 18px -10px var(--l-ac)}
+.cx-sp .cx-ln-prod .go:active{transform:scale(.98)}
+
+/* ---- apply page ---- */
+.cx-lp-h{display:flex;align-items:center;gap:12px;margin:12px 14px;padding:14px 16px;border-radius:16px;background:var(--l-card);border:1px solid var(--l-ln);box-shadow:var(--l-sh);color:var(--l-tx);font-size:15px;font-weight:700;line-height:1.3}
+.cx-lp-h svg{flex:none}
+.cx-lp-c{margin:0 14px 12px;border-radius:16px;background:var(--l-card);border:1px solid var(--l-ln);box-shadow:var(--l-sh);padding:8px 16px 16px;color:var(--l-tx)}
+.cx-lp-c .r{display:flex;justify-content:space-between;gap:12px;padding:10px 0;font-size:13px;line-height:1.35;border-bottom:1px dashed var(--l-ln)}
+.cx-lp-c .r span{color:var(--l-mu)}
+.cx-lp-c .r b{font-weight:600;text-align:end;font-variant-numeric:tabular-nums}
+.cx-lp-m{display:flex;justify-content:space-between;align-items:center;padding:10px 0;font-size:13px}
+.cx-lp-m span:first-child{color:var(--l-mu)}
+.cx-lp-m span:last-child{font-weight:600}
+.cx-lp-a{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:6px;padding:12px;border-radius:14px;background:var(--l-soft);font-size:13px}
+.cx-lp-a>span{color:var(--l-mu);line-height:1.3}
+.cx-lp-a .ctl{display:flex;align-items:center;gap:6px}
+.cx-sp .cx-lp-a .circ{width:34px;height:34px;border-radius:50%;border:1px solid var(--l-ln);background:var(--l-card);color:var(--l-tx);display:grid;place-items:center;font-size:20px;line-height:1;padding:0 0 2px}
+.cx-sp .cx-lp-a .circ:active{background:var(--l-ac);color:#fff}
+.cx-sp .cx-lp-a .circ:disabled{opacity:.4}
+.cx-lp-a input{width:84px;height:34px;border:0;border-bottom:1.5px solid var(--l-ac);outline:0;text-align:center;font-size:15px;font-weight:600;background:transparent;color:var(--l-tx)}
+.cx-lp-t{margin:0 14px 12px;border-radius:16px;background:var(--l-card);border:1px solid var(--l-ln);box-shadow:var(--l-sh);padding:16px 14px;color:var(--l-tx)}
+.cx-lp-t>p{margin:0 0 14px;font-size:13px;font-weight:600;line-height:1.35}
+.cx-lp-ups{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.cx-lp-up{text-align:center;font-size:11.5px;line-height:1.25;color:var(--l-mu);word-break:break-word}
+.cx-lp-up label{display:grid;place-items:center;width:100%;aspect-ratio:1/1;margin:0 auto 8px;border-radius:14px;border:1.5px dashed var(--l-ac);background:var(--l-soft) center/cover no-repeat;cursor:pointer;color:var(--l-ac)}
 .cx-lp-up input{display:none}
-.cx-lp-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid #e7e9ef}
-.cx-lp-bar .am{font-size:24px}
-.cx-lp-bar .am b{font-weight:400;color:#d84d5a;font-size:32px}
-.cx-sp .cx-lp-bar .ap{height:62px;padding:0 44px;border-radius:12px;background:#d84d5a;color:#fff;font-size:20px;text-align:center}
+.cx-lp-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:520px;z-index:60;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--l-card);color:var(--l-tx);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--l-ln);box-shadow:0 -10px 24px -18px rgba(20,40,80,.4)}
+.cx-lp-bar .am{font-size:12.5px;color:var(--l-mu);line-height:1.2}
+.cx-lp-bar .am b{display:block;margin-top:2px;font-weight:700;color:var(--l-rd);font-size:20px;font-variant-numeric:tabular-nums}
+.cx-sp .cx-lp-bar .ap{height:46px;padding:0 30px;border-radius:12px;background:linear-gradient(135deg,#ee6a75,var(--l-rd));color:#fff;font-size:14.5px;font-weight:600;text-align:center;box-shadow:0 8px 18px -10px var(--l-rd)}
 .cx-sp .cx-lp-bar .ap:disabled{opacity:.6}
 @media(min-width:768px){.cx-lp-bar{max-width:900px}}
-@media(max-width:380px){.cx-lp-h{font-size:21px}.cx-lp-bar .am{font-size:18px}.cx-lp-bar .am b{font-size:24px}.cx-sp .cx-lp-bar .ap{padding:0 22px}}
-
-.cx.dark .cx-sp .cx-ln-tabs,.cx.dark .cx-sp .cx-ln-sel,.cx.dark .cx-sp .cx-ln-card,.cx.dark .cx-sp .cx-ln-end,.cx.dark .cx-sp .cx-lp-h,.cx.dark .cx-sp .cx-lp-c,.cx.dark .cx-sp .cx-lp-t,.cx.dark .cx-sp .cx-lp-bar{background:#17263d;border-color:#22304a}
-.cx.dark .cx-sp .cx-ln-tabs button.on,.cx.dark .cx-sp .cx-lp-up label{color:#e8ecf3}
-.cx.dark .cx-sp .cx-lp-up label{background-color:#22304a}
+@media(max-width:360px){.cx-ln-card .r,.cx-lp-c .r{font-size:12px}.cx-sp .cx-lp-bar .ap{padding:0 20px}}
 `;
 
 export default function Loans({ W, go }) {
@@ -234,12 +260,12 @@ export default function Loans({ W, go }) {
     const inc = () => setAmount((a) => Math.min(sel.max, a + step));
     const slots = [["front", tt("upFront", "Upload ID front")], ["back", tt("upBack", "Upload ID back")], ["hold", tt("upHold", "Upload ID with holder")]];
     return (
-      <div className="cx-sp" style={{ paddingBottom: 110 }}>
+      <div className="cx-sp" style={{ paddingBottom: 90 }}>
         <style>{SUB_CSS + CSS}</style>
         <TopBar title={tt("applyLoan", "Apply for Loan")} onBack={() => setSel(null)} />
 
         <div className="cx-lp-h">
-          <svg width="46" height="46" viewBox="0 0 24 24">
+          <svg width="34" height="34" viewBox="0 0 24 24">
             <path d="M12 2l9 4.5-9 4.5-9-4.5z" fill="#2f6df6" />
             <path d="M3 11l9 4.5 9-4.5" fill="none" stroke="#2f6df6" strokeWidth="2.2" strokeLinejoin="round" />
             <path d="M3 15.5L12 20l9-4.5" fill="none" stroke="#2f6df6" strokeWidth="2.2" strokeLinejoin="round" />
@@ -248,10 +274,10 @@ export default function Loans({ W, go }) {
         </div>
 
         <div className="cx-lp-c">
-          <div className="r">{tt("lendInst", "Lending Institution")} : {sel.inst}</div>
-          <div className="r">{tt("dailyRate", "Daily Interest Rate")} : {sel.rate.toFixed(4)} %</div>
-          <div className="r">{tt("period", "Repayment Period")} : {sel.days} {tt("day", "Day")}</div>
-          <div className="r">{tt("amount", "Amount")} : {f2(sel.min)} - {f2(sel.max)}</div>
+          <div className="r"><span>{tt("lendInst", "Lending Institution")}</span><b>{sel.inst}</b></div>
+          <div className="r"><span>{tt("dailyRate", "Daily Interest Rate")}</span><b>{sel.rate.toFixed(4)} %</b></div>
+          <div className="r"><span>{tt("period", "Repayment Period")}</span><b>{sel.days} {tt("day", "Day")}</b></div>
+          <div className="r"><span>{tt("amount", "Amount")}</span><b>{f2(sel.min)} - {f2(sel.max)}</b></div>
           <div className="cx-lp-m"><span>{tt("repayMethod", "Repayment Method")}</span><span>{tt("oneTime", "One-time")}</span></div>
           <div className="cx-lp-a">
             <span>{tt("expAmount", "Expected Loan Amount")}</span>
@@ -268,10 +294,10 @@ export default function Loans({ W, go }) {
           <div className="cx-lp-ups">
             {slots.map(([k, label]) => (
               <div key={k} className="cx-lp-up">
-                <label style={imgs[k] ? { backgroundImage: `url(${imgs[k]})` } : undefined}>
+                <label style={imgs[k] ? { backgroundImage: `url(${imgs[k]})`, borderStyle: "solid" } : undefined}>
                   <input type="file" accept="image/*" onChange={(e) => { pickImg(k, e.target.files && e.target.files[0]); e.target.value = ""; }} />
                   {!imgs[k] && (
-                    <svg width="34" height="34" viewBox="0 0 24 24" fill="#111">
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M9 3L7.2 5H4a2 2 0 00-2 2v11a2 2 0 002 2h16a2 2 0 002-2V7a2 2 0 00-2-2h-3.2L15 3H9zm3 6a4.5 4.5 0 110 9 4.5 4.5 0 010-9zm0 2a2.5 2.5 0 100 5 2.5 2.5 0 000-5z" />
                     </svg>
                   )}
@@ -283,7 +309,7 @@ export default function Loans({ W, go }) {
         </div>
 
         <div className="cx-lp-bar">
-          <span className="am">{tt("amount", "Amount")} : <b>{f2(amount)}</b></span>
+          <span className="am">{tt("amount", "Amount")}<b>{f2(amount)}</b></span>
           <button type="button" className="ap" disabled={busy} onClick={submit}>{tt("applyLoan", "Apply for Loan")}</button>
         </div>
 
@@ -318,23 +344,23 @@ export default function Loans({ W, go }) {
               const showPaid = o.status === "applying" || o.status === "approved" || o.status === "repaid";
               return (
                 <div key={o.id} className="cx-ln-card">
-                  <div className="r">{o.name}</div>
-                  <div className="r">{tt("orderNo", "Order No.")} : {o.no}</div>
-                  <div className="r">{tt("amount", "Amount")} : {f2(o.amount)}</div>
-                  <div className="r">{tt("totInterest", "Total Interest")} : {f2(o.interest)}</div>
-                  <div className="r">{tt("repayDate", "Repayment Date")} : {o.date || "--"}</div>
+                  <div className="cx-ln-head">
+                    <b>{o.name}</b>
+                    <span className="cx-ln-pill" style={{ color: st.color, background: st.color + "1f" }}>{tt("st_" + o.status, st.label)}</span>
+                  </div>
+                  <div className="r"><span>{tt("orderNo", "Order No.")}</span><b>{o.no}</b></div>
+                  <div className="r"><span>{tt("amount", "Amount")}</span><b>{f2(o.amount)}</b></div>
+                  <div className="r"><span>{tt("totInterest", "Total Interest")}</span><b>{f2(o.interest)}</b></div>
+                  <div className="r"><span>{tt("repayDate", "Repayment Date")}</span><b>{o.date || "--"}</b></div>
                   <div className="cx-ln-foot">
                     <span className="tot">
-                      {tt("total", "Total")} :{" "}
-                      <b style={{ color: o.paid ? "#00c087" : "#d84d5a" }}>
+                      {tt("total", "Total")}
+                      <b style={{ color: o.paid ? "#00a97a" : "#d84d5a" }}>
                         {f2(o.total)}
-                        {showPaid ? ` ( ${o.paid ? tt("paidBack", "Paid back") : tt("notPaid", "Not paid back")} )` : ""}
+                        {showPaid && <em>{o.paid ? tt("paidBack", "Paid back") : tt("notPaid", "Not paid back")}</em>}
                       </b>
                     </span>
-                    <span className="cx-ln-acts">
-                      <span style={{ color: st.color }}>{tt("st_" + o.status, st.label)}</span>
-                      {o.status === "applying" && <button type="button" onClick={() => cancelOrder(o)}>{tt("cancel", "Cancel")}</button>}
-                    </span>
+                    {o.status === "applying" && <button type="button" onClick={() => cancelOrder(o)}>{tt("cancel", "Cancel")}</button>}
                   </div>
                 </div>
               );
@@ -346,11 +372,14 @@ export default function Loans({ W, go }) {
 
         {tab === "products" && products.map((p) => (
           <div key={p.id} className="cx-ln-card cx-ln-prod">
-            <div className="r">{p.name}</div>
-            <div className="r">{tt("lendInst", "Lending Institution")} : {p.inst}</div>
-            <div className="r">{tt("amount", "Amount")} : {f2(p.min)} - {f2(p.max)}</div>
-            <div className="r">{tt("dailyRate", "Daily Interest Rate")} : {p.rate.toFixed(4)} %</div>
-            <div className="r">{tt("period", "Repayment Period")} : {p.days} {tt("day", "Day")}</div>
+            <div className="cx-ln-head"><b>{p.name}</b></div>
+            <div className="rate">
+              <div>{tt("dailyRate", "Daily Interest Rate")}<b>{p.rate.toFixed(4)} %</b></div>
+              <span className="chip">{p.days} {tt("day", "Day")}</span>
+            </div>
+            <div className="r"><span>{tt("lendInst", "Lending Institution")}</span><b>{p.inst}</b></div>
+            <div className="r"><span>{tt("amount", "Amount")}</span><b>{f2(p.min)} - {f2(p.max)}</b></div>
+            <div className="r"><span>{tt("period", "Repayment Period")}</span><b>{p.days} {tt("day", "Day")}</b></div>
             <button type="button" className="go" onClick={() => openApply(p)}>{tt("applyLoan", "Apply for Loan")}</button>
           </div>
         ))}
@@ -362,4 +391,3 @@ export default function Loans({ W, go }) {
     </div>
   );
 }
-
