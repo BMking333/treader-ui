@@ -138,8 +138,6 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
     notify(t("copied"));
   };
 
-  const soon = () => notify(t("soon"));
-
   const goChangePassword = () => {
     onClose();
     if (!me) return askLogin("login", "needLogin");
@@ -165,7 +163,7 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
     ["bell", t("smsg"), "", "", () => notify(t("nomsg"))],
     ["moon", t("night"), "switch", "", () => setDark(!dark)],
     ["lock", tx("chpwd", "Change password"), "", "", goChangePassword],
-    ["globe", t("web"), "", "", soon],
+    ["globe", t("web"), "", "", () => { onClose(); go("introduction"); }],
   ];
 
   return (
