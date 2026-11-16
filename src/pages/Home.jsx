@@ -536,16 +536,14 @@ const HM_CSS = `
 .hm .num{font-variant-numeric:tabular-nums}
 
 /* banner (swipe) */
-.hm-bn{position:relative;margin:12px 12px 0;border-radius:14px;overflow:hidden;background:var(--card);aspect-ratio:2.15/1;
-  touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+.hm-bn{position:relative;width:100%;margin:0;border-radius:0;overflow:hidden;background:var(--card);
+  touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;transition:height .3s ease}
 .hm-bn:active{cursor:grabbing}
-.hm-sl{display:flex;height:100%;width:100%;will-change:transform}
-.hm-sl img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none;display:block}
-.hm-bn::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,.32),rgba(0,0,0,0))}
-.hm-dots{position:absolute;left:0;right:0;bottom:10px;z-index:2;display:flex;justify-content:center;gap:6px}
-.hm-dots i{display:block;width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.5);transition:width .28s ease,background .28s ease}
-.hm-dots i.on{width:18px;background:#fff}
+.hm-sl{display:flex;align-items:flex-start;width:100%;will-change:transform}
+.hm-sl img{flex:0 0 100%;width:100%;height:auto;pointer-events:none;-webkit-user-drag:none;display:block}
+.hm-dots{display:flex;justify-content:center;gap:6px;padding:10px 0 0}
+.hm-dots i{display:block;width:6px;height:6px;border-radius:3px;background:rgba(138,150,172,.45);transition:width .28s ease,background .28s ease}
+.hm-dots i.on{width:18px;background:var(--ac)}
 
 /* ticker */
 .hm-tk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 12px 0}
@@ -558,12 +556,12 @@ const HM_CSS = `
 
 /* quick menu */
 .hm-gr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
-.hm-gr button{display:flex;align-items:center;gap:12px;height:58px;padding:0 14px;min-width:0;text-align:left;
+.hm-gr button{display:flex;align-items:center;gap:10px;min-height:58px;padding:8px 12px;min-width:0;text-align:left;
   background:var(--card);border:1px solid var(--ln);border-radius:12px;color:var(--tx);font-size:14.5px;font-weight:500;letter-spacing:.1px;
   transition:transform .12s ease,background .15s ease}
 .hm-gr button:active{transform:scale(.975)}
 .hm-gr .ic{display:flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:10px;background:var(--acbg);color:var(--ac)}
-.hm-gr .tx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-gr .tx{flex:1;min-width:0;white-space:normal;overflow-wrap:break-word;line-height:1.25}
 
 /* list */
 .hm-h{margin:8px 16px 6px;font-size:18px;font-weight:600;letter-spacing:-.1px}
@@ -603,6 +601,19 @@ function Banner({ items }) {
   const [drag, setDrag] = useState(false);
   const box = useRef(null);
   const g = useRef({ on: false, x: 0, t: 0, raw: 0, lock: false });
+  const [w, setW] = useState(0);
+  const [rt, setRt] = useState({}); /* প্রতিটি ছবির অনুপাত (width/height) — যাতে কিছুই কাটা না পড়ে */
+
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver(() => setW(el.offsetWidth));
+    ro.observe(el);
+    setW(el.offsetWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const hgt = w && rt[i] ? Math.round(w / rt[i]) : undefined;
 
   useEffect(() => {
     if (drag || n < 2) return undefined;
@@ -646,25 +657,38 @@ function Banner({ items }) {
   };
 
   return (
-    <div
-      className="hm-bn"
-      ref={box}
-      onPointerDown={down}
-      onPointerMove={move}
-      onPointerUp={up}
-      onPointerCancel={up}
-      onDragStart={(e) => e.preventDefault()}
-    >
+    <>
       <div
-        className="hm-sl"
-        style={{
-          transform: `translate3d(calc(${-i * 100}% + ${dx}px),0,0)`,
-          transition: drag ? "none" : "transform .42s cubic-bezier(.22,.8,.25,1)",
-        }}
+        className="hm-bn"
+        ref={box}
+        style={hgt ? { height: hgt } : undefined}
+        onPointerDown={down}
+        onPointerMove={move}
+        onPointerUp={up}
+        onPointerCancel={up}
+        onDragStart={(e) => e.preventDefault()}
       >
-        {items.map((b, k) => (
-          <img key={k} src={b} alt="" draggable="false" />
-        ))}
+        <div
+          className="hm-sl"
+          style={{
+            transform: `translate3d(calc(${-i * 100}% + ${dx}px),0,0)`,
+            transition: drag ? "none" : "transform .42s cubic-bezier(.22,.8,.25,1)",
+          }}
+        >
+          {items.map((b, k) => (
+            <img
+              key={k}
+              src={b}
+              alt=""
+              draggable="false"
+              onLoad={(e) => {
+                const a = e.currentTarget.naturalWidth;
+                const h = e.currentTarget.naturalHeight;
+                if (a && h) setRt((o) => (o[k] === a / h ? o : { ...o, [k]: a / h }));
+              }}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="hm-dots">
@@ -672,7 +696,7 @@ function Banner({ items }) {
           <i key={d} className={d === i ? "on" : ""} />
         ))}
       </div>
-    </div>
+    </>
   );
 }
 
