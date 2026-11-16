@@ -44,9 +44,12 @@ const CSS = `
 
 /* inputs */
 .wd-in{display:flex;align-items:center;gap:8px;height:50px;padding:0 8px 0 14px;border-radius:12px;background:var(--w-soft);border:1.5px solid var(--w-bd);transition:border-color .2s,box-shadow .2s}
-.wd-in:focus-within{border-color:var(--w-ink);box-shadow:0 0 0 3px rgba(128,138,155,.2)}
-.wd-in input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0;outline:0;background:transparent;color:var(--w-tx);font-size:14.5px;font-weight:500;line-height:50px}
-.wd-in input::placeholder{color:var(--w-mu);font-weight:400}
+.wd-in:focus-within{border-color:var(--w-ink);box-shadow:none}
+.wd .wd-in input{flex:1;min-width:0;height:100%;margin:0;padding:0;border:0!important;border-radius:0!important;outline:0!important;box-shadow:none!important;
+  -webkit-appearance:none;appearance:none;background:transparent!important;color:var(--w-tx);caret-color:var(--w-tx);font-size:14.5px;font-weight:500;line-height:normal}
+.wd .wd-in input:focus,.wd .wd-in input:focus-visible,.wd .wd-in input:active{border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important}
+.wd .wd-in input::placeholder{color:var(--w-mu);font-weight:400}
+.wd .wd-in input:-webkit-autofill{-webkit-box-shadow:0 0 0 40px var(--w-soft) inset!important;-webkit-text-fill-color:var(--w-tx)!important}
 .wd-in b{display:flex;align-items:center;font-size:13px;font-weight:700;color:var(--w-tx);padding-inline-end:4px}
 .wd .wd-in .all{display:flex!important;align-items:center!important;justify-content:center!important;text-align:center!important;
   height:34px;padding:0 14px!important;border-radius:9px!important;border:1px solid var(--w-bd)!important;
