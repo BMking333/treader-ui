@@ -10,10 +10,11 @@ import Options from "./options";
 import Swap from "./exchange";
 import Loans from "./loans";
 import ChangeMoney from "./changemoney";
+import TradeAccount from "./TradeAccount";
 
 /* =====================================================================
    src/pages/Dashboard.jsx — লগইনের পরের মূল অ্যাপ (ডেটা লোড + পেজ রাউটিং)
-   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication  /exchangeb  /loans  /changemoney
+   URL ↔ page: /  /market  /trade?s=BTC  /options?s=BTC  /assets  /deposit  /withdraw  /real-authentication  /exchangeb  /loans  /changemoney  /trade-account?coin=USDT&acc=funds
 
    আপডেট:
    - Market পেজে কোনো কয়েনে ক্লিক করলে Options পেজ খুলবে (ওই কয়েন সহ)
@@ -21,10 +22,11 @@ import ChangeMoney from "./changemoney";
    - নিচের নেভিগেশন বার ছোট ও প্রিমিয়াম (আইকন 22px, লেখা 11px, স্মুথ ফন্ট)
    ===================================================================== */
 
-const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney" };
+const PATHS = { home: "/", market: "/market", exchange: "/trade", options: "/options", assets: "/assets", deposit: "/deposit", withdraw: "/withdraw", auth: "/real-authentication", exchangeb: "/exchangeb", loans: "/loans", changemoney: "/changemoney", tradeaccount: "/trade-account" };
 /* এই পেজগুলোতে নিচের নেভিগেশন বার লুকানো থাকে (স্ক্রিনশটের মতো) */
-const HIDE_NAV = ["exchangeb", "loans", "changemoney"];
+const HIDE_NAV = ["exchangeb", "loans", "changemoney", "tradeaccount"];
 const HAS_SYM = ["exchange", "options"];
+const TA_COINS = ["USDT", "USDC", "PYUSD", "ETH", "BTC", "DOGE", "XRP", "SOL"];
 /* Options পেজ এখন লাইট থিম (নিজের ব্যাকগ্রাউন্ড আছে), তাই এখানে আর ডার্ক নয় */
 const DARK_PAGES = ["auth"];
 
@@ -53,13 +55,25 @@ nav.cx-nav > button:active{opacity:.65}
 @media(prefers-reduced-motion:reduce){nav.cx-nav > button,nav.cx-nav > button svg{transition:none!important}}
 `;
 
-const urlFor = (page, sym) => PATHS[page] + (HAS_SYM.includes(page) ? "?s=" + sym : "");
+const urlFor = (page, sym, ta) =>
+  PATHS[page] +
+  (HAS_SYM.includes(page)
+    ? "?s=" + sym
+    : page === "tradeaccount"
+      ? "?coin=" + ((ta && ta.coin) || "USDT") + "&acc=" + ((ta && ta.acc) || "funds")
+      : "");
 
 const fromLoc = () => {
   const p = window.location.pathname.replace(/\/+$/, "") || "/";
   const page = Object.keys(PATHS).find((k) => PATHS[k] === p) || "home";
   const s = (new URLSearchParams(window.location.search).get("s") || "").toUpperCase();
-  return { page, sym: COINS.includes(s) ? s : "BTC" };
+  const qs = new URLSearchParams(window.location.search);
+  const tc = (qs.get("coin") || "").toUpperCase();
+  const ta = {
+    coin: TA_COINS.includes(tc) || COINS.includes(tc) ? tc : "USDT",
+    acc: qs.get("acc") === "options" ? "options" : "funds",
+  };
+  return { page, sym: COINS.includes(s) ? s : "BTC", ta };
 };
 
 const pushUrl = (url) => { if (url !== window.location.pathname + window.location.search) window.history.pushState(null, "", url); };
@@ -73,6 +87,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   const [pos, setPos] = useState([]), [orders, setOrders] = useState([]), [txs, setTxs] = useState([]), [spot, setSpot] = useState([]), [toast, setToast] = useState("");
   const notify = (m, ms = 3000) => { setToast(m); setTimeout(() => setToast(""), ms); };
   const [page, setPage] = useState(() => fromLoc().page), [sym, setSym] = useState(() => fromLoc().sym);
+  const [ta, setTa] = useState(() => fromLoc().ta);
   const ref = useRef({});
   ref.current = { t, pos, page };
   const prevOpen = useRef(null);
@@ -131,13 +146,13 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   }, []); // eslint-disable-line
 
   /* প্রথম লোডে ভুল/অচেনা URL হলে ঠিক URL বসায় */
-  useEffect(() => { replaceUrl(urlFor(page, sym)); }, []); // eslint-disable-line
+  useEffect(() => { replaceUrl(urlFor(page, sym, ta)); }, []); // eslint-disable-line
 
   /* ব্রাউজারের Back / Forward */
   useEffect(() => {
     const onPop = () => {
       const l = fromLoc();
-      setPage(l.page); setSym(l.sym);
+      setPage(l.page); setSym(l.sym); setTa(l.ta);
       window.scrollTo(0, 0);
     };
     window.addEventListener("popstate", onPop);
@@ -145,11 +160,20 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
   }, []);
 
   /* পেজ বদল → state + URL দুটোই */
-  const go = (p, s) => {
+  /* go(page, sym)  |  go("tradeaccount", coin, "funds" | "options") */
+  const go = (p, s, a) => {
+    if (p === "tradeaccount") {
+      const nt = { coin: String(s || "USDT").toUpperCase(), acc: a === "options" ? "options" : "funds" };
+      setTa(nt);
+      setPage(p);
+      pushUrl(urlFor(p, sym, nt));
+      window.scrollTo(0, 0);
+      return;
+    }
     const ns = s || sym;
     if (s) setSym(s);
     setPage(p);
-    pushUrl(urlFor(p, ns));
+    pushUrl(urlFor(p, ns, ta));
     window.scrollTo(0, 0);
   };
 
@@ -175,6 +199,7 @@ export default function Dashboard({ me0, logout, askLogin, lang, setLang, dark, 
         {page === "exchangeb" && <Swap W={W} go={go} />}
         {page === "loans" && <Loans W={W} go={go} />}
         {page === "changemoney" && <ChangeMoney W={W} go={go} />}
+        {page === "tradeaccount" && <TradeAccount P={P} W={W} go={go} coin={ta.coin} acc={ta.acc} />}
       </div>
       <SideMenu open={menu} onClose={() => setMenu(false)} me={authed ? me : null} logout={logout} dark={dark} setDark={setDark} go={go} notify={notify} guest={!authed} askLogin={askLogin} />
       {toast && <div className="cx-toast">{toast}</div>}
