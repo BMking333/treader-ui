@@ -143,6 +143,10 @@ const CSS = `
 .ao-none{text-align:center;color:#9aa0ad;padding:30px}
 .ao-note{margin-top:8px;font-size:12px;color:#8a94a6;line-height:1.5}
 .ao-actions{display:flex;gap:6px;flex-wrap:wrap}
+.ao-adj{display:flex;flex-direction:column;gap:4px;min-width:200px}
+.ao-adj input{height:30px;padding:0 8px;border:1px solid #cfd3d9;border-radius:6px;font:inherit;background:#fff}
+.ao-adj small{white-space:normal;font-size:12px;color:#6b7183}
+.ao-adj small.bad{color:#c8323f}
 .ao-modal-bg{position:fixed;inset:0;background:#0008;z-index:9999;display:flex;align-items:center;justify-content:center;padding:15px}
 .ao-modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 15px 50px #0003}
 .ao-modal h3{margin:0 0 14px;font-size:18px}
@@ -152,11 +156,6 @@ const CSS = `
 .ao-modal .full{grid-column:1/-1}
 .ao-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
 .ao-pill{font-size:11px;border-radius:20px;padding:4px 8px;background:#edf1f7;color:#536174}
-.ao-prev{margin-top:12px;border:1px solid #e4e7ec;border-radius:10px;overflow:hidden}
-.ao-prev div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:13px;border-top:1px solid #eef0f3}
-.ao-prev div:first-child{border-top:0}
-.ao-prev span{color:#6b7183}
-.ao-warn{margin-top:10px;padding:8px 12px;border-radius:8px;background:#fff6e5;color:#8a5a00;font-size:12px;line-height:1.5}
 @media(max-width:550px){
   .ao{padding:12px}
   .ao-nav button{min-width:110px}
@@ -193,12 +192,22 @@ export default function AdminOptions({ me, go, logout }) {
     amount: "",
     reason: "",
   });
+
+  // Used only by the open-trade settlement modal
   const [pnlForm, setPnlForm] = useState({
     pnl: "",
-    adjustment: "",
     close_price: "",
     reason: "",
   });
+
+  // Per-trade closed P&L adjustment inputs: { [tradeId]: { adj, reason } }
+  const [rowAdj, setRowAdj] = useState({});
+
+  const setRow = (id, patch) =>
+    setRowAdj((s) => ({
+      ...s,
+      [id]: { adj: "", reason: "", ...s[id], ...patch },
+    }));
 
   const adminLabel =
     me?.full_name ||
@@ -513,7 +522,7 @@ export default function AdminOptions({ me, go, logout }) {
 
   /* -------------------------
      Closed Trade P&L Adjustment
-     (every trade is independent)
+     Every trade has its OWN input / preview / Apply button.
 
      new P&L = old P&L + adjustment
      + adjustment  -> available wallet +
@@ -522,39 +531,20 @@ export default function AdminOptions({ me, go, logout }) {
      insufficient  -> rejected, nothing changes
      ------------------------- */
 
-  const openPnlModal = (x) => {
-    setPnlForm({
-      pnl: "",
-      adjustment: "",
-      close_price: "",
-      reason: "",
-    });
-
-    setModal({
-      type: "pnl",
-      trade: x,
-    });
-  };
-
-  // Live preview numbers for the P&L modal
-  const pnlPreview = (() => {
-    if (modal?.type !== "pnl") return null;
-
-    const raw = pnlForm.adjustment.trim();
+  const previewOf = (x) => {
+    const raw = (rowAdj[x.id]?.adj || "").trim();
     const valid = DEC8.test(raw) && Number(raw) !== 0;
     const adj = valid ? Number(raw) : 0;
-    const oldPnl = Number(modal.trade.pnl || 0);
+    const oldPnl = Number(x.pnl || 0);
     const newPnl = oldPnl + adj;
-    const tooLow = valid && newPnl < -Number(modal.trade.qty);
+    const tooLow = valid && newPnl < -Number(x.qty);
 
     return { raw, valid, adj, oldPnl, newPnl, tooLow };
-  })();
+  };
 
-  const submitPnl = () => {
-    if (!modal?.trade || !pnlPreview) return;
-
-    const { raw, valid, adj, oldPnl, newPnl, tooLow } = pnlPreview;
-    const x = modal.trade;
+  const submitRowPnl = (x) => {
+    const { raw, valid, adj, oldPnl, newPnl, tooLow } = previewOf(x);
+    const reason = (rowAdj[x.id]?.reason || "").trim();
 
     if (!valid) {
       setErr(
@@ -587,11 +577,17 @@ export default function AdminOptions({ me, go, logout }) {
         method: "POST",
         body: {
           adjustment: raw,
-          reason: pnlForm.reason.trim() || null,
+          reason: reason || null,
         },
       });
 
-      setModal(null);
+      // clear only this trade's inputs
+      setRowAdj((s) => {
+        const c = { ...s };
+        delete c[x.id];
+        return c;
+      });
+
       setSuccess(
         `Trade #${x.id} P&L: ${n8(r?.old_pnl ?? oldPnl)} → ${n8(r?.new_pnl ?? newPnl)} USDT. ` +
           `Wallet ${credit ? "credit" : "debit"}: ${n8(Math.abs(adj))} USDT.` +
@@ -610,7 +606,6 @@ export default function AdminOptions({ me, go, logout }) {
   const openSettlementModal = (x) => {
     setPnlForm({
       pnl: "",
-      adjustment: "",
       close_price: "",
       reason: "",
     });
@@ -1022,6 +1017,7 @@ export default function AdminOptions({ me, go, logout }) {
                 <th>Rule</th>
                 <th>Time</th>
                 <th>Status</th>
+                <th>Closed P&amp;L ± (this trade)</th>
                 <th>Admin actions</th>
               </tr>
             </thead>
@@ -1029,7 +1025,7 @@ export default function AdminOptions({ me, go, logout }) {
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={14} className="ao-none">No trades</td>
+                  <td colSpan={15} className="ao-none">No trades</td>
                 </tr>
               )}
 
@@ -1073,6 +1069,47 @@ export default function AdminOptions({ me, go, logout }) {
                       </>
                     )}
                   </td>
+
+                  {/* Separate P&L +/- cell for THIS trade only */}
+                  <td>
+                    {x.status === "closed" ? (() => {
+                      const pv = previewOf(x);
+                      const cur = rowAdj[x.id] || { adj: "", reason: "" };
+
+                      return (
+                        <div className="ao-adj">
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            placeholder="+5 or -3.5"
+                            value={cur.adj}
+                            onChange={(e) => setRow(x.id, { adj: e.target.value })}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Reason (optional)"
+                            value={cur.reason}
+                            onChange={(e) => setRow(x.id, { reason: e.target.value })}
+                          />
+                          {pv.valid && (
+                            <small className={pv.tooLow ? "bad" : ""}>
+                              {n8(pv.oldPnl)} → <b>{n8(pv.newPnl)}</b>
+                              {pv.tooLow ? " (below -stake!)" : ""}
+                            </small>
+                          )}
+                          <button
+                            type="button"
+                            className="ao-btn pri sm"
+                            disabled={busy || !pv.valid || pv.tooLow}
+                            onClick={() => submitRowPnl(x)}
+                          >
+                            Apply to #{x.id}
+                          </button>
+                        </div>
+                      );
+                    })() : "--"}
+                  </td>
+
                   <td>
                     <div className="ao-actions">
                       {x.status === "open" && (
@@ -1094,18 +1131,6 @@ export default function AdminOptions({ me, go, logout }) {
                             Settle
                           </button>
                         </>
-                      )}
-
-                      {x.status === "closed" && (
-                        <button
-                          type="button"
-                          className="ao-btn sm"
-                          disabled={busy}
-                          title={`Adjust P&L of trade #${x.id} only`}
-                          onClick={() => openPnlModal(x)}
-                        >
-                          Edit P&amp;L ±
-                        </button>
                       )}
                     </div>
                   </td>
@@ -1333,112 +1358,6 @@ export default function AdminOptions({ me, go, logout }) {
                 onClick={submitWallet}
               >
                 {busy ? "Processing..." : modal.action === "add" ? "Confirm Add" : "Confirm Deduct"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Closed trade P&L modal */}
-      {modal?.type === "pnl" && pnlPreview && (
-        <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
-          <div className="ao-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Adjust Closed Trade P&amp;L</h3>
-
-            <div className="ao-note">
-              Trade <b>#{modal.trade.id}</b> · {modal.trade.email || "User"} ·{" "}
-              {modal.trade.sym} · Stake {n2(modal.trade.qty)} USDT
-              <br />
-              This changes <b>only this trade</b>. Other trades of the same
-              user are not affected.
-            </div>
-
-            <div className="ao-row" style={{ marginTop: 15 }}>
-              <label className="full">
-                P&amp;L Adjustment (USDT, + or −)
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={pnlForm.adjustment}
-                  onChange={(e) =>
-                    setPnlForm({ ...pnlForm, adjustment: e.target.value })
-                  }
-                  placeholder="Example: 5 or -3.5"
-                />
-              </label>
-
-              <label className="full">
-                Reason (optional)
-                <textarea
-                  value={pnlForm.reason}
-                  onChange={(e) =>
-                    setPnlForm({ ...pnlForm, reason: e.target.value })
-                  }
-                  placeholder="Explain why this adjustment is needed"
-                />
-              </label>
-            </div>
-
-            <div className="ao-prev">
-              <div>
-                <span>Old P&amp;L</span>
-                <b>{n8(pnlPreview.oldPnl)} USDT</b>
-              </div>
-              <div>
-                <span>Adjustment</span>
-                <b className={pnlPreview.adj > 0 ? "up" : pnlPreview.adj < 0 ? "dn" : ""}>
-                  {pnlPreview.adj > 0 ? "+" : ""}
-                  {n8(pnlPreview.adj)} USDT
-                </b>
-              </div>
-              <div>
-                <span>New P&amp;L</span>
-                <b className={pnlPreview.newPnl > 0 ? "up" : pnlPreview.newPnl < 0 ? "dn" : ""}>
-                  {n8(pnlPreview.newPnl)} USDT
-                </b>
-              </div>
-              <div>
-                <span>Available wallet</span>
-                <b className={pnlPreview.adj > 0 ? "up" : pnlPreview.adj < 0 ? "dn" : ""}>
-                  {pnlPreview.adj > 0 ? "+" : ""}
-                  {n8(pnlPreview.adj)} USDT
-                </b>
-              </div>
-              <div>
-                <span>Frozen wallet</span>
-                <b>unchanged</b>
-              </div>
-            </div>
-
-            {pnlPreview.tooLow && (
-              <div className="ao-warn">
-                New P&amp;L cannot be lower than the negative stake (
-                {n8(-Number(modal.trade.qty))} USDT).
-              </div>
-            )}
-
-            <div className="ao-note">
-              +adjustment credits the user's available USDT wallet.
-              −adjustment debits it. If the available balance is not enough,
-              the whole adjustment is rejected and nothing changes.
-            </div>
-
-            <div className="ao-modal-footer">
-              <button
-                type="button"
-                className="ao-btn"
-                disabled={busy}
-                onClick={() => setModal(null)}
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="ao-btn pri"
-                disabled={busy || !pnlPreview.valid || pnlPreview.tooLow}
-                onClick={submitPnl}
-              >
-                {busy ? "Processing..." : "Confirm"}
               </button>
             </div>
           </div>
