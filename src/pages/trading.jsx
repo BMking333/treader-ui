@@ -48,16 +48,18 @@ function CoinDrawer({ P, onPick, onClose }) {
 }
 
 /* ---- Market ---- */
+/* প্রতিটি ট্যাবে (USDT/TRX/BTC/ETH/USDD/USDC) সব কয়েনের দাম ওই মার্কেটের হিসাবে দেখায় */
 export function Market({ P, go }) {
   const t = useT();
   const [m, setM] = useState("USDT"), [sub, setSub] = useState("All");
+  const showList = m !== "NFT" && sub === "All";
   return (
-    <>
+    <div className="hm">
       <div className="cx-top"><button onClick={() => go("home")}>‹</button><h1>{t("market")}</h1><span /></div>
       <div className="cx-tabs">{MARKETS.map((x) => <button key={x} className={m === x ? "on" : ""} onClick={() => setM(x)}>{x}</button>)}</div>
       <div className="cx-tabs two">{["All", "NFT"].map((x) => <button key={x} className={sub === x ? "on" : ""} onClick={() => setSub(x)}>{x === "All" ? t("all") : x}</button>)}</div>
-      {m === "USDT" && sub === "All" ? <List P={P} go={go} names /> : <div className="cx-empty">{t("nodata")}</div>}
-    </>
+      {showList ? <List P={P} go={go} names quote={m} /> : <div className="cx-empty">{t("nodata")}</div>}
+    </div>
   );
 }
 
