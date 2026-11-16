@@ -117,16 +117,20 @@ const EX_CSS = `
 .cx2-sel svg{opacity:.7;width:18px;height:18px}
 .cx2-fld{display:flex;align-items:center;gap:6px;border:1px solid var(--ln);border-radius:8px;padding:0 10px;height:48px;
   background:transparent;transition:border-color .2s ease,box-shadow .2s ease}
-.cx2-fld:focus-within{border-color:var(--bl);box-shadow:0 0 0 3px rgba(26,130,214,.12)}
-.cx2-fld input{flex:1;min-width:0;border:0;background:transparent;color:var(--tx);
-  font-size:13.5px;height:30px;outline:0;padding:0;border-radius:0}
+.cx2-fld:focus-within{border-color:rgba(26,130,214,.5);background:var(--fh)}
+.cx2 .cx2-fld input,.cx2 .cx2-fld input:focus,.cx2 .cx2-fld input:focus-visible,.cx2 .cx2-fld input:active{
+  flex:1;min-width:0;border:0!important;background:transparent!important;color:var(--tx);
+  font-size:13.5px;height:30px;outline:none!important;box-shadow:none!important;
+  -webkit-appearance:none;appearance:none;padding:0;border-radius:0;caret-color:var(--bl)}
 .cx2-fld input::placeholder{color:var(--mu);opacity:1;font-size:12.5px}
 .cx2-fld>b{font-size:12.5px;font-weight:600}
 .cx2-fld button.pm{width:30px;height:30px;flex:none;background:var(--fh);border:0;border-radius:6px;color:var(--tx);
   font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .12s ease,background .15s ease}
 .cx2-fld button.pm:active{transform:scale(.92)}
 .cx2-est{font-size:11px;color:var(--mu);margin:6px 0 10px;min-height:14px}
-.cx2-av{font-size:11px;line-height:1.65;color:var(--mu);margin:8px 0 8px;word-break:break-all}
+.cx2-av{margin:8px 0 8px;font-size:11px;color:var(--mu)}
+.cx2-av div{display:flex;justify-content:space-between;align-items:center;gap:6px;line-height:1.85;white-space:nowrap}
+.cx2-av b{font-weight:600;color:var(--tx);font-variant-numeric:tabular-nums}
 .cx2-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:0 0 12px}
 .cx2-pc button{height:28px;background:var(--fh);border:0;border-radius:6px;color:var(--tx);font-size:11px;font-weight:600;
   transition:transform .12s ease,background .15s ease}
@@ -313,8 +317,8 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
             <b>{sym}</b>
           </div>
           <div className="cx2-av num">
-            {t("avail")} {side === "buy" ? usdt.toFixed(8) + " USDT" : held.toFixed(8) + " " + sym}<br />
-            {side === "buy" ? t("buy") : t("sell")} {est ? est.toFixed(8) : "0.00000000"} {sym}
+            <div><span>{t("avail")}</span><b>{side === "buy" ? usdt.toFixed(4) + " USDT" : held.toFixed(6) + " " + sym}</b></div>
+            <div><span>{side === "buy" ? t("buy") : t("sell")}</span><b>{est ? est.toFixed(6) : "0.000000"} {sym}</b></div>
           </div>
           <div className="cx2-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
 
@@ -623,6 +627,7 @@ const CF_CSS = `
 .cx.dark .cx-cf-t,.cx.dark .cx-cf-b{border-bottom-color:#2a3a56}
 .cx.dark .cx-cf-a button+button{border-left-color:#2a3a56}
 .cx.dark .cx-cf-a button:active{background:rgba(255,255,255,.05)}
+.cx-line input,.cx-line input:focus,.cx-line input:focus-visible{outline:none!important;box-shadow:none!important;-webkit-appearance:none;appearance:none}
 @keyframes cxcf{from{opacity:0}to{opacity:1}}
 @keyframes cxcu{from{transform:translateY(14px) scale(.97);opacity:.5}to{transform:none;opacity:1}}
 @media(prefers-reduced-motion:reduce){.cx-cfo,.cx-cf{animation:none!important}}
