@@ -2,15 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useT, api, store } from "../Home";
 import { LANGS } from "../../lib/i18n";
 
-/* =========================================================
-   src/pages/admin/Admin_Login.jsx
-   URL: example.com/v2/admin-dashbord/login
-   Props: onLogin, lang, setLang, go, flash
-   - Only email + password (no register / guest)
-   - Light + Dark theme (remembered: cx_theme)
-   - Language picker (all languages from ../../lib/i18n)
-   - Non-admin accounts are rejected by App.jsx (onLogin throws)
-   ========================================================= */
 
 const mailOk = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const pwOk = (p) => p.length >= 6;
