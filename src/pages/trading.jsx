@@ -43,24 +43,177 @@ export function Market({ P, go }) {
   );
 }
 
+/* ---- Exchange (spot) styles: প্রিমিয়াম, স্মুথ টেক্সট (স্ক্রিনশটের মতো) ---- */
+const EX_CSS = `
+.cx2{
+  --bg:#ffffff;--bg2:#f4f6f9;--tx:#1b2433;--mu:#9aa4b4;--ln:#e6e9ef;--fld:#d8dde6;--fh:#eef1f5;
+  --up:#00c087;--dn:#e0485c;--bl:#1a82d6;--sheet:#ffffff;--dim:rgba(10,18,32,.45);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-kerning:normal;
+  color:var(--tx);background:var(--bg);
+}
+.cx.dark .cx2{
+  --bg:#11203a;--bg2:#0a1424;--tx:#e9eef6;--mu:#8a97ad;--ln:#1f2f4a;--fld:#24364f;--fh:#0b1626;
+  --sheet:#101e34;--dim:rgba(2,6,12,.72);
+  background:var(--bg);
+}
+.cx2 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.cx2 button{font-family:inherit;-webkit-font-smoothing:antialiased;cursor:pointer}
+.cx2 input{font-family:inherit;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.cx2 .num{font-variant-numeric:tabular-nums;letter-spacing:.1px}
+
+.cx2-main{display:grid;grid-template-columns:47% 1fr;gap:12px;padding:12px 12px 16px;border-top:1px solid var(--ln)}
+
+/* order book */
+.cx2-book{min-width:0;display:flex;flex-direction:column}
+.cx2-bh{display:flex;justify-content:space-between;font-size:13px;color:var(--mu);padding:2px 2px 8px;font-weight:500}
+.cx2-row{position:relative;display:flex;justify-content:space-between;align-items:center;height:38px;padding:0 2px;font-size:13px;cursor:pointer;
+  transition:background .15s ease}
+.cx2-row:active{background:var(--fh)}
+.cx2-row b{font-weight:500;position:relative;z-index:1}
+.cx2-row span{color:var(--mu);position:relative;z-index:1}
+.cx2-row i{position:absolute;right:0;top:3px;bottom:3px;opacity:.1;border-radius:2px;transition:width .35s ease}
+.cx2-mid{padding:12px 2px 10px;line-height:1.15}
+.cx2-mid b{display:block;font-size:22px;font-weight:500;letter-spacing:-.2px;white-space:nowrap}
+.cx2-mid small{display:block;margin-top:3px;font-size:13px;color:var(--mu)}
+.cx2-bv{display:flex;gap:8px;margin-top:12px}
+.cx2-bv button{background:none;border:1px solid transparent;border-radius:2px;padding:1px;line-height:0;transition:border-color .15s ease}
+.cx2-bv button.on{border-color:var(--bl)}
+
+/* order form */
+.cx2-form{min-width:0;display:flex;flex-direction:column}
+.cx2-bs{display:grid;grid-template-columns:1fr 1fr;height:56px;border-radius:2px;overflow:hidden;background:var(--fh)}
+.cx2-bs button{border:0;background:transparent;color:var(--tx);font-size:16px;font-weight:500;transition:background .2s ease,color .2s ease}
+.cx2-bs .bb{clip-path:polygon(0 0,100% 0,90% 100%,0 100%);margin-right:-8%;position:relative;z-index:1}
+.cx2-bs .sb{clip-path:polygon(10% 0,100% 0,100% 100%,0 100%);margin-left:-8%;padding-left:8%}
+.cx2-bs .bb.on{background:var(--up);color:#fff}
+.cx2-bs .sb.on{background:var(--dn);color:#fff}
+.cx2-bs button:not(.on){background:var(--fh);color:var(--tx);opacity:.9}
+.cx2-sel{display:flex;justify-content:space-between;align-items:center;height:52px;padding:0 6px 0 4px;font-size:16px;font-weight:500}
+.cx2-sel svg{opacity:.85}
+.cx2-fld{display:flex;align-items:center;gap:8px;border:1px solid var(--ln);border-radius:2px;padding:0 12px;height:68px;
+  background:transparent;transition:border-color .2s ease,background .2s ease}
+.cx2-fld:focus-within{border-color:var(--bl)}
+.cx2-fld input{flex:1;min-width:0;border:0;border-bottom:1px solid var(--fld);background:transparent;color:var(--tx);
+  font-size:16px;height:34px;outline:0;padding:0;border-radius:0}
+.cx2-fld input::placeholder{color:var(--mu);opacity:1}
+.cx2-fld input:focus{border-bottom-color:var(--bl)}
+.cx2-fld>b{font-size:16px;font-weight:500}
+.cx2-fld button.pm{width:42px;height:42px;flex:none;background:transparent;border:1px solid var(--tx);border-radius:2px;color:var(--tx);
+  font-size:24px;line-height:1;display:flex;align-items:center;justify-content:center;transition:transform .12s ease,background .15s ease}
+.cx2-fld button.pm:active{transform:scale(.92);background:var(--fh)}
+.cx2-est{font-size:13px;color:var(--mu);margin:8px 0 12px;min-height:18px}
+.cx2-av{font-size:13px;line-height:1.7;color:var(--mu);margin:10px 0 8px;word-break:break-all}
+.cx2-pc{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 16px}
+.cx2-pc button{height:34px;background:transparent;border:1px solid var(--tx);border-radius:2px;color:var(--tx);font-size:13px;font-weight:500;
+  transition:transform .12s ease,background .15s ease}
+.cx2-pc button:active{transform:scale(.95);background:var(--fh)}
+.cx2-msg{font-size:13px;margin:10px 0 0;color:var(--dn);line-height:1.4}
+.cx2-msg.ok{color:var(--up)}
+.cx2-cta{margin-top:22px;height:56px;border:0;border-radius:3px;color:#fff;font-size:17px;font-weight:500;letter-spacing:.2px;
+  box-shadow:0 6px 16px -8px rgba(0,0,0,.45);transition:transform .12s ease,filter .15s ease,opacity .2s ease}
+.cx2-cta:active{transform:scale(.985);filter:brightness(.94)}
+
+/* entrust */
+.cx2-gap{height:12px;background:var(--bg2)}
+.cx2-eh{display:flex;justify-content:space-between;align-items:center;padding:18px 16px 14px;border-bottom:1px solid var(--ln)}
+.cx2-eh h2{margin:0;font-size:22px;font-weight:500;display:flex;align-items:baseline;gap:10px}
+.cx2-eh h2 button{background:none;border:0;color:var(--bl);font-size:16px;padding:0;display:flex;align-items:center;gap:4px}
+.cx2-eh>button{background:none;border:0;color:var(--tx);font-size:18px;display:flex;align-items:center;gap:4px;padding:0;
+  opacity:.92}
+.cx2-eh>button.on{color:var(--bl)}
+.cx2-list{min-height:150px;background:var(--bg)}
+.cx2-tx{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--ln);font-size:14px}
+.cx2-tx span:first-child{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cx2-tx small{font-size:12px;color:var(--mu)}
+.cx2-tx>span:last-child{font-weight:500;white-space:nowrap}
+.cx2-empty{height:150px;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:14px}
+
+/* picker sheet */
+.cx2-ov{position:fixed;inset:0;z-index:1000;background:var(--dim);display:flex;align-items:flex-end;animation:cx2f .18s ease}
+.cx2-pk{width:100%;min-height:46vh;background:var(--sheet);color:var(--tx);border-radius:22px 22px 0 0;display:flex;flex-direction:column;
+  animation:cx2u .26s cubic-bezier(.2,.8,.2,1);padding-bottom:max(8px,env(safe-area-inset-bottom))}
+.cx2-pkh{display:flex;justify-content:space-between;padding:18px 22px}
+.cx2-pkh button{background:none;border:0;font-size:19px;color:var(--mu);padding:0}
+.cx2-pkh button.ok{color:var(--bl);font-weight:500}
+.cx2-pkb{margin:auto 22px 14px;display:flex;flex-direction:column}
+.cx2-pkb button{height:62px;background:none;border:0;border-top:1px solid var(--ln);color:var(--mu);font-size:21px;font-weight:500;
+  transition:color .15s ease}
+.cx2-pkb button.on{color:var(--tx)}
+@keyframes cx2f{from{opacity:0}to{opacity:1}}
+@keyframes cx2u{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+@media(max-width:380px){
+  .cx2-row{font-size:12px;height:34px}.cx2-mid b{font-size:19px}
+  .cx2-fld{height:60px}.cx2-bs{height:48px}.cx2-cta{height:50px}
+}
+@media(prefers-reduced-motion:reduce){.cx2 *,.cx2-ov,.cx2-pk{animation:none!important;transition:none!important}}
+`;
+
+/* অর্ডার বুকের ভিউ আইকন */
+const BvIc = ({ k }) => {
+  const R = "#e0485c", G = "#00c087";
+  const lines = (c, y0) => [0, 1, 2].map((i) => <rect key={c + i} x="2" y={y0 + i * 4} width="22" height="2.4" rx="1" fill={c} />);
+  return (
+    <svg width="28" height="26" viewBox="0 0 28 26" fill="none">
+      {k === "all" && <>{lines(R, 2)}{lines(G, 14)}</>}
+      {k === "b" && <>{[0, 1, 2, 3, 4].map((i) => <rect key={i} x="2" y={2 + i * 4.6} width="22" height="2.4" rx="1" fill={G} opacity={i % 2 ? 1 : 0.55} />)}</>}
+      {k === "a" && <>{[0, 1, 2, 3, 4].map((i) => <rect key={i} x="2" y={2 + i * 4.6} width="22" height="2.4" rx="1" fill={R} opacity={i % 2 ? 1 : 0.55} />)}</>}
+    </svg>
+  );
+};
+
 /* ---- Exchange (spot) → POST /spot/order, GET /spot/orders ---- */
 export function Exchange({ P, W, sym, setSym, go, spot }) {
   const t = useT();
+  const tt = (k, fb) => {
+    let v;
+    try { v = t(k); } catch (_) { v = k; }
+    return v && v !== k ? v : fb;
+  };
   const [side, setSide] = useState("buy"), [price, setPrice] = useState(""), [q, setQ] = useState(""), [amt, setAmt] = useState("");
-  const [msg, setMsg] = useState(""), [busy, setBusy] = useState(false), [pick, setPick] = useState(false);
-  const d = P[sym];
+  const [msg, setMsg] = useState(""), [ok, setOk] = useState(false), [busy, setBusy] = useState(false), [pick, setPick] = useState(false);
+  const [bv, setBv] = useState("all");
+  const [ent, setEnt] = useState("buy"), [entAll, setEntAll] = useState(false), [entPick, setEntPick] = useState(false), [entTmp, setEntTmp] = useState("buy");
+
+  const src = P[sym] || {};
+  const base = Number(src.price) > 0 ? Number(src.price) : 0; /* NaN আটকাতে */
+  const chg = Number(src.chg) || 0;
+  const col = chg >= 0 ? GREEN : RED;
+
   const book = useMemo(() => {
-    const mk = (k) => Array.from({ length: 5 }, (_, i) => [d.price * (1 + k * 0.0004 * (i + 1)), Math.random() * 1.2 + 0.001]);
-    return { a: mk(1).reverse(), b: mk(-1) };
-  }, [Math.round(d.price)]); // eslint-disable-line
-  const usdt = W.w.USDT || 0, held = W.w[sym] || 0;
-  const px = parseFloat(price) || d.price;
-  const est = side === "buy" ? (parseFloat(amt) || 0) / px : (parseFloat(q) || 0);
-  const pct = (p) => { if (side === "buy") setAmt(String(+(usdt * p).toFixed(2))); else setQ(String(+(held * p).toFixed(8))); };
+    const mk = (k) => Array.from({ length: 10 }, (_, i) => [base * (1 + k * 0.0004 * (i + 1)), Math.random() * 1.2 + 0.001]);
+    return { a: mk(1), b: mk(-1) };
+  }, [Math.round(base)]); // eslint-disable-line
+  const rows = bv === "all" ? 5 : 10;
+  const asks = bv === "b" ? [] : book.a.slice(0, rows).reverse();
+  const bids = bv === "a" ? [] : book.b.slice(0, rows);
+  const qmax = Math.max(0.0001, ...asks.map((r) => r[1]), ...bids.map((r) => r[1]));
+
+  const usdt = (W.w && W.w.USDT) || 0, held = (W.w && W.w[sym]) || 0;
+  const px = parseFloat(price) || base;
+  const est = side === "buy" ? (px ? (parseFloat(amt) || 0) / px : 0) : (parseFloat(q) || 0);
+
+  /* Quantity ↔ USDT একসাথে মেলানো */
+  const onQty = (v) => { setQ(v); const n = parseFloat(v); setAmt(n > 0 && px ? String(+(n * px).toFixed(2)) : ""); };
+  const onAmt = (v) => { setAmt(v); const a = parseFloat(v); setQ(a > 0 && px ? String(+(a / px).toFixed(8)) : ""); };
+  const pct = (p) => {
+    if (side === "buy") onAmt(String(+(usdt * p).toFixed(2)));
+    else { const n = +(held * p).toFixed(8); setQ(String(n)); setAmt(px ? String(+(n * px).toFixed(2)) : ""); }
+  };
+  const setPx = (v) => {
+    setPrice(v);
+    const p = parseFloat(v);
+    const n = parseFloat(q);
+    if (p > 0 && n > 0) setAmt(String(+(n * p).toFixed(2)));
+  };
+  const step = (k) => { const v = px * (1 + k * 0.001); setPx(String(+v.toFixed(v >= 100 ? 2 : 6))); };
+  const switchSide = (s) => { setSide(s); setMsg(""); setQ(""); setAmt(""); };
+
   const submit = async () => {
     if (busy) return;
     if (W.guest) return W.needLogin();
-    setMsg("");
+    setMsg(""); setOk(false);
     try {
       if (side === "buy") {
         const a = parseFloat(amt) || 0;
@@ -76,50 +229,119 @@ export function Exchange({ P, W, sym, setSym, go, spot }) {
         await api("/spot/order", { method: "POST", body: { sym, side: "sell", qty: n } });
       }
       await W.reload();
-      setAmt(""); setQ(""); setMsg(t("ok"));
+      setAmt(""); setQ(""); setMsg(t("ok")); setOk(true);
     } catch (e) { setMsg(t(e.message)); }
     setBusy(false);
   };
-  const R = ({ r, c }) => (<div className="cx-bk"><b style={{ color: c }}>{r[0].toFixed(6)}</b><span>{r[1].toFixed(6)}</span></div>);
+
+  const Row = ({ r, c, side: sd }) => (
+    <div className="cx2-row num" onClick={() => setPx(String(+r[0].toFixed(r[0] >= 100 ? 2 : 6)))}>
+      <i style={{ width: Math.max(6, (r[1] / qmax) * 100) + "%", background: c }} />
+      <b style={{ color: c }}>{base ? r[0].toFixed(6) : "--"}</b><span>{r[1].toFixed(6)}</span>
+    </div>
+  );
+
+  const list = (spot || []).filter((o) => entAll || o.side === ent);
+
   return (
-    <>
+    <div className="cx2">
+      <style>{EX_CSS}</style>
       <div className="cx-top">
         <button onClick={() => setPick(true)}><Ic d={ICON.menu} s={26} /></button>
-        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}><Coin s={sym} size={28} />{sym}/USDT <small style={{ color: d.chg >= 0 ? GREEN : RED }}>{d.chg.toFixed(2)} %</small></h1>
+        <h1 style={{ textAlign: "start", display: "flex", alignItems: "center", gap: 8 }}>{sym}/USDT <small style={{ color: col, fontWeight: 400 }}>{chg >= 0 ? "+" : ""}{chg.toFixed(2)} %</small></h1>
         <button onClick={() => go("options")}><Ic d={ICON.market} s={26} /></button>
       </div>
-      <div className="cx-ex">
-        <div className="cx-book">
-          <div className="cx-bh"><span>{t("price")}</span><span>{t("qty")}</span></div>
-          {book.a.map((r, i) => <R key={"a" + i} r={r} c={RED} />)}
-          <div className="cx-mid" style={{ color: d.chg >= 0 ? GREEN : RED }}>{fmt(d.price)}<small>≈ {d.price.toFixed(2)}</small></div>
-          {book.b.map((r, i) => <R key={"b" + i} r={r} c={GREEN} />)}
-        </div>
-        <div className="cx-form">
-          <div className="cx-bs">
-            <button className={"bb" + (side === "buy" ? " on" : "")} onClick={() => setSide("buy")}>{t("buy")}</button>
-            <button className={"sb" + (side === "sell" ? " on" : "")} onClick={() => setSide("sell")}>{t("sell")}</button>
+
+      <div className="cx2-main">
+        {/* ---- Order book ---- */}
+        <div className="cx2-book">
+          <div className="cx2-bh"><span>{t("price")}</span><span>{t("qty")}</span></div>
+          {asks.map((r, i) => <Row key={"a" + i} r={r} c={RED} />)}
+          <div className="cx2-mid num">
+            <b style={{ color: col }}>{base ? base.toFixed(8) : "--"}</b>
+            <small>≈ {base ? base.toFixed(2) : "--"}</small>
           </div>
-          <div className="cx-sel">{t("limit")} ⌄</div>
-          <div className="cx-in"><input value={price} onChange={(e) => setPrice(e.target.value)} placeholder={t("price")} inputMode="decimal" /><button onClick={() => setPrice(fmt(px * 1.001))}>+</button><button onClick={() => setPrice(fmt(px * 0.999))}>−</button></div>
-          <small>≈ {fmt(px)}</small>
-          <div className="cx-in"><input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("qty")} inputMode="decimal" /><b>{sym}</b></div>
-          <small>{t("avail")} {side === "buy" ? usdt.toFixed(8) + " USDT" : held.toFixed(8) + " " + sym}<br />{side === "buy" ? t("buy") : t("sell")} {est ? est.toFixed(6) : "0"} {sym}</small>
-          <div className="cx-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
-          <div className="cx-in"><input value={amt} onChange={(e) => setAmt(e.target.value)} placeholder={t("amt")} inputMode="decimal" /><b>USDT</b></div>
-          {msg && <p className="cx-msg">{msg}</p>}
-          <button className="cx-cta" style={{ background: side === "buy" ? GREEN : RED, opacity: busy ? 0.6 : 1 }} onClick={submit}>{busy ? t("wait2") : (side === "buy" ? t("buy") : t("sell")) + " " + sym}</button>
+          {bids.map((r, i) => <Row key={"b" + i} r={r} c={GREEN} />)}
+          <div className="cx2-bv">
+            {["all", "b", "a"].map((k) => <button key={k} className={bv === k ? "on" : ""} onClick={() => setBv(k)} aria-label={"book " + k}><BvIc k={k} /></button>)}
+          </div>
+        </div>
+
+        {/* ---- Order form ---- */}
+        <div className="cx2-form">
+          <div className="cx2-bs">
+            <button className={"bb" + (side === "buy" ? " on" : "")} onClick={() => switchSide("buy")}>{t("buy")}</button>
+            <button className={"sb" + (side === "sell" ? " on" : "")} onClick={() => switchSide("sell")}>{t("sell")}</button>
+          </div>
+          <div className="cx2-sel"><span>{t("limit")}</span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7" /></svg></div>
+
+          <div className="cx2-fld">
+            <input className="num" value={price} onChange={(e) => setPx(e.target.value)} placeholder={t("price")} inputMode="decimal" />
+            <button className="pm" type="button" onClick={() => step(1)}>+</button>
+            <button className="pm" type="button" onClick={() => step(-1)}>−</button>
+          </div>
+          <div className="cx2-est num">≈ {px ? px.toFixed(2) : "--"}</div>
+
+          <div className="cx2-fld">
+            <input className="num" value={q} onChange={(e) => onQty(e.target.value)} placeholder={t("qty")} inputMode="decimal" />
+            <b>{sym}</b>
+          </div>
+          <div className="cx2-av num">
+            {t("avail")} {side === "buy" ? usdt.toFixed(8) + " USDT" : held.toFixed(8) + " " + sym}<br />
+            {side === "buy" ? t("buy") : t("sell")} {est ? est.toFixed(8) : "0.00000000"} {sym}
+          </div>
+          <div className="cx2-pc">{[0.25, 0.5, 0.75, 1].map((p) => <button key={p} onClick={() => pct(p)}>{p * 100}%</button>)}</div>
+
+          <div className="cx2-fld">
+            <input className="num" value={amt} onChange={(e) => onAmt(e.target.value)} placeholder={t("amt")} inputMode="decimal" />
+            <b>USDT</b>
+          </div>
+          {msg && <p className={"cx2-msg" + (ok ? " ok" : "")}>{msg}</p>}
+          <button className="cx2-cta" style={{ background: side === "buy" ? GREEN : RED, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={submit}>
+            {busy ? t("wait2") : (side === "buy" ? t("buy") : t("sell")) + " " + sym}
+          </button>
         </div>
       </div>
-      <div className="cx-ent"><span>{t("entrust")} <b style={{ color: BLUE }}>{t("buy")} ⌄</b></span><span>{t("all")}</span></div>
-      {spot.length ? spot.slice(0, 30).map((o) => (
-        <div key={o.id} className="cx-tx">
-          <span><b style={{ color: o.side === "buy" ? CUP : CDN }}>{o.side === "buy" ? t("buy") : t("sell")} {o.sym}/USDT</b><small>{fmt(o.price || 0)} · {(o.qty || 0).toFixed(6)} · {new Date(o.created_at).toLocaleString()}</small></span>
-          <span>{(o.amount || 0).toFixed(2)} USDT</span>
+
+      <div className="cx2-gap" />
+      <div className="cx2-eh">
+        <h2>{t("entrust")}
+          <button onClick={() => { setEntTmp(ent); setEntPick(true); }}>{t(ent)}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 9l7 7 7-7" /></svg>
+          </button>
+        </h2>
+        <button className={entAll ? "on" : ""} onClick={() => setEntAll(!entAll)}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" /><path d="M14 3v6h6M8 13h8M8 17h5" /></svg>
+          {t("all")}
+        </button>
+      </div>
+      <div className="cx2-list">
+        {list.length ? list.slice(0, 30).map((o) => (
+          <div key={o.id} className="cx2-tx">
+            <span><b style={{ color: o.side === "buy" ? CUP : CDN, fontWeight: 600 }}>{o.side === "buy" ? t("buy") : t("sell")} {o.sym}/USDT</b><small className="num">{fmt(o.price || 0)} · {(o.qty || 0).toFixed(6)} · {new Date(o.created_at).toLocaleString()}</small></span>
+            <span className="num">{(o.amount || 0).toFixed(2)} USDT</span>
+          </div>
+        )) : <div className="cx2-empty" />}
+      </div>
+
+      {/* ---- Buy / Sell picker (Cancel / Confirm) ---- */}
+      {entPick && (
+        <div className="cx2-ov" onClick={() => setEntPick(false)}>
+          <div className="cx2-pk" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="cx2-pkh">
+              <button type="button" onClick={() => setEntPick(false)}>{tt("cancel", "Cancel")}</button>
+              <button type="button" className="ok" onClick={() => { setEnt(entTmp); setEntAll(false); setEntPick(false); }}>{tt("confirm", "Confirm")}</button>
+            </div>
+            <div className="cx2-pkb">
+              {["buy", "sell"].map((k) => <button key={k} type="button" className={entTmp === k ? "on" : ""} onClick={() => setEntTmp(k)}>{t(k)}</button>)}
+              <button type="button" style={{ height: 0, padding: 0, borderTop: "1px solid var(--ln)", pointerEvents: "none" }} aria-hidden="true" />
+            </div>
+          </div>
         </div>
-      )) : <div className="cx-empty" style={{ height: 120 }} />}
+      )}
+
       {pick && <CoinDrawer P={P} onClose={() => setPick(false)} onPick={(s) => { setSym(s); setPick(false); }} />}
-    </>
+    </div>
   );
 }
 
@@ -664,4 +886,4 @@ export function Assets({ P, W }) {
       )}
     </>
   );
-      }
+}
