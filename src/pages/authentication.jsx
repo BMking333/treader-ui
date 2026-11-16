@@ -1,15 +1,7 @@
 import React, { useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { LangCtx, API, TOKEN, api, T3 } from "./Home";
 
-/* =====================================================================
-   src/pages/authentication.jsx — Identity verification (KYC)
-   Backend: POST /kyc/submit (multipart: doc_type, name, front, back)
-            GET  /kyc/status
-            GET  /kyc/file/{doc_id}/{front|back}  (Bearer token লাগে → blob হিসেবে আনা হয়)
-
-   ✔ Night / Light mode: সাইডবারের নাইট মোড সুইচ অনুযায়ী নাইটে নাইট, লাইটে লাইট (অটো-ডিটেক্ট)
-   ✔ ভাষা: সব ২৬টি ভাষার অনুবাদ আছে (আগে অনেক ভাষায় English দেখাত)
-   ===================================================================== */
+ 
 
 const DOC_TYPE = "nid"; /* backend DOC_TYPES: nid | passport | driving */
 const MAX_MB = 5; /* backend MAX_BYTES = 5 MB */
@@ -160,22 +152,13 @@ const BackI = () => (
 /* ---------- থিম (Night / Light) ----------
    অ্যাপের আসল ব্যাকগ্রাউন্ড দেখে থিম ঠিক করা হয়, আর থিম বদলালে (সাইডবারের নাইট মোড সুইচ)
    নিজে থেকেই আপডেট হয় — তাই সাইডবারের মতোই নাইটে নাইট, লাইটে লাইট। */
-const parseColor = (s) => {
-  const n = String(s || "").match(/[\d.]+/g);
-  if (!n || n.length < 3) return null;
-  return { r: +n[0], g: +n[1], b: +n[2], a: n.length > 3 ? +n[3] : 1 };
-};
-
 const detectDark = (el) => {
   try {
-    let n = el && el.parentElement;
-    while (n && n.nodeType === 1) {
-      const c = parseColor(getComputedStyle(n).backgroundColor);
-      if (c && c.a > 0.5) return 0.299 * c.r + 0.587 * c.g + 0.114 * c.b < 140;
-      n = n.parentElement;
-    }
+    /* অ্যাপের আসল থিম: App.jsx রুটে className="cx dark" বসায় (সাইডবারের নাইট মোড সুইচ এটাই বদলায়) */
+    const root = el && el.closest && el.closest(".cx");
+    if (root) return root.classList.contains("dark");
   } catch {}
-  return !!(typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return true;
 };
 
 const useTheme = (ref, forced) => {
@@ -194,16 +177,13 @@ const useTheme = (ref, forced) => {
 
     /* প্রতিটি parent-এর class/style বদলালে আবার চেক (subtree নয়, তাই হালকা) */
     const mo = new MutationObserver(run);
-    const opts = { attributes: true, attributeFilter: ["class", "style", "data-theme", "data-bs-theme"] };
+    const opts = { attributes: true, attributeFilter: ["class"] };
     let n = ref.current && ref.current.parentElement;
     while (n) { mo.observe(n, opts); n = n.parentElement; }
 
-    const mq = typeof window !== "undefined" && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-    if (mq && mq.addEventListener) mq.addEventListener("change", run);
     return () => {
       cancelAnimationFrame(raf);
       mo.disconnect();
-      if (mq && mq.removeEventListener) mq.removeEventListener("change", run);
     };
   }, [forced]); // eslint-disable-line
   return dark;
@@ -213,19 +193,19 @@ const useTheme = (ref, forced) => {
    রং এখন CSS variable — data-th="dark" | "light" অনুযায়ী বদলায়।
    অ্যাপের গ্লোবাল button/input স্টাইল যেন ভাঙতে না পারে, তাই দরকারি জায়গায় !important। */
 const CSS = `
-.cx-kc{--fg:#e8edf5;--fg2:rgba(232,237,245,.72);--ph:rgba(232,237,245,.42);
+.cx-kc{--pg:#121e2f;--fg:#e8edf5;--fg2:rgba(232,237,245,.72);--ph:rgba(232,237,245,.42);
   --sf:rgba(255,255,255,.06);--sf2:rgba(255,255,255,.10);--bd:rgba(255,255,255,.18);--bd2:rgba(255,255,255,.30);
   --acc:#4b8bf5;--accbg:rgba(75,139,245,.10);
   --ok:#4be0a8;--okbg:rgba(47,211,155,.14);--okbd:rgba(47,211,155,.35);
   --bad:#ff8a95;--badbg:rgba(240,97,109,.14);--badbd:rgba(240,97,109,.38);
   --inf:#8fc4ff;--infbg:rgba(75,139,245,.16);--infbd:rgba(75,139,245,.38)}
-.cx-kc[data-th="light"]{--fg:#1a2230;--fg2:rgba(26,34,48,.68);--ph:rgba(26,34,48,.40);
+.cx-kc[data-th="light"]{--pg:#f3f5fa;--fg:#1a2230;--fg2:rgba(26,34,48,.68);--ph:rgba(26,34,48,.40);
   --sf:rgba(0,0,0,.04);--sf2:rgba(0,0,0,.07);--bd:rgba(0,0,0,.14);--bd2:rgba(0,0,0,.26);
   --ok:#15803d;--okbg:rgba(21,128,61,.10);--okbd:rgba(21,128,61,.30);
   --bad:#c62828;--badbg:rgba(198,40,40,.08);--badbd:rgba(198,40,40,.30);
   --inf:#1d4ed8;--infbg:rgba(29,78,216,.08);--infbd:rgba(29,78,216,.28)}
 
-.cx-kc{color:var(--fg);min-height:100vh;padding-bottom:32px;box-sizing:border-box}
+.cx-kc{background:var(--pg);color:var(--fg);min-height:100vh;padding-bottom:32px;box-sizing:border-box}
 .cx-kc,.cx-kc *{-webkit-tap-highlight-color:transparent}
 
 /* Top bar */
