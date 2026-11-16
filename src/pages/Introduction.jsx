@@ -1,290 +1,329 @@
-import React, { useContext } from "react";
-import { LangCtx, BrandMark } from "./Home";
+import React, { useEffect, useState } from "react";
 
-/* =====================================================================
-   src/pages/Introduction.jsx — প্ল্যাটফর্ম পরিচিতি (route: /introduction)
-   ✔ Night / Light: অ্যাপের রুট ক্লাস (.cx.dark) দেখে নিজে বদলায়
-   ✔ ভাষা: নিচের TXT টেবিল; অনুবাদ না থাকা ভাষায় English দেখায়
-   ===================================================================== */
+const BRAND = "CEX";
+const CONTACT_EMAIL = "support@example.com";
 
-const KEYS = ["title", "tag", "about", "why", "f1", "f2", "f3", "f4", "s1", "s2", "cta"];
+const DOCS = [
+  {
+    id: "upgrade",
+    title: "System Upgrade Announcement",
+    blocks: [
+      [
+        "Announcement: The platform has completed the system upgrade. Please change your password in time to ensure account security!",
+      ],
+    ],
+  },
+  {
+    id: "privacy",
+    title: "Privacy Policy",
+    blocks: [
+      [
+        "I. Subject",
+        `This Privacy Policy explains how ${BRAND} collects, uses, shares, and protects user information obtained through the website. "We" herein refers to ${BRAND} and its affiliated companies. When collecting personal information from users, we do so for the purpose of providing services, complying with laws, regulations, and supervisory policies, as well as other specific needs. For non-essential information, you have the right to decide whether to provide it; however, missing non-essential information may result in the inability to use certain permission s and functions of this website. By using this website, you agree to all the contents of this Privacy Policy.`,
+        "We will adjust this Privacy Policy from time to time according to changes in laws and regulations or methods of personal data collection and usage. Announcements of modifications to the Privacy Policy will be published on the official website. If your information is to be used for purposes not covered in this Privacy Policy, we will notify you in advance and obtain your consent.",
+        `For convenience, ${BRAND} and this website are collectively referred to as "we" or other first-person pronouns in this agreement.`,
+        `Any natural person or other entity that logs in, visits, or uses this website and its services shall be deemed a user of this website. For convenience, such user will be referred to as "you" or other second-person pronouns.`,
+        `For convenience, both parties are collectively referred to as "the Parties" in this Privacy Policy, while individually referred to as "a Party."`,
+      ],
+      [
+        "II. Purpose of the Privacy Policy",
+        "This Privacy Policy stipulates the types of personal information we collect through your login, registration, and/or use of our services on this website, as well as how we use and protect the collected information.",
+      ],
+      [
+        "III. Your Consent",
+        "To ensure your full confidence in how we handle your personal information, please carefully read and understand the provisions of this Privacy Policy. Once you log in to our website, regardless of whether you register on it, you signify your acceptance, agreement, commitment, and confirmation that:",
+        "3.1 You voluntarily disclose personal information to us with the necessary consent;",
+        "3.2 You will comply with all the contents and restrictions of this Privacy Policy;",
+        "3.3 You agree that we collect your information through your login, registration, and/or use of our services;",
+        "3.4 You agree to any future modifications of this Privacy Policy;",
+        "3.5 You agree to be contacted by our branches, subsidiaries, affiliates, and employees regarding products and services you may be interested in (unless you have explicitly opted out of receiving such communications).",
+      ],
+      [
+        "IV. Information Collected",
+        "4.1 When you use this website, you agree that we may use cookies to track your actions and collect and retain information, including but not limited to your IP address, geographic location, and other data.",
+        "4.2 If you wish to use the services provided by this website, you must provide the following two types of information:",
+        `4.2.1 Identity Information: Information that helps us verify your eligibility to register as a member of this website, including but not limited to your name, residential address, mailing address, country of residence, government-issued identification documents and numbers, and other details that verify your identity ("Identity Information").`,
+        `4.2.2 Service Information: Information that helps us contact you and provide services, including but not limited to your phone number, fax number, valid email address, mailing address, debit card details, and/or other account information ("Service Information").`,
+        "4.3 While using this website or its services, we may collect additional necessary information to improve functionality, enhance security, or comply with court orders, applicable laws, regulations, or competent government authority requests.",
+        "4.4 If you visit any third-party links displayed on this website or by our partners, you agree to comply with their independent privacy policies. We are not responsible for the content or activities of third-party websites or partners.",
+      ],
+      [
+        "V. Cookies",
+        "5.1 When you visit our website, we use cookies with Google Stats to record performance and verify online advertising effectiveness. Cookies are small data files sent to your browser and stored on your hard drive. They can only be sent when you access our website from your computer.",
+        "5.2 Cookies are often used to record visitors' browsing habits and preferences on our site. Data collected is anonymous aggregated statistical information, not personal data.",
+        "5.3 Cookies cannot retrieve data from your hard drive, your email address, or your private data. They simply allow the system to recognize your browser and capture information. Most browsers are set to accept cookies by default. You may choose to disable cookies or be notified when cookies are placed. However, disabling cookies may prevent you from using certain functions of this website.",
+      ],
+      [
+        "VI. Purposes of Using Information",
+        "6.1 We use the information collected for the following purposes:",
+        "6.1.1 To provide services through our website;",
+        "6.1.2 To identify and verify your identity when using the website;",
+        "6.1.3 To improve and enhance services based on your information and feedback;",
+        "6.1.4 To compile website usage statistics and conduct data analysis in cooperation with government agencies and institutions;",
+        "6.1.5 To personalize your user experience;",
+        "6.1.6 To process transactions (your information will not be sold, exchanged, transferred, or given to other companies without consent, except to fulfill the specific purpose of the requested transaction);",
+        "6.1.7 To send periodic emails regarding orders, updates, products, or services;",
+        "6.1.8 To fulfill purposes set forth in the User Agreement and all lawful means necessary for such purposes.",
+        "6.2 We will not sell, trade, or otherwise transfer your information or allow others to use it, except: affiliates, trusted third parties assisting us in operating the website or providing services (who must keep the information confidential), or when disclosure is necessary to comply with laws, enforce website policies, maintain security, or protect rights and property. Your information will never be used for marketing, advertising, or other profit-making purposes by unrelated third parties.",
+      ],
+      [
+        "VII. Protection of Personal Data",
+        "7.1 We implement appropriate physical, electronic, administrative, and technical measures to protect your personal information. These include:",
+        "7.1.1 Physical Measures: Proper storage of physical media containing your data, with access restrictions.",
+        "7.1.2 Electronic Measures: Data stored on computer systems with strict access controls.",
+        "7.1.3 Administrative Measures: Only authorized staff may access personal information, bound by internal confidentiality rules.",
+        "7.1.4 Technical Measures: Encryption technologies such as SSL may be used to transmit information.",
+        "7.1.5 Other Measures: Our servers are protected by firewalls.",
+        "7.2 If you discover any security vulnerabilities on our site, please contact us immediately so that we may take corrective action.",
+        "7.3 Despite these safeguards, we cannot guarantee absolute security of data transmitted over the internet. We are not responsible for any unauthorized access to your personal information or resulting damages.",
+      ],
+      [
+        "VIII. Amendments to the Privacy Policy",
+        "We reserve the right to modify this Privacy Policy at any time. Updated versions and effective dates will be posted on our website. Although we may occasionally provide notices of revisions, this is not obligatory. You should review the Privacy Policy regularly. If you do not agree with modifications, you should stop using the website immediately. Continued use after updates indicates acceptance of the revised Privacy Policy.",
+      ],
+      [
+        "IX. Communication with Us",
+        `9.1 If you have any requests or comments, you may contact us at ${CONTACT_EMAIL}. This is the only official and valid email for communication. We are not responsible for issues caused by using invalid contact methods.`,
+        "9.2 We only publish announcements and information via official contacts listed on this website. We are not responsible for losses from information obtained through unofficial channels.",
+        "9.3 If you have any questions about this Privacy Policy, please feel free to contact us.",
+      ],
+    ],
+  },
+  {
+    id: "legal",
+    title: "Legal Statement",
+    blocks: [
+      [
+        "Article 1",
+        "The purpose of this Exchange is to provide a professional, international-level trading platform and financial products for global digital asset enthusiasts and investors, under the premise of not violating relevant laws and regulations. The use of this Exchange for money laundering, smuggling, commercial bribery, terrorist financing, or any other illegal trading activities is strictly prohibited. If such activities are discovered, the Exchange reserves the right to immediately freeze the account and report it to the regulatory authorities.",
+        "Article 2",
+        "When regulatory authorities present the relevant investigative documents requiring this website to cooperate in investigating designated users, or to take compulsory measures such as sealing, freezing, or transferring user accounts, the Exchange will assist in providing the relevant user data or carrying out the necessary actions as required by the authorities. The Exchange shall not bear any responsibility for any resulting disclosure of user privacy, inability to operate accounts, or any losses arising therefrom.",
+        "Article 3",
+        "If users of this Exchange violate the provisions of this statement and thereby contravene relevant laws, the Exchange, as the service provider, is obligated to improve the rules and services of the platform. However, the Exchange has neither the intent nor the fact of violating laws, and shall not bear any joint liability for the actions of the users.",
+        "Article 4",
+        "Anyone who logs into this Exchange in any way, or directly or indirectly uses the services of this Exchange, shall be deemed to have voluntarily accepted the constraints of this statement.",
+        "Article 5",
+        "For matters not covered in this statement, please refer to the relevant laws and regulations. In the event of a conflict between this statement and applicable laws and regulations, the latter shall prevail.",
+      ],
+    ],
+  },
+  {
+    id: "law",
+    title: "Law Enforcement Requests",
+    blocks: [
+      [
+        `${BRAND} occasionally receives requests from law enforcement agencies worldwide for customer information. This section provides guidance for both you and law enforcement agencies on how such requests are handled.`,
+        "Law enforcement authorities are typically interested in two types of data: information about customer identity and information regarding their transaction activities. We actively cooperate with law enforcement agencies and respond only to requests made by duly authorized law enforcement personnel who provide valid authorization documents.",
+        `In accordance with our Terms of Service, Privacy Policy, and applicable laws, ${BRAND} discloses account information records to international law enforcement authorities.`,
+        `${BRAND} requires that law enforcement requests be accompanied by the appropriate legal process to enable us to provide the requested information.`,
+        `${BRAND} welcomes inquiries from law enforcement agencies regarding its policies and procedures. Please feel free to contact us.`,
+        "When submitting a law enforcement request, please include the following:",
+        "Name of the law enforcement agency;",
+        "Proof of authorization for the officer to obtain the requested information (authorization document);",
+        "Officer's identification (official agency-issued ID);",
+        "Investigation request letter issued by the law enforcement agency;",
+        "Government domain email address;",
+        "Clear identification of the legal entity to which the requested information pertains;",
+        "Specific details of the customer information being requested;",
+        "Other relevant details, including a reasonable deadline for response and, in the case of international law enforcement agencies, judicial documents required under applicable mutual legal assistance treaties (MLATs).",
+        `${BRAND} reserves the right to disclose information to law enforcement agencies in order to protect itself and its customers.`,
+      ],
+    ],
+  },
+  {
+    id: "protocol",
+    title: "Protocol Disclaimer",
+    blocks: [
+      [
+        `By using ${BRAND} and/or its related services, you expressly acknowledge and agree that:`,
+        `No individual or entity involved in the creation or operation of ${BRAND} shall be liable for any claims or damages arising from your use of, inability to use, or interactions with other users through the platform, including but not limited to any direct, indirect, incidental, special, exemplary, punitive, or consequential damages, or any loss of profits, digital assets, or other items of value;`,
+        "Your use of the platform may require you to pay fees, such as network fees and other costs necessary to execute transactions;",
+        "Your use of the platform involves various risks, including but not limited to:",
+        "(a) the risk of loss of digital assets provided to the platform; and",
+        "(b) the risk of loss resulting from fluctuations in the prices of digital assets in trading pairs;",
+        "Before using the platform, you should review the relevant documentation to ensure you understand how it operates;",
+        "You are solely responsible for conducting due diligence on the services you access, including understanding the associated fees and risks;",
+        "You are responsible for ensuring that your account contains sufficient balances of digital assets to complete any transaction you initiate;",
+        "The regulatory framework governing transactions involving digital assets remains uncertain and continues to evolve, and:",
+        "(a) any transactions conducted through the platform, as well as any funds earned, lost, or exchanged, may now or in the future be subject to various reporting, tax, or other obligations and liabilities;",
+        "(b) legislative and regulatory changes or actions at the national or international level may adversely affect the use, transfer, exchange, and value of your digital assets.",
+        "The platform and its services are provided \"as is\", at your own risk, and without warranties of any kind.",
+      ],
+    ],
+  },
+  {
+    id: "aml",
+    title: "Anti-Money Laundering (AML) Agreement",
+    blocks: [
+      [
+        "1. Introduction",
+        "1.1 We guarantee to prudently comply with all laws and regulations relating to Know Your Customer (KYC) and Anti-Money Laundering (AML), and we will not intentionally violate these KYC and AML policies. Within the scope of our reasonable control, we adopt the necessary financial measures and technologies to provide you with secure services and to minimize the risk of losses caused by criminal suspects engaging in money laundering.",
+        "1.2 Our KYC and AML policy is a comprehensive international compliance framework that incorporates KYC and AML policies across different jurisdictions to which you may belong. Our robust compliance system ensures that we meet regulatory requirements both locally and globally, and guarantees the sustainable operation of this website.",
+      ],
+      [
+        "2. KYC and AML Policy",
+        "2.1 Issue and continuously update our KYC and AML policy to meet the standards required by relevant laws and regulations.",
+        "2.2 Establish and update guidelines and rules for the operation of this website. Our employees will provide services in accordance with these principles and rules.",
+        "2.3 Design and implement internal monitoring and transaction control procedures, such as strict identity verification and the establishment of a professional team dedicated to AML tasks.",
+        "2.4 Adopt a risk-based approach to conduct due diligence on customers and maintain ongoing monitoring.",
+        "2.5 Review and periodically audit transactions.",
+        "2.6 Report suspicious transactions to the competent authorities.",
+        "2.7 Identity documents, address verification documents, and transaction records will be retained for at least six years, and may be submitted to regulators without prior notice to you.",
+        "2.8 The use of credit cards is strictly prohibited throughout the transaction process.",
+        "2.9 Regularly participate in training sessions organized by relevant authorities and provide periodic training to employees.",
+      ],
+      [
+        "3. Identity Information and Verification",
+        "3.1 Identity Information",
+        "3.1.1 For individuals:",
+        "Depending on the jurisdiction and entity type, the information collected may vary. As a general principle, for individual registrants we will collect:",
+        "Personal basic information: name, residential address (and permanent address if different), date of birth, nationality, and other available details. Identity verification must be based on documents issued by official or equivalent authoritative institutions, such as passports, identity cards, or other documents required by applicable jurisdictions. The provided address will be verified through appropriate methods, such as checking public records, utility bills, or voter registration lists.",
+        "Valid photograph: Before registration, you must provide a photo of yourself holding your identification document against your chest.",
+        "Contact information: phone/mobile number and a valid email address.",
+        "3.1.2 For companies or other legal entities:",
+        "We will collect the following information to identify the entity and its ultimate beneficial owners:",
+        "Company registration and incorporation certificate;",
+        "Articles of association and memorandum of association;",
+        "Detailed proof of shareholding structure and ownership, including board resolutions authorizing the opening and operation of accounts on this website;",
+        "Identification documents for directors, major shareholders, and authorized signatories;",
+        "Primary business address, and if different, mailing address. Where a local address differs from the principal business address, the entity will be considered high-risk and must provide additional supporting documentation.",
+        "Other certifications and documents issued by competent authorities as required by different jurisdictions, and any other documents deemed necessary.",
+        "3.1.3 We only accept identity information in English or Chinese. If not, you must provide a notarized English translation of your identity documents.",
+        "3.2 Verification",
+        "3.2.1 You are required to provide both the front and back copies of your identification document.",
+        "3.2.2 You must provide a photograph of yourself holding your identification document against your chest.",
+        "3.2.3 Copies of documents should generally be verified against the original. However, if a trusted and appropriate certifier confirms that the copy is a true and complete reproduction of the original, such certified copies are acceptable. Acceptable certifiers include ambassadors, judicial officers, magistrates, or similar officials.",
+        "3.2.4 Requirements for identifying ultimate beneficial owners and account controllers include determining which individuals ultimately own or control the direct client and/or identifying whether transactions are being executed on behalf of others. For corporate entities, the identities of major shareholders must be verified:",
+        "Shareholders holding 25% or less of voting rights are generally considered normal risk and must be verified.",
+        "Shareholders holding 10% or more of voting rights or shares are considered higher risk and must be verified with enhanced due diligence.",
+      ],
+      [
+        "4. Transaction Monitoring",
+        "4.1 We set and adjust daily transaction and withdrawal limits based on security considerations and actual trading activity.",
+        "4.2 If transactions appear unusually frequent or concentrated in a particular account, or exceed reasonable expectations, our professional team will assess whether they are suspicious.",
+        "4.3 Transactions deemed suspicious by our own judgment may be suspended, rejected, or reversed as soon as possible. We may also report such transactions to the competent authorities without prior notice to you.",
+        "4.4 We reserve the right to reject account applications from persons in jurisdictions that do not meet international AML standards or from individuals considered politically exposed persons (PEPs). We also reserve the right to suspend or terminate any transaction we deem suspicious at our sole discretion, without incurring any liability or obligation to you.",
+      ],
+      [`${BRAND} Team`],
+    ],
+  },
+  {
+    id: "license",
+    title: "Licensing & Compliance",
+    blocks: [
+      [
+        "Licensing and compliance information will be published here.",
+      ],
+    ],
+  },
+];
 
-/* f1–f4 ও s1–s2 ফরম্যাট: "শিরোনাম|বিবরণ" */
-const RAW = {
-  en: [
-    "Introduction",
-    "Trade crypto with confidence",
-    "A modern trading platform for spot, options, swap and loans — built for speed, clarity and security, with live market data and an easy, mobile-first experience.",
-    "Why choose us",
-    "Spot trading|Buy and sell popular coins instantly at live market prices.",
-    "Options trading|Pick a direction and time frame, and trade with a clear payout.",
-    "Instant swap|Exchange one asset for another in a few taps.",
-    "Flexible loans|Access funds against your assets with simple terms.",
-    "Secure by design|Identity verification and protected accounts keep your assets safe.",
-    "24/7 support|Our team is always available through customer service.",
-    "Start trading",
-  ],
-  bn: [
-    "পরিচিতি",
-    "আত্মবিশ্বাসের সাথে ক্রিপ্টো ট্রেড করুন",
-    "স্পট, অপশন, সোয়াপ ও লোনের আধুনিক ট্রেডিং প্ল্যাটফর্ম — গতি, স্বচ্ছতা ও নিরাপত্তা নিয়ে তৈরি, লাইভ মার্কেট ডেটা ও সহজ মোবাইল-ফার্স্ট অভিজ্ঞতাসহ।",
-    "কেন আমাদের বেছে নেবেন",
-    "স্পট ট্রেডিং|লাইভ মার্কেট দামে জনপ্রিয় কয়েন সাথে সাথে কেনা-বেচা করুন।",
-    "অপশন ট্রেডিং|দিক ও সময় বেছে নিন, স্পষ্ট পে-আউটে ট্রেড করুন।",
-    "ইনস্ট্যান্ট সোয়াপ|কয়েকটি ট্যাপে এক অ্যাসেট থেকে অন্যটিতে বদলান।",
-    "সহজ লোন|সহজ শর্তে আপনার অ্যাসেটের বিপরীতে ফান্ড নিন।",
-    "নিরাপত্তায় সেরা|পরিচয় যাচাই ও সুরক্ষিত অ্যাকাউন্টে আপনার সম্পদ নিরাপদ থাকে।",
-    "২৪/৭ সাপোর্ট|কাস্টমার সার্ভিসের মাধ্যমে আমাদের টিম সবসময় পাশে আছে।",
-    "ট্রেড শুরু করুন",
-  ],
-  hi: [
-    "परिचय",
-    "भरोसे के साथ क्रिप्टो ट्रेड करें",
-    "स्पॉट, ऑप्शन, स्वैप और लोन के लिए आधुनिक ट्रेडिंग प्लेटफ़ॉर्म — गति, स्पष्टता और सुरक्षा के साथ, लाइव मार्केट डेटा और आसान मोबाइल-फ़र्स्ट अनुभव।",
-    "हमें क्यों चुनें",
-    "स्पॉट ट्रेडिंग|लाइव मार्केट कीमतों पर लोकप्रिय कॉइन तुरंत खरीदें और बेचें।",
-    "ऑप्शन ट्रेडिंग|दिशा और समय चुनें, स्पष्ट पेआउट के साथ ट्रेड करें।",
-    "इंस्टेंट स्वैप|कुछ टैप में एक एसेट को दूसरे में बदलें।",
-    "लचीले लोन|सरल शर्तों पर अपने एसेट के बदले फंड पाएँ।",
-    "सुरक्षा पहले|पहचान सत्यापन और सुरक्षित अकाउंट आपकी संपत्ति को सुरक्षित रखते हैं।",
-    "24/7 सहायता|कस्टमर सर्विस के ज़रिए हमारी टीम हमेशा उपलब्ध है।",
-    "ट्रेडिंग शुरू करें",
-  ],
-  ur: [
-    "تعارف",
-    "اعتماد کے ساتھ کرپٹو ٹریڈ کریں",
-    "اسپاٹ، آپشنز، سواپ اور لون کے لیے جدید ٹریڈنگ پلیٹ فارم — رفتار، وضاحت اور سیکیورٹی کے ساتھ، لائیو مارکیٹ ڈیٹا اور آسان موبائل تجربہ۔",
-    "ہمیں کیوں چنیں",
-    "اسپاٹ ٹریڈنگ|لائیو مارکیٹ قیمتوں پر مقبول کوائنز فوری خریدیں اور بیچیں۔",
-    "آپشنز ٹریڈنگ|سمت اور وقت چنیں، واضح پے آؤٹ کے ساتھ ٹریڈ کریں۔",
-    "فوری سواپ|چند ٹیپس میں ایک اثاثے کو دوسرے سے بدلیں۔",
-    "لچکدار لون|آسان شرائط پر اپنے اثاثوں کے بدلے فنڈز حاصل کریں۔",
-    "سیکیورٹی پہلے|شناخت کی تصدیق اور محفوظ اکاؤنٹس آپ کے اثاثے محفوظ رکھتے ہیں۔",
-    "24/7 سپورٹ|کسٹمر سروس کے ذریعے ہماری ٹیم ہر وقت دستیاب ہے۔",
-    "ٹریڈنگ شروع کریں",
-  ],
-  ar: [
-    "نبذة تعريفية",
-    "تداول العملات الرقمية بثقة",
-    "منصة تداول حديثة للفوري والخيارات والمبادلة والقروض — مصممة للسرعة والوضوح والأمان مع بيانات سوق مباشرة وتجربة سهلة على الجوال.",
-    "لماذا نحن",
-    "التداول الفوري|اشترِ وبِع العملات الشائعة فورًا بأسعار السوق المباشرة.",
-    "تداول الخيارات|اختر الاتجاه والمدة وتداول بعائد واضح.",
-    "مبادلة فورية|بدّل أصلًا بآخر بنقرات قليلة.",
-    "قروض مرنة|احصل على تمويل مقابل أصولك بشروط بسيطة.",
-    "أمان بالتصميم|التحقق من الهوية والحسابات المحمية يحافظان على أصولك.",
-    "دعم على مدار الساعة|فريقنا متاح دائمًا عبر خدمة العملاء.",
-    "ابدأ التداول",
-  ],
-  zh: [
-    "平台介绍",
-    "自信交易加密货币",
-    "支持现货、期权、闪兑与借贷的现代交易平台——速度快、清晰透明、安全可靠，提供实时行情和便捷的移动端体验。",
-    "为什么选择我们",
-    "现货交易|按实时市场价格即时买卖主流币种。",
-    "期权交易|选择方向与时间，以明确的收益进行交易。",
-    "即时闪兑|几步操作即可将一种资产兑换为另一种。",
-    "灵活借贷|以简单条款用资产获取资金。",
-    "安全设计|实名认证与账户保护，守护您的资产。",
-    "全天候支持|客服团队随时为您服务。",
-    "开始交易",
-  ],
-  es: [
-    "Introducción",
-    "Opera cripto con confianza",
-    "Una plataforma moderna para operar al contado, opciones, swap y préstamos, creada para la rapidez, la claridad y la seguridad, con datos de mercado en vivo y experiencia móvil sencilla.",
-    "Por qué elegirnos",
-    "Trading al contado|Compra y vende monedas populares al instante a precios de mercado en vivo.",
-    "Trading de opciones|Elige dirección y plazo y opera con un pago claro.",
-    "Swap instantáneo|Cambia un activo por otro en pocos toques.",
-    "Préstamos flexibles|Obtén fondos con tus activos y condiciones simples.",
-    "Seguro por diseño|La verificación de identidad y las cuentas protegidas cuidan tus activos.",
-    "Soporte 24/7|Nuestro equipo está siempre disponible en atención al cliente.",
-    "Empezar a operar",
-  ],
-  fr: [
-    "Présentation",
-    "Tradez la crypto en toute confiance",
-    "Une plateforme moderne pour le spot, les options, le swap et les prêts — conçue pour la rapidité, la clarté et la sécurité, avec des données de marché en direct et une expérience mobile simple.",
-    "Pourquoi nous choisir",
-    "Trading spot|Achetez et vendez instantanément les principales cryptos aux prix du marché.",
-    "Trading d'options|Choisissez une direction et une durée, avec un gain clair.",
-    "Swap instantané|Échangez un actif contre un autre en quelques clics.",
-    "Prêts flexibles|Obtenez des fonds contre vos actifs à des conditions simples.",
-    "Sécurité avant tout|Vérification d'identité et comptes protégés pour garder vos actifs en sécurité.",
-    "Support 24h/24|Notre équipe est toujours disponible via le service client.",
-    "Commencer à trader",
-  ],
-  de: [
-    "Einführung",
-    "Krypto sicher handeln",
-    "Eine moderne Handelsplattform für Spot, Optionen, Swap und Kredite — für Tempo, Klarheit und Sicherheit, mit Live-Marktdaten und einfacher mobiler Nutzung.",
-    "Warum wir",
-    "Spot-Handel|Beliebte Coins sofort zu Live-Marktpreisen kaufen und verkaufen.",
-    "Optionshandel|Richtung und Zeitraum wählen und mit klarer Auszahlung handeln.",
-    "Sofort-Swap|Ein Asset in wenigen Tipps gegen ein anderes tauschen.",
-    "Flexible Kredite|Mit Ihren Assets einfach an Geld kommen.",
-    "Sicher konzipiert|Identitätsprüfung und geschützte Konten sichern Ihr Vermögen.",
-    "24/7-Support|Unser Team ist über den Kundenservice jederzeit erreichbar.",
-    "Jetzt handeln",
-  ],
-  ru: [
-    "О платформе",
-    "Торгуйте криптовалютой уверенно",
-    "Современная платформа для спот-торговли, опционов, обмена и займов — скорость, понятность и безопасность, данные рынка в реальном времени и удобный мобильный интерфейс.",
-    "Почему мы",
-    "Спот-торговля|Мгновенно покупайте и продавайте популярные монеты по рыночным ценам.",
-    "Опционы|Выберите направление и время, торгуйте с понятной выплатой.",
-    "Мгновенный обмен|Обменивайте один актив на другой в несколько касаний.",
-    "Гибкие займы|Получайте средства под свои активы на простых условиях.",
-    "Безопасность по умолчанию|Проверка личности и защита аккаунтов берегут ваши активы.",
-    "Поддержка 24/7|Наша команда всегда на связи через службу поддержки.",
-    "Начать торговлю",
-  ],
-};
-
-const ICONS = {
-  spot: <><path d="M4 19V9M10 19V5M16 19v-7M22 19H2" /></>,
-  opt: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
-  swap: <><path d="M7 7h12l-3-3M17 17H5l3 3" /></>,
-  loan: <><rect x="3" y="6" width="18" height="12" rx="2.5" /><circle cx="12" cy="12" r="2.5" /></>,
-  shield: <><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6l8-3z" /><path d="M8.5 12l2.5 2.5L15.5 10" /></>,
-  help: <><path d="M4 13v-1a8 8 0 0 1 16 0v1" /><rect x="3" y="13" width="4" height="6" rx="1.5" /><rect x="17" y="13" width="4" height="6" rx="1.5" /></>,
-};
-
-const Ico = ({ n, s = 22 }) => (
-  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    {ICONS[n]}
-  </svg>
-);
-
-const BackI = () => (
-  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+const BackIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M15 5l-7 7 7 7" />
   </svg>
 );
 
-/* ভাষা অনুযায়ী টেক্সট: নিজের টেবিল → English */
-const useTx = () => {
-  const { lang } = useContext(LangCtx);
-  const tbl = RAW[lang] || RAW.en;
-  return (k) => {
-    const i = KEYS.indexOf(k);
-    return tbl[i] != null ? tbl[i] : RAW.en[i];
-  };
-};
+const ArrowIcon = ({ dir }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={dir === "l" ? { transform: "scaleX(-1)" } : undefined}>
+    <path d="M9 5l7 7-7 7" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <path d="M5 5l14 14M19 5L5 19" />
+  </svg>
+);
 
 const CSS = `
-.cx-in-pg{--fg:#1a2230;--fg2:rgba(26,34,48,.68);--bd:rgba(0,0,0,.10);--sf:#fff;--sf2:#f3f5fa;--pg:#f3f5fa;
-  background:var(--pg);color:var(--fg);min-height:100vh;padding-bottom:36px;box-sizing:border-box}
-.cx.dark .cx-in-pg{--fg:#e8edf5;--fg2:rgba(232,237,245,.70);--bd:rgba(255,255,255,.10);--sf:#17263d;--sf2:#101c30;--pg:#121e2f}
+.cx-in-pg{--bg:#f3f5fa;--bar:#ffffff;--card:#ffffff;--fg:#1a2230;--fg2:rgba(26,34,48,.55);--ln:rgba(0,0,0,.14);--ov:rgba(10,16,28,.55);--mod:#ffffff;
+  background:var(--bg);color:var(--fg);min-height:100vh;box-sizing:border-box;padding-bottom:32px}
+.cx.dark .cx-in-pg,.cx-in-pg.dk{--bg:#0b1520;--bar:#101f30;--card:#101f30;--fg:#ffffff;--fg2:rgba(255,255,255,.55);--ln:rgba(255,255,255,.22);--ov:rgba(2,6,12,.72);--mod:#101f30}
 
-.cx-in-pg .cx-in-top{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:50px;
-  background:var(--sf);border-bottom:1px solid var(--bd)}
-.cx-in-pg .cx-in-top h1{margin:0;font-size:16px;font-weight:600;text-align:center;color:var(--fg)}
-.cx-in-pg .cx-in-top button{height:50px;display:grid;place-items:center;background:none!important;border:0!important;
-  color:var(--fg)!important;cursor:pointer;padding:0;text-align:center!important}
-.cx[dir=rtl] .cx-in-top button{transform:scaleX(-1)}
+.cx-in-pg .cx-in-top{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:48px 1fr 48px;align-items:center;height:46px;
+  background:var(--bar);border-bottom:1px solid var(--ln)}
+.cx-in-pg .cx-in-top h1{margin:0;font-size:16px;font-weight:500;text-align:center;color:var(--fg)}
+.cx-in-pg .cx-in-top button{height:46px;display:grid;place-items:center;background:none!important;border:0!important;color:var(--fg)!important;cursor:pointer;padding:0}
 
-/* Hero */
-.cx-in-pg .cx-in-hero{margin:16px 16px 0;padding:28px 20px 26px;border-radius:22px;text-align:center;color:#fff;
-  background:linear-gradient(135deg,#17c3c9 0%,#2a7de1 55%,#5b6cff 100%);
-  box-shadow:0 14px 34px rgba(42,125,225,.32)}
-.cx-in-pg .cx-in-logo{width:64px;height:64px;margin:0 auto 14px;border-radius:20px;display:grid;place-items:center;
-  background:rgba(255,255,255,.95);box-shadow:0 8px 20px rgba(0,0,0,.18)}
-.cx-in-pg .cx-in-hero h2{margin:0 0 8px;font-size:20px;font-weight:700;letter-spacing:.2px;color:#fff}
-.cx-in-pg .cx-in-hero p{margin:0;font-size:13.5px;line-height:1.6;color:rgba(255,255,255,.9)}
+.cx-in-pg .cx-in-list{margin:10px 10px 0;padding:0 26px;border-radius:14px;background:var(--card)}
+.cx-in-pg .cx-in-item{display:flex!important;align-items:center;justify-content:space-between;gap:10px;width:100%;height:44px;padding:0!important;
+  background:none!important;border:0!important;border-bottom:1px solid var(--ln)!important;border-radius:0!important;
+  color:var(--fg)!important;font-size:14px;text-align:start!important;cursor:pointer}
+.cx-in-pg .cx-in-item:last-child{border-bottom:0!important}
+.cx-in-pg .cx-in-item .l{display:flex;align-items:center;gap:6px;min-width:0}
+.cx-in-pg .cx-in-item .l span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cx-in-pg .cx-in-item .r{color:var(--fg2);flex:none;display:grid;place-items:center}
+.cx-in-pg .cx-in-item:active{opacity:.7}
 
-/* Section title */
-.cx-in-pg .cx-in-h{margin:24px 18px 12px;font-size:15px;font-weight:700;color:var(--fg)}
+.cx-in-ov{position:fixed;inset:0;z-index:300;background:var(--ov);display:flex;align-items:center;justify-content:center;padding:16px;
+  -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.cx-in-md{position:relative;width:100%;max-width:1100px;max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;
+  background:var(--mod);color:var(--fg);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.45);overflow:hidden;box-sizing:border-box}
+.cx-in-md .cx-in-x{position:absolute;top:10px;right:12px;z-index:2;width:34px;height:34px;display:grid;place-items:center;
+  background:none!important;border:0!important;color:var(--fg)!important;opacity:.85;cursor:pointer;padding:0}
+.cx-in-md h2{margin:0;padding:48px 52px 14px;font-size:16px;font-weight:500;text-align:center;color:var(--fg);flex:none}
+.cx-in-md .cx-in-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 12px 18px;font-size:13px;line-height:1.5;color:var(--fg)}
+.cx-in-md .cx-in-blk{padding:2px 0;border-bottom:1px solid var(--fg)}
+.cx-in-md .cx-in-blk:last-child{border-bottom:0}
+.cx-in-md .cx-in-blk p{margin:0;overflow-wrap:anywhere}
 
-/* Feature grid */
-.cx-in-pg .cx-in-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px}
-.cx-in-pg .cx-in-card{padding:16px 14px;border-radius:16px;background:var(--sf);border:1px solid var(--bd)}
-.cx-in-pg .cx-in-ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;margin-bottom:10px;
-  color:#2a7de1;background:rgba(42,125,225,.12)}
-.cx-in-pg .cx-in-card b{display:block;font-size:13.5px;font-weight:700;margin-bottom:4px;color:var(--fg)}
-.cx-in-pg .cx-in-card span{display:block;font-size:12px;line-height:1.5;color:var(--fg2)}
-
-/* Trust rows */
-.cx-in-pg .cx-in-list{display:flex;flex-direction:column;gap:10px;padding:0 16px}
-.cx-in-pg .cx-in-row{display:flex;align-items:flex-start;gap:12px;padding:14px;border-radius:16px;background:var(--sf);border:1px solid var(--bd)}
-.cx-in-pg .cx-in-row .cx-in-ic{margin:0;flex:none;color:#10b981;background:rgba(16,185,129,.12)}
-.cx-in-pg .cx-in-row b{display:block;font-size:13.5px;font-weight:700;margin-bottom:3px;color:var(--fg)}
-.cx-in-pg .cx-in-row span{display:block;font-size:12px;line-height:1.5;color:var(--fg2)}
-
-/* CTA */
-.cx-in-pg .cx-in-act{display:flex!important;justify-content:center!important;padding:0 16px;margin-top:28px}
-.cx-in-pg .cx-in-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;
-  min-width:min(240px,100%);height:48px;margin:0!important;padding:0 44px!important;border:0!important;border-radius:999px!important;
-  background:linear-gradient(135deg,#2f80ed 0%,#5b6cff 100%)!important;color:#fff!important;font-size:15px!important;font-weight:600!important;
-  text-align:center!important;cursor:pointer;box-shadow:0 8px 22px rgba(75,110,245,.35);transition:transform .15s,box-shadow .15s}
-.cx-in-pg .cx-in-btn:hover{box-shadow:0 12px 28px rgba(75,110,245,.45);transform:translateY(-1px)}
-.cx-in-pg .cx-in-btn:active{transform:scale(.97)}
-
-@media(min-width:768px){.cx-in-pg .cx-in-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:900px){
+  .cx-in-pg .cx-in-list{margin:12px 16px 0}
+  .cx-in-md .cx-in-body{padding:0 12px 20px}
+}
 `;
 
-const FEATURES = [["f1", "spot"], ["f2", "opt"], ["f3", "swap"], ["f4", "loan"]];
-const TRUST = [["s1", "shield"], ["s2", "help"]];
-
-const split = (v) => {
-  const i = String(v).indexOf("|");
-  return i < 0 ? [v, ""] : [v.slice(0, i), v.slice(i + 1)];
-};
-
 export default function Introduction({ go }) {
-  const tx = useTx();
+  const [openId, setOpenId] = useState("");
+  const doc = DOCS.find((d) => d.id === openId) || null;
+
+  useEffect(() => {
+    if (!doc) return undefined;
+    const onKey = (e) => { if (e.key === "Escape") setOpenId(""); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [doc]);
 
   return (
     <div className="cx-in-pg">
       <style>{CSS}</style>
 
       <div className="cx-in-top">
-        <button type="button" onClick={() => go("home")} aria-label="Back"><BackI /></button>
-        <h1>{tx("title")}</h1>
+        <button type="button" onClick={() => go("home")} aria-label="Back"><BackIcon /></button>
+        <h1>Website Introduction</h1>
         <span />
       </div>
 
-      <section className="cx-in-hero">
-        <div className="cx-in-logo"><BrandMark size={40} /></div>
-        <h2>{tx("tag")}</h2>
-        <p>{tx("about")}</p>
-      </section>
+      <div className="cx-in-list">
+        {DOCS.map((d) => (
+          <button key={d.id} type="button" className="cx-in-item" onClick={() => setOpenId(d.id)}>
+            <span className="l"><ArrowIcon /><span>{d.title}</span></span>
+            <span className="r"><ArrowIcon /></span>
+          </button>
+        ))}
+      </div>
 
-      <h3 className="cx-in-h">{tx("why")}</h3>
-      <div className="cx-in-grid">
-        {FEATURES.map(([k, ic]) => {
-          const [h, d] = split(tx(k));
-          return (
-            <div className="cx-in-card" key={k}>
-              <div className="cx-in-ic"><Ico n={ic} /></div>
-              <b>{h}</b>
-              <span>{d}</span>
+      {doc && (
+        <div className="cx-in-ov" onClick={() => setOpenId("")}>
+          <div className="cx-in-md" role="dialog" aria-modal="true" aria-label={doc.title} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="cx-in-x" onClick={() => setOpenId("")} aria-label="Close"><CloseIcon /></button>
+            <h2>{doc.title}</h2>
+            <div className="cx-in-body">
+              {doc.blocks.map((blk, i) => (
+                <div className="cx-in-blk" key={i}>
+                  {blk.map((line, j) => <p key={j}>{line}</p>)}
+                </div>
+              ))}
             </div>
-          );
-        })}
-      </div>
-
-      <div className="cx-in-list" style={{ marginTop: 12 }}>
-        {TRUST.map(([k, ic]) => {
-          const [h, d] = split(tx(k));
-          return (
-            <div className="cx-in-row" key={k}>
-              <div className="cx-in-ic"><Ico n={ic} /></div>
-              <div>
-                <b>{h}</b>
-                <span>{d}</span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="cx-in-act">
-        <button type="button" className="cx-in-btn" onClick={() => go("options")}>{tx("cta")}</button>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
