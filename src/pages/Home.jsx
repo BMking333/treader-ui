@@ -565,22 +565,27 @@ const HM_CSS = `
 
 /* list */
 .hm-h{margin:8px 16px 6px;font-size:18px;font-weight:600;letter-spacing:-.1px}
-.ls-th,.ls-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 78px;align-items:center;gap:8px;padding:0 16px}
-.ls-th{height:40px;font-size:13px;color:var(--mu);font-weight:500;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
+.ls-th,.ls-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 72px;align-items:center;gap:8px;padding:0 16px}
+.ls-th{height:36px;font-size:12px;color:var(--mu);font-weight:500;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
 .ls-th span:last-child{text-align:right}
-.ls-row{width:100%;height:66px;background:transparent;border:0;border-bottom:1px solid var(--ln);color:var(--tx);text-align:left;
+.ls-row{width:100%;height:60px;background:transparent;border:0;border-bottom:1px solid var(--ln);color:var(--tx);text-align:left;
   transition:background .15s ease}
 .ls-row:active{background:var(--card)}
 .ls-nm{display:flex;align-items:center;gap:10px;min-width:0}
 .ls-nm>span{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ls-nm b{font-size:16px;font-weight:600;letter-spacing:-.1px;white-space:nowrap}
-.ls-nm b small{font-size:12px;font-weight:400;color:var(--mu);margin-left:1px}
-.ls-nm>span>small{font-size:12px;color:var(--mu)}
+.ls-nm b{font-size:15px;font-weight:600;letter-spacing:-.1px;white-space:nowrap}
+.ls-nm b small{font-size:11.5px;font-weight:400;color:var(--mu);margin-left:1px}
+.ls-nm>span>small{font-size:11.5px;color:var(--mu);font-variant-numeric:tabular-nums}
 .ls-pr{display:flex;flex-direction:column;gap:3px;min-width:0}
-.ls-pr b{font-size:16px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
-.ls-pr small{font-size:12px;color:var(--mu);font-variant-numeric:tabular-nums}
-.ls-pill{display:flex;align-items:center;justify-content:center;height:30px;border-radius:6px;color:#fff;font-size:13px;font-weight:500;
+.ls-pr b{font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ls-pr small{font-size:11.5px;color:var(--mu);font-variant-numeric:tabular-nums}
+.ls-pill{display:flex;align-items:center;justify-content:center;height:28px;border-radius:6px;color:#fff;font-size:12.5px;font-weight:500;
   font-variant-numeric:tabular-nums;letter-spacing:.1px}
+
+/* market page header + tabs */
+.hm .cx-top h1{font-size:17px;font-weight:600;letter-spacing:-.1px}
+.hm .cx-tabs button{font-size:14px!important;font-weight:500;letter-spacing:.1px}
+.hm .cx-tabs button.on{font-weight:600}
 @media(max-width:360px){
   .hm-tk b{font-size:16px}.hm-gr button{font-size:13.5px;padding:0 10px;gap:8px}.ls-th,.ls-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 70px}
 }
@@ -701,9 +706,42 @@ function Banner({ items }) {
 }
 
 /* ====================== MARKET LIST ====================== */
+/* quote = USDT / TRX / BTC / ETH / USDD / USDC — সব কয়েনের দাম ওই মার্কেটের হিসাবে দেখায় */
 
-export function List({ P = {}, go, names }) {
+const STABLE_Q = { USDT: 1, USDC: 1, USDD: 1 };
+
+const fq = (v) => {
+  const x = Number(v) || 0;
+  return x >= 100
+    ? x.toFixed(2)
+    : x >= 1
+      ? x.toFixed(4)
+      : x >= 0.01
+        ? x.toFixed(6)
+        : x >= 0.0001
+          ? x.toFixed(8)
+          : x.toFixed(10);
+};
+
+export function List({ P = {}, go, names, quote = "USDT" }) {
   const t = useT();
+
+  const usd = (s) => {
+    const it = P[s];
+    const f = FALL[s];
+    return Number(it && it.price) || (f ? f[0] : 0);
+  };
+
+  const chgOf = (s) => {
+    const it = P[s];
+    return Number(it && it.chg) || 0;
+  };
+
+  const isStable = STABLE_Q[quote] !== undefined;
+  const baseUsd = isStable ? STABLE_Q[quote] : usd(quote) || 1;
+  const baseChg = isStable ? 0 : chgOf(quote);
+
+  const rows = COINS.filter((s) => s !== quote);
 
   return (
     <div className="hm">
@@ -715,18 +753,13 @@ export function List({ P = {}, go, names }) {
         <span>{t("chg")}</span>
       </div>
 
-      {COINS.map((s) => {
+      {rows.map((s) => {
         const fallback = FALL[s];
 
-        const item = P[s] || {
-          price: fallback[0],
-          chg: fallback[1],
-          vol: fallback[2],
-        };
-
-        const price = Number(item.price) || fallback[0];
-        const change = Number(item.chg) || 0;
-        const volume = Number(item.vol) || fallback[2];
+        const priceUsd = usd(s);
+        const price = priceUsd / baseUsd;
+        const change = chgOf(s) - baseChg;
+        const volume = Number((P[s] && P[s].vol) || fallback[2]) || fallback[2];
 
         return (
           <button
@@ -738,21 +771,21 @@ export function List({ P = {}, go, names }) {
             <span className="ls-nm">
               <Coin
                 s={s}
-                size={names ? 38 : 40}
+                size={names ? 36 : 38}
               />
 
               {names ? (
                 <span>
                   <b>
                     {s}
-                    <small>/USDT</small>
+                    <small>/{quote}</small>
                   </b>
                   <small className="num">24H {fmtV(volume)}</small>
                 </span>
               ) : (
                 <b>
                   {s}
-                  <small>/USDT</small>
+                  <small>/{quote}</small>
                 </b>
               )}
             </span>
@@ -760,11 +793,11 @@ export function List({ P = {}, go, names }) {
             <span className="ls-pr">
               {names ? (
                 <>
-                  <b>{fmt(price)}</b>
-                  <small>$ {price.toFixed(2)}</small>
+                  <b>{fq(price)}</b>
+                  <small>$ {priceUsd >= 1 ? priceUsd.toFixed(2) : fmt(priceUsd)}</small>
                 </>
               ) : (
-                <b>{fmt(price)}</b>
+                <b>{fq(price)}</b>
               )}
             </span>
 
