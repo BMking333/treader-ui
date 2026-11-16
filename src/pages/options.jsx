@@ -688,6 +688,13 @@ const CSS = `
 .cx-op button.cx-op-pick:active{border-color:var(--blue)!important}
 .cx-op.dk button.cx-op-opt.on{background:#16335a!important;color:#7cc0ff!important;border-color:#4aa3f0!important;box-shadow:0 0 0 3px rgba(74,163,240,.18)}
 
+/* ===== Quantity / Time বক্স: লেবেল + ভ্যালু একই লাইনে, ঠিক মাঝখানে ===== */
+.cx-op button.cx-op-pick{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;gap:3px!important;padding:0 6px!important;height:52px!important;line-height:1.15!important;min-width:0}
+.cx-op button.cx-op-pick span{display:block;width:100%;text-align:center!important;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+.cx-op button.cx-op-pick span:first-child{display:flex;align-items:center;justify-content:center;gap:5px;font-size:11.5px!important;font-weight:500;color:var(--gray)}
+.cx-op button.cx-op-pick span:first-child::after{content:"";flex:none;width:5px;height:5px;margin-top:-3px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg)}
+.cx-op button.cx-op-pick span:last-child{font-size:15px!important;font-weight:700;color:var(--f-tx)}
+
 `;
 
 export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark }) {
@@ -894,10 +901,10 @@ export default function Options({ P, W, sym, setSym, pos = [], orders = [], dark
 
         <div className="cx-op-bar">
           <button type="button" className="cx-op-pick" onClick={() => { setQIn(qty ? String(qty) : ""); setSh("trade"); }}>
-            <span>{t("qty")} ⌄</span><span>{fq(qty)}</span>
+            <span>{t("qty")}</span><span>{fq(qty)}</span>
           </button>
           <button type="button" className="cx-op-pick" onClick={() => setSh("trade")}>
-            <span>{t("time")} ⌄</span><span>{fmtDur(secs)}</span>
+            <span>{t("time")}</span><span>{fmtDur(secs)}</span>
           </button>
           <button type="button" className="cx-op-go up" disabled={busy || paused} onClick={() => ask(DIR.long)}>{t("bl")}</button>
           <button type="button" className="cx-op-go dn" disabled={busy || paused} onClick={() => ask(DIR.short)}>{t("ss")}</button>
