@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   BLUE, GREEN, RED,
@@ -72,6 +71,13 @@ const isAdmin = (user) => {
   return role === "admin" && user?.is_active !== false;
 };
 
+/* লেখা/ইনপুট ছাড়া বাকি সব জায়গায় সিলেক্ট / কপি / কনটেক্সট মেনু বন্ধ।
+   যেখানে কপি দরকার সেখানে class="sel" দিলে চালু থাকবে */
+const isEditable = (node) => {
+  const el = node && node.nodeType === 3 ? node.parentElement : node;
+  return !!(el && el.closest && el.closest("input,textarea,[contenteditable='true'],.sel"));
+};
+
 export default function App() {
   const [lang, setLangS] = useState(() => {
     const l = store.get("cx_lang", "en");
@@ -89,6 +95,30 @@ export default function App() {
   );
 
   const [flash, setFlash] = useState("");
+
+  /* =====================================================
+     NO SELECT / NO COPY MENU (long-press)
+  ===================================================== */
+
+  useEffect(() => {
+    const block = (e) => {
+      if (isEditable(e.target)) return;
+      e.preventDefault();
+    };
+    const noDragImg = (e) => {
+      if (e.target && e.target.tagName === "IMG") e.preventDefault();
+    };
+
+    document.addEventListener("contextmenu", block);
+    document.addEventListener("selectstart", block);
+    document.addEventListener("dragstart", noDragImg);
+
+    return () => {
+      document.removeEventListener("contextmenu", block);
+      document.removeEventListener("selectstart", block);
+      document.removeEventListener("dragstart", noDragImg);
+    };
+  }, []);
 
   /* =====================================================
      LANGUAGE / THEME
@@ -432,6 +462,10 @@ export default function App() {
 const CSS = `
 .cx{min-height:100vh;background:#e0e1ea;color:#111;font-family:Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;display:flex;justify-content:center;overflow-x:hidden}
 .cx *{box-sizing:border-box}
+/* চাপ ধরলে Copy / Select all / Web search / Share মেনু আসবে না; ইনপুটে টাইপ ও পেস্ট ঠিক থাকবে */
+.cx,.cx *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.cx input,.cx textarea,.cx [contenteditable="true"],.cx .sel,.cx .sel *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.cx img,.cx svg{-webkit-user-drag:none;user-drag:none}
 .cx button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:start}
 .cx small{color:#8a8d99;font-size:13px;display:block}
 .cx-pg{width:100%;min-width:0;max-width:520px;background:#fff;min-height:100vh;padding-bottom:90px;box-shadow:0 0 40px rgba(0,0,0,.08);overflow-x:hidden}
