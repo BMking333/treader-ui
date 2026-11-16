@@ -1,4 +1,12 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { api } from "../Home";
+
+/* =========================================================
+   src/pages/admin/AdminOptions.jsx
+   Admin -> Options trading
+   Props (from App.jsx): me, go, logout
+   API:  /admin/options/*
+   ========================================================= */
 
 const n2 = (v) => Number(v || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const dt = (s) => (s ? new Date(s).toLocaleString() : "--");
@@ -16,10 +24,32 @@ const ruleOf = (x) => {
   return x.yield_rate != null ? Math.round(x.yield_rate * 100) + "%" : "--";
 };
 
+/* All admin pages (same keys as App.jsx go()) */
+const ADMIN_LINKS = [
+  { key: "admin", label: "Dashboard" },
+  { key: "adminDeposits", label: "Deposits" },
+  { key: "adminWithdrawals", label: "Withdrawals" },
+  { key: "adminPaymentMethods", label: "Payment Methods" },
+  { key: "adminOptions", label: "Options" },
+];
+const CURRENT_PAGE = "adminOptions";
+
 const CSS = `
 .ao{font-family:Inter,Arial,sans-serif;color:#1a1a1a;background:#f3f5fa;min-height:100vh;padding:16px;box-sizing:border-box}
 .ao *{box-sizing:border-box}
 .ao button{font:inherit;cursor:pointer}
+.ao-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.ao-brand{display:flex;align-items:center;gap:10px}
+.ao-brand i{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#1f7acb,#19c5c8);display:grid;place-items:center;color:#fff;font-style:normal;font-weight:900;font-size:19px}
+.ao-brand b{display:block;font-size:16px}
+.ao-brand small{color:#8a94a6;font-size:11px}
+.ao-user{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ao-user span{font-size:12px;color:#6b7183;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ao-nav{display:flex;gap:8px;margin-bottom:16px;padding:6px;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow-x:auto;scrollbar-width:none}
+.ao-nav::-webkit-scrollbar{display:none}
+.ao-nav button{flex:1 0 auto;min-width:120px;height:38px;padding:0 14px;border-radius:8px;border:1px solid transparent;background:transparent;color:#5b6475;font-weight:600;font-size:13px;white-space:nowrap}
+.ao-nav button:hover{background:#eef3fa}
+.ao-nav button.on{background:#1a82d6;border-color:#1a82d6;color:#fff}
 .ao-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .ao-h h1{margin:0;font-size:22px}
 .ao-sw{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;background:#fff;border:1px solid #e4e7ec}
@@ -28,8 +58,9 @@ const CSS = `
 .ao-btn.pri{background:#1a82d6;border-color:#1a82d6;color:#fff}
 .ao-btn.red{background:#d84d5a;border-color:#d84d5a;color:#fff}
 .ao-btn.grn{background:#00a870;border-color:#00a870;color:#fff}
+.ao-btn.out{color:#d84d5a;border-color:#e9b3b8}
 .ao-btn.sm{height:28px;padding:0 10px;font-size:12px}
-.ao-btn:disabled{opacity:.5}
+.ao-btn:disabled{opacity:.5;cursor:not-allowed}
 .ao-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px}
 .ao-card{background:#fff;border:1px solid #e4e7ec;border-radius:10px;padding:12px 14px}
 .ao-card small{display:block;color:#8a94a6;font-size:12px;margin-bottom:4px}
@@ -42,6 +73,7 @@ const CSS = `
 .ao-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
 .ao-row label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6b7183}
 .ao-row input,.ao-row select{height:34px;padding:0 10px;border:1px solid #cfd3d9;border-radius:8px;min-width:110px;font:inherit;background:#fff}
+.ao-row input:disabled{background:#f0f2f6;color:#9aa0ad}
 .ao-tabs{display:flex;gap:8px;margin-bottom:10px}
 .ao-tabs button{height:36px;padding:0 18px;border-radius:8px;border:1px solid #cfd3d9;background:#fff}
 .ao-tabs button.on{background:#1a82d6;border-color:#1a82d6;color:#fff}
@@ -54,6 +86,10 @@ const CSS = `
 .ao-err{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#fdecee;color:#c8323f;font-size:14px}
 .ao-none{text-align:center;color:#9aa0ad;padding:30px}
 .ao-note{margin-top:8px;font-size:12px;color:#8a94a6;line-height:1.5}
+@media(max-width:550px){
+  .ao{padding:12px}
+  .ao-nav button{min-width:110px}
+}
 `;
 
 const EMPTY_FORM = { yield: "", qty_min: "", qty_max: "", max_open: "", mode: "proportional", leverage: "1" };
@@ -67,7 +103,7 @@ const formFrom = (c) => ({
   leverage: String(c.leverage != null ? c.leverage : 1),
 });
 
-export default function AdminOptions({ api }) {
+export default function AdminOptions({ me, go, logout }) {
   const [sum, setSum] = useState(null);
   const [cfg, setCfg] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -78,25 +114,32 @@ export default function AdminOptions({ api }) {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const adminLabel = me?.full_name || me?.name || me?.username || me?.email || "Administrator";
+
+  const open = (key) => {
+    if (key === CURRENT_PAGE) return;
+    if (go) go(key);
+  };
+
   const run = async (fn) => {
     setBusy(true); setErr("");
     try { await fn(); } catch (e) { setErr((e && e.message) || "Failed"); } finally { setBusy(false); }
   };
 
-  const loadSum = useCallback(async () => { try { setSum(await api("/admin/options/summary")); } catch (_) {} }, [api]);
+  const loadSum = useCallback(async () => { try { setSum(await api("/admin/options/summary")); } catch (_) {} }, []);
   const loadCfg = useCallback(async () => {
     try {
       const c = await api("/admin/options/settings");
       setCfg(c);
       setForm(formFrom(c));
     } catch (e) { setErr((e && e.message) || "Failed"); }
-  }, [api]);
+  }, []);
   const loadRows = useCallback(async () => {
     try { setRows(await api("/admin/options/positions" + qs({ ...f, limit: 200 }))); } catch (_) {}
-  }, [api, f]);
+  }, [f]);
   const loadUsers = useCallback(async () => {
     try { setUsers(await api("/admin/options/users" + qs({ q: f.q, limit: 200 }))); } catch (_) {}
-  }, [api, f.q]);
+  }, [f.q]);
 
   useEffect(() => { loadCfg(); }, [loadCfg]);
   useEffect(() => {
@@ -169,6 +212,35 @@ export default function AdminOptions({ api }) {
     <div className="ao">
       <style>{CSS}</style>
 
+      {/* Top bar */}
+      <div className="ao-top">
+        <div className="ao-brand">
+          <i>C</i>
+          <div>
+            <b>Trading Admin</b>
+            <small>Options Management</small>
+          </div>
+        </div>
+        <div className="ao-user">
+          <span>{adminLabel}</span>
+          <button type="button" className="ao-btn out" onClick={() => logout && logout()}>Logout</button>
+        </div>
+      </div>
+
+      {/* Navigation: all admin pages */}
+      <nav className="ao-nav">
+        {ADMIN_LINKS.map((l) => (
+          <button
+            key={l.key}
+            type="button"
+            className={l.key === CURRENT_PAGE ? "on" : ""}
+            onClick={() => open(l.key)}
+          >
+            {l.label}
+          </button>
+        ))}
+      </nav>
+
       <div className="ao-h">
         <h1>Options trading</h1>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
@@ -198,7 +270,7 @@ export default function AdminOptions({ api }) {
         </div>
       )}
 
-      {sum && sum.exposure.length > 0 && (
+      {sum && sum.exposure && sum.exposure.length > 0 && (
         <div className="ao-pan">
           <h3>Open exposure by coin (USDT)</h3>
           <div className="ao-chips">
@@ -340,4 +412,4 @@ export default function AdminOptions({ api }) {
       )}
     </div>
   );
-                  }
+}
