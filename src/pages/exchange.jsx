@@ -1,14 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useT, api, COINS } from "./Home";
-import { TopBar, Picker, useToast, SUB_CSS, num, goBack } from "./subpage";
+import { TopBar, SUB_CSS, num, goBack } from "./subpage";
+import { XCSS, useToast, SheetPicker } from "./xui";
 
-/* =====================================================================
-   src/pages/exchange.jsx — Exchange (কয়েন সোয়াপ) পেজ   URL: /exchangeb
-   Props: W (wallet), go
-   ডিজাইন: ছোট টেক্সট, প্রিমিয়াম কার্ড, স্মুথ ইন্টার‍্যাকশন
-   ===================================================================== */
 
-/* ====== backend অনুযায়ী বদলান ====== */
 const EXCHANGE_PATH = "/exchange/swap";   /* POST {from, to, amount, account} */
 const QUOTE_PATH = "/exchange/quote";     /* GET ?from_coin=&to_coin=&amount= */
 const ACCOUNTS_PATH = "/wallet/accounts"; /* GET -> { options: {...}, funds: {...} } */
@@ -20,76 +15,64 @@ const ACCOUNTS = [
 ];
 const FIRST = ["USDT", "USDC", "ETH", "BTC"];
 const EX_COINS = [...FIRST, ...COINS.filter((c) => !FIRST.includes(c))];
-const coinOpts = EX_COINS.map((c) => ({ value: c, label: c }));
+const coinOpts = EX_COINS.map((c) => ({ value: c, label: c, coin: true }));
 
-/* SUB_CSS-এর বড় সাইজগুলো এখানে ছোট করে ওভাররাইড করা হয়েছে */
 const CSS = `
-.cx-sp{
-  --x-ln:rgba(255,255,255,.08);--x-ln2:rgba(255,255,255,.14);--x-mu:rgba(210,222,240,.58);
-  --x-card:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali",Arial,sans-serif;
-  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
-}
 .cx-sp .cx-ex2-top,.cx-sp .cx-ex2-form{
-  margin:14px 14px 0;border-radius:16px;border:1px solid var(--x-ln);background:var(--x-card);
-  box-shadow:0 10px 28px -16px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.04);
+  margin:14px 14px 0;border-radius:16px;border:1px solid var(--x-ln);background:var(--x-card);box-shadow:var(--x-sh);
 }
 .cx-sp .cx-ex2-top{padding:20px 18px 16px}
 .cx-ex2-pair{display:flex;align-items:center;justify-content:space-between}
 .cx-sp .cx-ex2-pair>button.c{
-  font-size:19px;font-weight:600;letter-spacing:.2px;color:inherit;display:flex;align-items:center;gap:6px;
-  padding:8px 12px;border-radius:12px;border:1px solid var(--x-ln);background:rgba(255,255,255,.03);
-  transition:background .15s ease,border-color .15s ease,transform .12s ease;
+  font-size:19px;font-weight:700;letter-spacing:.2px;color:var(--x-tx);display:flex;align-items:center;gap:8px;
+  padding:9px 13px;border-radius:12px;border:1px solid var(--x-ln2);background:var(--x-chip);
+  transition:background .15s ease,transform .12s ease;
 }
-.cx-sp .cx-ex2-pair>button.c:active{transform:scale(.96);background:rgba(255,255,255,.07)}
+.cx-sp .cx-ex2-pair>button.c:active{transform:scale(.96)}
 .cx-sp .cx-ex2-pair>button.c .cx-sp-chev{width:8px;height:8px}
 .cx-sp .cx-ex2-logo{
   width:42px;height:42px;padding:0;display:grid;place-items:center;border:0;background:none;
-  filter:drop-shadow(0 6px 12px rgba(26,130,214,.35));transition:transform .35s cubic-bezier(.2,.8,.2,1);
+  filter:drop-shadow(0 6px 12px rgba(26,130,214,.4));transition:transform .35s cubic-bezier(.2,.8,.2,1);
 }
 .cx-sp .cx-ex2-logo svg{width:42px;height:42px}
 .cx-sp .cx-ex2-logo:active{transform:rotate(180deg) scale(.94)}
-.cx-ex2-av{margin-top:16px;font-size:12.5px;color:var(--x-mu);font-variant-numeric:tabular-nums;letter-spacing:.1px}
-.cx-ex2-av b{color:inherit;font-weight:600;opacity:.95}
+.cx-ex2-av{margin-top:16px;font-size:12.5px;color:var(--x-mu);font-variant-numeric:tabular-nums}
+.cx-ex2-av b{color:var(--x-tx);font-weight:600}
 
 .cx-sp .cx-ex2-form{padding:6px 16px 18px}
 .cx-sp .cx-ex2-acc{
-  display:flex;align-items:center;justify-content:space-between;width:100%;height:50px;padding:0;
-  border:0;border-bottom:1px solid var(--x-ln);background:none;color:inherit;font-size:13.5px;
+  display:flex;align-items:center;justify-content:space-between;width:100%;height:52px;padding:0;
+  border:0;border-bottom:1px solid var(--x-ln);background:none;color:var(--x-tx);font-size:13.5px;
 }
 .cx-sp .cx-ex2-acc span{color:var(--x-mu)}
-.cx-sp .cx-ex2-acc b{font-weight:500;display:flex;align-items:center;gap:6px}
+.cx-sp .cx-ex2-acc b{font-weight:600;display:flex;align-items:center;gap:8px}
 .cx-sp .cx-ex2-acc .cx-sp-chev{width:8px;height:8px}
 .cx-sp .cx-ex2-form .cx-sp-lab{display:block;margin:18px 0 8px;font-size:12.5px;font-weight:500;color:var(--x-mu)}
 .cx-sp .cx-ex2-form .cx-sp-inp{
-  display:flex;align-items:center;gap:10px;height:48px;padding:0 12px;margin:0;
-  border:1px solid var(--x-ln2);border-radius:12px;background:rgba(255,255,255,.025);
+  display:flex;align-items:center;gap:10px;height:50px;padding:0 14px;margin:0;
+  border:1px solid var(--x-ln2);border-radius:12px;background:var(--x-fld);
   transition:border-color .2s ease,box-shadow .2s ease;
 }
-.cx-sp .cx-ex2-form .cx-sp-inp:focus-within{border-color:#1a82d6;box-shadow:0 0 0 3px rgba(26,130,214,.18)}
+.cx-sp .cx-ex2-form .cx-sp-inp:focus-within{border-color:var(--x-ac);box-shadow:0 0 0 3px rgba(26,130,214,.18)}
 .cx-sp .cx-ex2-form .cx-sp-inp input{
-  flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;color:inherit;
-  font-size:14.5px;font-variant-numeric:tabular-nums;
+  flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;color:var(--x-tx);
+  font-size:15px;font-weight:500;font-variant-numeric:tabular-nums;
 }
-.cx-sp .cx-ex2-form .cx-sp-inp input::placeholder{color:var(--x-mu);opacity:.8;font-size:13px}
-.cx-sp .cx-ex2-form .cx-sp-inp span{font-size:13px;font-weight:600;white-space:nowrap}
+.cx-sp .cx-ex2-form .cx-sp-inp input::placeholder{color:var(--x-mu);opacity:.9;font-size:13px;font-weight:400}
+.cx-sp .cx-ex2-form .cx-sp-inp span{font-size:13px;font-weight:700;color:var(--x-tx);white-space:nowrap}
 .cx-sp .cx-ex2-form .cx-sp-inp i{width:1px;height:16px;background:var(--x-ln2);flex:none}
-.cx-sp .cx-ex2-form .cx-sp-inp button{
-  background:none;border:0;padding:4px 2px;font-size:13px;font-weight:600;color:#1a82d6;white-space:nowrap;
-}
-.cx-ex2-rcv{margin-top:16px;padding:14px 14px;border-radius:12px;border:1px solid rgba(26,130,214,.22);
-  background:linear-gradient(180deg,rgba(26,130,214,.12),rgba(26,130,214,.04))}
+.cx-sp .cx-ex2-form .cx-sp-inp button{background:none;border:0;padding:4px 2px;font-size:13px;font-weight:700;color:var(--x-ac);white-space:nowrap}
+.cx-ex2-rcv{margin-top:16px;padding:14px;border-radius:12px;border:1px solid var(--x-rcvln);background:var(--x-rcv)}
 .cx-ex2-rcv .r1{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--x-mu)}
-.cx-ex2-rcv .r1 b{font-size:16px;font-weight:600;color:#00c087;word-break:break-all;text-align:end;padding-inline-start:12px;
-  font-variant-numeric:tabular-nums}
+.cx-ex2-rcv .r1 b{font-size:16px;font-weight:700;color:var(--x-up);word-break:break-all;text-align:end;padding-inline-start:12px;font-variant-numeric:tabular-nums}
 .cx-ex2-rcv .r2{margin-top:6px;font-size:12px;color:var(--x-mu);font-variant-numeric:tabular-nums}
 .cx-sp .cx-ex2-form .cx-sp-btn{
-  margin-top:20px;width:100%;height:46px;border:0;border-radius:12px;color:#fff;font-size:15px;font-weight:600;letter-spacing:.3px;
-  background:linear-gradient(180deg,#2a95ee,#1a82d6);box-shadow:0 8px 18px -10px rgba(26,130,214,.9);
-  transition:transform .12s ease,filter .15s ease,opacity .2s ease;
+  margin-top:20px;width:100%;height:48px;border:0;border-radius:12px;color:#fff;font-size:15px;font-weight:700;letter-spacing:.3px;
+  background:linear-gradient(180deg,#2a95ee,#1a82d6);box-shadow:0 10px 20px -10px rgba(26,130,214,.9);
+  transition:transform .12s ease,filter .15s ease;
 }
 .cx-sp .cx-ex2-form .cx-sp-btn:active{transform:scale(.985);filter:brightness(.94)}
-.cx-sp .cx-ex2-form .cx-sp-btn:disabled{opacity:.45;box-shadow:none}
+.cx-sp .cx-ex2-form .cx-sp-btn:disabled{background:var(--x-dis);color:var(--x-distx);box-shadow:none;opacity:1}
 @media(max-width:380px){.cx-sp .cx-ex2-pair>button.c{font-size:16px}.cx-sp .cx-ex2-form{padding:4px 12px 14px}}
 @media(prefers-reduced-motion:reduce){.cx-sp *{transition:none!important}}
 `;
@@ -201,7 +184,7 @@ export default function Exchange({ W, go }) {
 
   return (
     <div className="cx-sp">
-      <style>{SUB_CSS + CSS}</style>
+      <style>{SUB_CSS + XCSS + CSS}</style>
       <TopBar title={tt("exchange", "Exchange")} onBack={() => goBack(go, "assets")} />
 
       {/* ---- from ⇄ to ---- */}
@@ -256,9 +239,9 @@ export default function Exchange({ W, go }) {
 
       {toast}
 
-      <Picker open={pk === "from"} options={coinOpts} value={from} onCancel={() => setPk("")} onConfirm={(v) => pickCoin("from", v)} />
-      <Picker open={pk === "to"} options={coinOpts} value={to} onCancel={() => setPk("")} onConfirm={(v) => pickCoin("to", v)} />
-      <Picker open={pk === "acc"} options={ACCOUNTS} value={acc} onCancel={() => setPk("")} onConfirm={(v) => { setAcc(v); setAmt(""); setQuote(null); setPk(""); }} />
+      <SheetPicker open={pk === "from"} title={tt("from", "From")} options={coinOpts} value={from} onCancel={() => setPk("")} onConfirm={(v) => pickCoin("from", v)} />
+      <SheetPicker open={pk === "to"} title={tt("to", "To")} options={coinOpts} value={to} onCancel={() => setPk("")} onConfirm={(v) => pickCoin("to", v)} />
+      <SheetPicker open={pk === "acc"} title={tt("account", "Account")} options={ACCOUNTS} value={acc} onCancel={() => setPk("")} onConfirm={(v) => { setAcc(v); setAmt(""); setQuote(null); setPk(""); }} />
     </div>
   );
 }
