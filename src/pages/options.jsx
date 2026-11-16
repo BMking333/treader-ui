@@ -408,9 +408,7 @@ function Chart({ sym, tt, dark }) {
             </>
           )}
         </div>
-        <div className="cx-chart-attribution">
-          <a href="https://www.tradingview.com/" target="_blank" rel="noreferrer">TradingView Lightweight Charts™</a> © TradingView, Inc.
-        </div>
+        
       </div>
 
       {/* ---- indicators sheet ---- */}
