@@ -1,5 +1,5 @@
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import img1 from "../assets/Image1.png";
 import img2 from "../assets/Image2.png";
 import img3 from "../assets/Image3.png";
@@ -27,6 +27,34 @@ export {
 
 export const T2 = T;
 export const T3 = T;
+
+/* ====================== DEVICE VIEW (zoom lock) ====================== */
+/* পিঞ্চ জুম ইন/আউট ও ডাবল-ট্যাপ জুম বন্ধ + ডিভাইস-উইডথ ভিউপোর্ট */
+(function lockZoom() {
+  if (typeof document === "undefined") return;
+  const content =
+    "width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
+  let m = document.querySelector('meta[name="viewport"]');
+  if (!m) {
+    m = document.createElement("meta");
+    m.name = "viewport";
+    document.head.appendChild(m);
+  }
+  m.setAttribute("content", content);
+  if (!document.getElementById("cx-nozoom")) {
+    const s = document.createElement("style");
+    s.id = "cx-nozoom";
+    s.textContent =
+      "html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}";
+    document.head.appendChild(s);
+  }
+  if (!window.__cxGesture) {
+    window.__cxGesture = true;
+    ["gesturestart", "gesturechange", "gestureend"].forEach((ev) =>
+      document.addEventListener(ev, (e) => e.preventDefault(), { passive: false })
+    );
+  }
+})();
 
 /* ====================== CONFIG ====================== */
 
@@ -491,9 +519,162 @@ export function CSheet({ open, onClose }) {
   );
 }
 
+/* ====================== PREMIUM STYLES (Home + Market list) ====================== */
+
+const HM_CSS = `
+.hm{
+  --bg:#ffffff;--card:#f5f7fa;--tx:#1b2433;--mu:#8e99ab;--ln:#e8ebf0;
+  --up:#00c087;--dn:#e0485c;--ac:#17c3c9;--acbg:rgba(23,195,201,.12);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;font-kerning:normal;
+  color:var(--tx);background:var(--bg);touch-action:manipulation;
+}
+.cx.dark .hm{--bg:#11203a;--card:#0e1b30;--tx:#eaf0f8;--mu:#8795ac;--ln:#1e2e49;--acbg:rgba(23,195,201,.14)}
+.hm *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+.hm button{font-family:inherit;-webkit-font-smoothing:antialiased;cursor:pointer}
+.hm .num{font-variant-numeric:tabular-nums}
+
+/* banner (swipe) */
+.hm-bn{position:relative;margin:12px 12px 0;border-radius:14px;overflow:hidden;background:var(--card);aspect-ratio:2.15/1;
+  touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab}
+.hm-bn:active{cursor:grabbing}
+.hm-sl{display:flex;height:100%;width:100%;will-change:transform}
+.hm-sl img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;pointer-events:none;-webkit-user-drag:none;display:block}
+.hm-bn::after{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;pointer-events:none;
+  background:linear-gradient(to top,rgba(0,0,0,.32),rgba(0,0,0,0))}
+.hm-dots{position:absolute;left:0;right:0;bottom:10px;z-index:2;display:flex;justify-content:center;gap:6px}
+.hm-dots i{display:block;width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,.5);transition:width .28s ease,background .28s ease}
+.hm-dots i.on{width:18px;background:#fff}
+
+/* ticker */
+.hm-tk{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:14px 12px 0}
+.hm-tk button{display:flex;flex-direction:column;align-items:center;gap:5px;padding:12px 4px 11px;background:var(--card);
+  border:1px solid var(--ln);border-radius:12px;color:var(--tx);transition:transform .12s ease}
+.hm-tk button:active{transform:scale(.97)}
+.hm-tk span{font-size:12px;font-weight:500;color:var(--mu);letter-spacing:.1px}
+.hm-tk b{font-size:18px;font-weight:600;letter-spacing:-.2px;line-height:1.1;font-variant-numeric:tabular-nums}
+.hm-tk em{font-style:normal;font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}
+
+/* quick menu */
+.hm-gr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+.hm-gr button{display:flex;align-items:center;gap:12px;height:58px;padding:0 14px;min-width:0;text-align:left;
+  background:var(--card);border:1px solid var(--ln);border-radius:12px;color:var(--tx);font-size:14.5px;font-weight:500;letter-spacing:.1px;
+  transition:transform .12s ease,background .15s ease}
+.hm-gr button:active{transform:scale(.975)}
+.hm-gr .ic{display:flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;border-radius:10px;background:var(--acbg);color:var(--ac)}
+.hm-gr .tx{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* list */
+.hm-h{margin:8px 16px 6px;font-size:18px;font-weight:600;letter-spacing:-.1px}
+.ls-th,.ls-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 78px;align-items:center;gap:8px;padding:0 16px}
+.ls-th{height:40px;font-size:13px;color:var(--mu);font-weight:500;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln)}
+.ls-th span:last-child{text-align:right}
+.ls-row{width:100%;height:66px;background:transparent;border:0;border-bottom:1px solid var(--ln);color:var(--tx);text-align:left;
+  transition:background .15s ease}
+.ls-row:active{background:var(--card)}
+.ls-nm{display:flex;align-items:center;gap:10px;min-width:0}
+.ls-nm>span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ls-nm b{font-size:16px;font-weight:600;letter-spacing:-.1px;white-space:nowrap}
+.ls-nm b small{font-size:12px;font-weight:400;color:var(--mu);margin-left:1px}
+.ls-nm>span>small{font-size:12px;color:var(--mu)}
+.ls-pr{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ls-pr b{font-size:16px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ls-pr small{font-size:12px;color:var(--mu);font-variant-numeric:tabular-nums}
+.ls-pill{display:flex;align-items:center;justify-content:center;height:30px;border-radius:6px;color:#fff;font-size:13px;font-weight:500;
+  font-variant-numeric:tabular-nums;letter-spacing:.1px}
+@media(max-width:360px){
+  .hm-tk b{font-size:16px}.hm-gr button{font-size:13.5px;padding:0 10px;gap:8px}.ls-th,.ls-row{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) 70px}
+}
+@media(prefers-reduced-motion:reduce){.hm *{transition:none!important}}
+`;
+
 /* ====================== HOME ====================== */
 
 const BANNERS = [img1, img2, img3];
+
+/* ====================== SWIPE BANNER ====================== */
+/* হাত দিয়ে সামনে-পিছনে স্ক্রল (swipe) করা যায়; অটো-প্লে চলে, ধরলে থামে */
+
+function Banner({ items }) {
+  const n = items.length;
+  const [i, setI] = useState(0);
+  const [dx, setDx] = useState(0);
+  const [drag, setDrag] = useState(false);
+  const box = useRef(null);
+  const g = useRef({ on: false, x: 0, t: 0, raw: 0, lock: false });
+
+  useEffect(() => {
+    if (drag || n < 2) return undefined;
+    const id = setInterval(() => setI((x) => (x + 1) % n), 3500);
+    return () => clearInterval(id);
+  }, [drag, n, i]);
+
+  const down = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    g.current = { on: true, x: e.clientX, t: Date.now(), raw: 0, lock: false };
+  };
+
+  const move = (e) => {
+    const s = g.current;
+    if (!s.on) return;
+    const raw = e.clientX - s.x;
+    if (!s.lock && Math.abs(raw) > 6) {
+      s.lock = true;
+      setDrag(true);
+      try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    if (!s.lock) return;
+    s.raw = raw;
+    const atEdge = (i === 0 && raw > 0) || (i === n - 1 && raw < 0);
+    setDx(atEdge ? raw * 0.35 : raw);
+  };
+
+  const up = () => {
+    const s = g.current;
+    if (!s.on) return;
+    s.on = false;
+    const w = (box.current && box.current.offsetWidth) || 360;
+    const dt = Math.max(1, Date.now() - s.t);
+    const vel = s.raw / dt;
+    if (s.lock) {
+      if ((s.raw < -w * 0.18 || vel < -0.5) && i < n - 1) setI(i + 1);
+      else if ((s.raw > w * 0.18 || vel > 0.5) && i > 0) setI(i - 1);
+    }
+    setDx(0);
+    setDrag(false);
+  };
+
+  return (
+    <div
+      className="hm-bn"
+      ref={box}
+      onPointerDown={down}
+      onPointerMove={move}
+      onPointerUp={up}
+      onPointerCancel={up}
+      onDragStart={(e) => e.preventDefault()}
+    >
+      <div
+        className="hm-sl"
+        style={{
+          transform: `translate3d(calc(${-i * 100}% + ${dx}px),0,0)`,
+          transition: drag ? "none" : "transform .42s cubic-bezier(.22,.8,.25,1)",
+        }}
+      >
+        {items.map((b, k) => (
+          <img key={k} src={b} alt="" draggable="false" />
+        ))}
+      </div>
+
+      <div className="hm-dots">
+        {items.map((_, d) => (
+          <i key={d} className={d === i ? "on" : ""} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ====================== MARKET LIST ====================== */
 
@@ -501,8 +682,10 @@ export function List({ P = {}, go, names }) {
   const t = useT();
 
   return (
-    <>
-      <div className="cx-th">
+    <div className="hm">
+      <style>{HM_CSS}</style>
+
+      <div className="ls-th">
         <span>{t("name")}</span>
         <span>{t("lp")}</span>
         <span>{t("chg")}</span>
@@ -525,13 +708,13 @@ export function List({ P = {}, go, names }) {
           <button
             key={s}
             type="button"
-            className="cx-row"
+            className="ls-row"
             onClick={() => go("options", s)}
           >
-            <span className="cx-nm">
+            <span className="ls-nm">
               <Coin
                 s={s}
-                size={names ? 38 : 42}
+                size={names ? 38 : 40}
               />
 
               {names ? (
@@ -540,7 +723,7 @@ export function List({ P = {}, go, names }) {
                     {s}
                     <small>/USDT</small>
                   </b>
-                  <small>24H {fmtV(volume)}</small>
+                  <small className="num">24H {fmtV(volume)}</small>
                 </span>
               ) : (
                 <b>
@@ -550,7 +733,7 @@ export function List({ P = {}, go, names }) {
               )}
             </span>
 
-            <span className="cx-pr">
+            <span className="ls-pr">
               {names ? (
                 <>
                   <b>{fmt(price)}</b>
@@ -562,7 +745,7 @@ export function List({ P = {}, go, names }) {
             </span>
 
             <span
-              className="cx-pill"
+              className="ls-pill"
               style={{
                 background: change >= 0 ? GREEN : RED,
               }}
@@ -576,7 +759,7 @@ export function List({ P = {}, go, names }) {
           </button>
         );
       })}
-    </>
+    </div>
   );
 }
 
@@ -595,18 +778,8 @@ export default function Home({
 }) {
   const t = useT();
 
-  const [i, setI] = useState(0);
   const [k, setK] = useState(0);
   const [cs, setCs] = useState(false);
-
-  /* Banner slider */
-  useEffect(() => {
-    const id = setInterval(() => {
-      setI((x) => (x + 1) % BANNERS.length);
-    }, 3500);
-
-    return () => clearInterval(id);
-  }, []);
 
   /* Market ticker */
   useEffect(() => {
@@ -639,7 +812,9 @@ export default function Home({
   };
 
   return (
-    <>
+    <div className="hm">
+      <style>{HM_CSS}</style>
+
       {/* Header */}
       <div className="cx-bar">
         <button
@@ -677,37 +852,11 @@ export default function Home({
         />
       </div>
 
-      {/* Banner */}
-      <div className="cx-banner">
-        <div
-          className="cx-slides"
-          style={{
-            transform: `translateX(-${i * 100}%)`,
-          }}
-        >
-          {BANNERS.map((b, n) => (
-            <img
-              key={n}
-              src={b}
-              alt=""
-              draggable="false"
-            />
-          ))}
-        </div>
-
-        <div className="cx-dots">
-          {BANNERS.map((_, d) => (
-            <i
-              key={d}
-              className={d === i ? "on" : ""}
-              onClick={() => setI(d)}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Banner (swipe) */}
+      <Banner items={BANNERS} />
 
       {/* Market ticker */}
-      <div className="cx-tick">
+      <div className="hm-tk">
         {tick.map((s) => {
           const fallback = FALL[s];
 
@@ -750,29 +899,24 @@ export default function Home({
       </div>
 
       {/* Quick menu */}
-      <div className="cx-grid">
+      <div className="hm-gr">
         {grid.map(([ic, l, fn]) => (
           <button
             type="button"
             key={l}
             onClick={fn}
           >
-            <span
-              style={{
-                color: "#17c3c9",
-                display: "flex",
-              }}
-            >
-              <Ic d={ic} s={30} />
+            <span className="ic">
+              <Ic d={ic} s={22} />
             </span>
 
-            {t(l)}
+            <span className="tx">{t(l)}</span>
           </button>
         ))}
       </div>
 
       {/* Market title */}
-      <h3 className="cx-h">
+      <h3 className="hm-h">
         {t("chg")}
       </h3>
 
@@ -787,6 +931,6 @@ export default function Home({
         open={cs}
         onClose={() => setCs(false)}
       />
-    </>
+    </div>
   );
 }
