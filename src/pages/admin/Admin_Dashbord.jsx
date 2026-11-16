@@ -7,7 +7,7 @@ import {
   RED,
   Ic,
   ICON,
-} from "./Home";
+} from "../Home";
 
 /* =========================================================
    src/pages/Admin_Dashbord.jsx
