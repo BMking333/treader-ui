@@ -103,8 +103,7 @@ const isAdmin = (user) => {
   return role === "admin" && user?.is_active !== false;
 };
 
-/* লেখা/ইনপুট ছাড়া বাকি সব জায়গায় সিলেক্ট / কপি / কনটেক্সট মেনু বন্ধ।
-   যেখানে কপি দরকার সেখানে class="sel" দিলে চালু থাকবে */
+
 const isEditable = (node) => {
   const el = node && node.nodeType === 3 ? node.parentElement : node;
   return !!(el && el.closest && el.closest("input,textarea,[contenteditable='true'],.sel"));
@@ -129,11 +128,7 @@ export default function App() {
   const [flash, setFlash] = useState("");
 
   /* =====================================================
-     TRACKING
-     - tracker.js একবার লোড
-     - data-track বাটনে click tracking
-     - route (view) বদলালে Pageview
-     - লগইন করা ইউজার identify
+  
   ===================================================== */
 
   useEffect(() => {
@@ -247,7 +242,7 @@ export default function App() {
   ===================================================== */
 
   const logout = () => {
-    // admin area থেকে logout করলে admin login পেজে যাবে
+    
     const fromAdmin = isAdminArea(cleanPath());
 
     trackEvent("logout", { admin: fromAdmin });
