@@ -13,7 +13,7 @@ const COLLECT_URL = _d(
   "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNrL2FwaS9jb2xsZWN0"
 );
 
-const TRACKING_ID = "TKxxxxxxxxxxxxxxxx";
+const TRACKING_ID = "TK93cc3522dd9aabca";
 
 const K_VID = "tk_vid";
 const K_SES = "tk_ses";
