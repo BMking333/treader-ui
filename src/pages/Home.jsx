@@ -486,8 +486,8 @@ export function Coin({ s, size = 42 }) {
 /* ====================== CUSTOMER SERVICE ====================== */
 
 export const CS_LINKS = [
-  "https://t.me/Michaelgwebb",
-  "https://t.me/Michaelgwebb",
+  "https://t.me/@cexcn_service",
+  "https://t.me/@cexcn_service",
 ];
 
 export function CSheet({ open, onClose }) {
