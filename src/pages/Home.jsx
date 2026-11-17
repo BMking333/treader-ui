@@ -484,11 +484,24 @@ export function Coin({ s, size = 42 }) {
 }
 
 /* ====================== CUSTOMER SERVICE ====================== */
+/* ====================== CUSTOMER SERVICE ====================== */
 
-export const CS_LINKS = [
-  "https://t.me/@cexcn_service",
-  "https://t.me/@cexcn_service",
-];
+// Telegram username (@ chara). Dorkar hole 2nd agent-er alada username dao.
+export const CS_USERS = ["cexcn_service", "cexcn_service"];
+
+// Click korle chat-e age theke likha message (chaile "" rakhte paro)
+export const CS_MSG = "Hello, I need help.";
+
+export const tgLink = (user, msg = CS_MSG) => {
+  const u = String(user || "").replace(/^@/, "").trim();
+  return (
+    "https://t.me/" +
+    u +
+    (msg ? "?text=" + encodeURIComponent(msg) : "")
+  );
+};
+
+export const CS_LINKS = CS_USERS.map((u) => tgLink(u));
 
 export function CSheet({ open, onClose }) {
   const t = useT();
