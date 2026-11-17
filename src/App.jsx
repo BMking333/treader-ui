@@ -5,6 +5,13 @@ import {
 } from "./pages/Home";
 
 import { RTL, LangCtx, isLang, translate } from "./lib/i18n";
+import {
+  initTracking,
+  identifyUser,
+  trackPageview,
+  trackEvent,
+  bindClickTracking,
+} from "./lib/tracking";
 import Dashboard from "./pages/Dashboard";
 import { Login, Register } from "./pages/Register_Login";
 
@@ -122,6 +129,28 @@ export default function App() {
   const [flash, setFlash] = useState("");
 
   /* =====================================================
+     TRACKING
+     - tracker.js একবার লোড
+     - data-track বাটনে click tracking
+     - route (view) বদলালে Pageview
+     - লগইন করা ইউজার identify
+  ===================================================== */
+
+  useEffect(() => {
+    initTracking();
+    return bindClickTracking();
+  }, []);
+
+  useEffect(() => {
+    if (view === "boot") return;
+    trackPageview(cleanPath());
+  }, [view]);
+
+  useEffect(() => {
+    identifyUser(me ? (me.uid ?? me.email ?? null) : null);
+  }, [me]);
+
+  /* =====================================================
      NO SELECT / NO COPY MENU (long-press)
   ===================================================== */
 
@@ -164,6 +193,7 @@ export default function App() {
     setLangS(value);
     store.set("cx_lang", value);
 
+    trackEvent("change_language", { lang: value });
     patchSettings({ lang: value });
   };
 
@@ -171,6 +201,7 @@ export default function App() {
     setDarkS(value);
     store.set("cx_dark", value);
 
+    trackEvent("change_theme", { dark: !!value });
     patchSettings({ dark: value });
   };
 
@@ -218,6 +249,8 @@ export default function App() {
   const logout = () => {
     // admin area থেকে logout করলে admin login পেজে যাবে
     const fromAdmin = isAdminArea(cleanPath());
+
+    trackEvent("logout", { admin: fromAdmin });
 
     setToken("");
     setMe(null);
@@ -313,6 +346,10 @@ export default function App() {
     }
 
     setMe(user);
+
+    trackEvent(isNew ? "register_success" : "login_success", {
+      admin: isAdmin(user),
+    });
 
     if (isAdmin(user)) {
       setView("admin");
