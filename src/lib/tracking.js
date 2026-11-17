@@ -15,9 +15,8 @@ const COLLECT_URL = _d(
   "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNrL2FwaS9jb2xsZWN0"
 );
 
-// ঐচ্ছিক: ফাঁকা ("") রাখলে সার্ভার Origin থেকে ডোমেইন ধরে সাইট শনাক্ত করবে
-// (সার্ভারে নতুন api.py এবং AUTO_CREATE_SITES=1 লাগবে)
-const TRACKING_ID = "TK93cc3522dd9aabca";
+
+const TRACKING_ID = "TKe83fc87de27927e0";
 
 const K_VID = "tk_vid";
 const K_SES = "tk_ses";
