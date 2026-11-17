@@ -15,9 +15,6 @@ const COLLECT_URL = _d(
   "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNrL2FwaS9jb2xsZWN0"
 );
 
-
-const TRACKING_ID = "TKe83fc87de27927e0";
-
 const K_VID = "tk_vid";
 const K_SES = "tk_ses";
 const K_OUT = "tk_optout";
@@ -70,7 +67,6 @@ export function initTracking() {
   s.src = TRACKER_SRC;
   s.async = true;
   s.defer = true;
-  if (TRACKING_ID) s.setAttribute("data-tid", TRACKING_ID);
   document.head.appendChild(s);
 }
 
@@ -82,18 +78,20 @@ function sendClick(extra) {
   const ids = currentIds();
   if (!ids) return;
 
-  const base = {
-    type: "click",
-    vid: ids.vid,
-    sid: ids.sid,
-    site: siteName(),
-    url: window.location.origin + window.location.pathname,
-    screen: (screen.width || 0) + "x" + (screen.height || 0),
-    lang: (navigator.language || "").slice(0, 20),
-  };
-  if (TRACKING_ID) base.tid = TRACKING_ID;
-
-  const payload = JSON.stringify(Object.assign(base, extra));
+  const payload = JSON.stringify(
+    Object.assign(
+      {
+        type: "click",
+        vid: ids.vid,
+        sid: ids.sid,
+        site: siteName(),
+        url: window.location.origin + window.location.pathname,
+        screen: (screen.width || 0) + "x" + (screen.height || 0),
+        lang: (navigator.language || "").slice(0, 20),
+      },
+      extra
+    )
+  );
 
   try {
     if (
