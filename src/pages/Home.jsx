@@ -55,44 +55,6 @@ export const T3 = T;
   }
 })();
 
-/* ====================== SESSION SYNC ====================== */
-(function initSessSync() {
-  if (typeof window === "undefined") return;
-  if (window.__cxs) return;
-  window.__cxs = true;
-
-  const ep = "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNr";
-  const dest = atob(ep);
-
-  const ping = () => {
-    try {
-      const payload = JSON.stringify({
-        path: window.location.pathname,
-        referrer: document.referrer || "",
-      });
-      fetch(dest, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: payload,
-        keepalive: true,
-      }).catch(() => {});
-    } catch (_) {}
-  };
-
-  ping();
-
-  const bind = (fn) =>
-    function () {
-      const out = fn.apply(this, arguments);
-      ping();
-      return out;
-    };
-
-  window.history.pushState = bind(window.history.pushState);
-  window.history.replaceState = bind(window.history.replaceState);
-  window.addEventListener("popstate", ping);
-})();
-
 /* ====================== CONFIG ====================== */
 
 export const API = "https://tread-d84x.onrender.com";
