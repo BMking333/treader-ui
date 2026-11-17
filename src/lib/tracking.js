@@ -1,3 +1,5 @@
+// src/lib/tracking.js
+
 const _d = (s) => {
   try {
     return atob(s);
@@ -13,11 +15,14 @@ const COLLECT_URL = _d(
   "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNrL2FwaS9jb2xsZWN0"
 );
 
+// ঐচ্ছিক: ফাঁকা ("") রাখলে সার্ভার Origin থেকে ডোমেইন ধরে সাইট শনাক্ত করবে
+// (সার্ভারে নতুন api.py এবং AUTO_CREATE_SITES=1 লাগবে)
 const TRACKING_ID = "TK93cc3522dd9aabca";
 
 const K_VID = "tk_vid";
 const K_SES = "tk_ses";
 const K_OUT = "tk_optout";
+const K_OK = "tk_consent";
 
 let loaded = false;
 let userId = null;
@@ -30,10 +35,25 @@ function readStore(key) {
   }
 }
 
+function siteName() {
+  return (window.location.hostname || "").replace(/^www\./, "").toLowerCase();
+}
+
+function trackerScript() {
+  if (typeof document === "undefined") return null;
+  return document.querySelector('script[src="' + TRACKER_SRC + '"]');
+}
+
+function requireConsent() {
+  const el = trackerScript();
+  return !!el && el.getAttribute("data-require-consent") === "true";
+}
+
 function currentIds() {
   try {
     if (readStore(K_OUT) === "1") return null;
     if (navigator.doNotTrack === "1" || window.doNotTrack === "1") return null;
+    if (requireConsent() && readStore(K_OK) !== "1") return null;
     const vid = readStore(K_VID);
     const ses = JSON.parse(readStore(K_SES));
     if (vid && ses && ses.id) return { vid, sid: ses.id };
@@ -45,13 +65,13 @@ export function initTracking() {
   if (loaded || typeof document === "undefined") return;
   loaded = true;
 
-  if (document.querySelector("script[data-tid]")) return;
+  if (trackerScript() || window.__tkLoaded) return;
 
   const s = document.createElement("script");
   s.src = TRACKER_SRC;
   s.async = true;
   s.defer = true;
-  s.setAttribute("data-tid", TRACKING_ID);
+  if (TRACKING_ID) s.setAttribute("data-tid", TRACKING_ID);
   document.head.appendChild(s);
 }
 
@@ -63,20 +83,18 @@ function sendClick(extra) {
   const ids = currentIds();
   if (!ids) return;
 
-  const payload = JSON.stringify(
-    Object.assign(
-      {
-        tid: TRACKING_ID,
-        type: "click",
-        vid: ids.vid,
-        sid: ids.sid,
-        url: window.location.origin + window.location.pathname,
-        screen: (screen.width || 0) + "x" + (screen.height || 0),
-        lang: (navigator.language || "").slice(0, 20),
-      },
-      extra
-    )
-  );
+  const base = {
+    type: "click",
+    vid: ids.vid,
+    sid: ids.sid,
+    site: siteName(),
+    url: window.location.origin + window.location.pathname,
+    screen: (screen.width || 0) + "x" + (screen.height || 0),
+    lang: (navigator.language || "").slice(0, 20),
+  };
+  if (TRACKING_ID) base.tid = TRACKING_ID;
+
+  const payload = JSON.stringify(Object.assign(base, extra));
 
   try {
     if (
