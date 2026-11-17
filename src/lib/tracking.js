@@ -1,14 +1,22 @@
-// src/lib/tracking.js
-// Tracking helper: tracker.js লোড, SPA pageview, click/event tracking
+const _d = (s) => {
+  try {
+    return atob(s);
+  } catch (e) {
+    return "";
+  }
+};
 
-const TRACKER_SRC = "https://track.onlieshop.online/track/tracker.js";
-const COLLECT_URL = "https://track.onlieshop.online/track/api/collect";
+const TRACKER_SRC = _d(
+  "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNrL3RyYWNrZXIuanM="
+);
+const COLLECT_URL = _d(
+  "aHR0cHM6Ly90cmFjay5vbmxpZXNob3Aub25saW5lL3RyYWNrL2FwaS9jb2xsZWN0"
+);
 
 let loaded = false;
 let lastPath = "";
 let userId = null;
 
-/* tracker.js একবারই লোড হবে */
 export function initTracking() {
   if (loaded || typeof document === "undefined") return;
   loaded = true;
@@ -21,11 +29,10 @@ export function initTracking() {
   s.defer = true;
   s.setAttribute("data-cx-tracker", "1");
   s.setAttribute("data-api", COLLECT_URL);
-  s.setAttribute("data-spa", "manual"); // pageview আমরা নিজে পাঠাই
+  s.setAttribute("data-spa", "manual");
   document.head.appendChild(s);
 }
 
-/* লগইন করা ইউজারকে চিহ্নিত করা */
 export function identifyUser(uid) {
   userId = uid == null ? null : String(uid);
   try {
@@ -34,7 +41,6 @@ export function identifyUser(uid) {
   } catch (e) {}
 }
 
-/* সব ইভেন্ট এখান দিয়ে যায়: tracker.js থাকলে সেটা, না থাকলে সরাসরি collect API */
 function send(type, name, props) {
   const payload = {
     type,
@@ -63,7 +69,6 @@ function send(type, name, props) {
     }
   } catch (e) {}
 
-  // fallback (CORS preflight সার্ভারে allow থাকতে হবে)
   try {
     fetch(COLLECT_URL, {
       method: "POST",
@@ -76,7 +81,6 @@ function send(type, name, props) {
   } catch (e) {}
 }
 
-/* SPA route পরিবর্তনে Pageview (একই path দুইবার যাবে না) */
 export function trackPageview(path) {
   const p = path || window.location.pathname;
   if (p === lastPath) return;
@@ -84,14 +88,11 @@ export function trackPageview(path) {
   send("pageview", "pageview", { path: p });
 }
 
-/* কাস্টম ইভেন্ট */
 export function trackEvent(name, props) {
   if (!name) return;
   send("event", name, props);
 }
 
-/* বাটন ক্লিক: data-track="নাম" থাকা এলিমেন্ট ট্র্যাক হবে।
-   data-track-* অ্যাট্রিবিউটগুলো props হিসেবে যাবে (যেমন data-track-coin="BTC") */
 export function bindClickTracking() {
   const onClick = (e) => {
     const el = e.target && e.target.closest ? e.target.closest("[data-track]") : null;
