@@ -10,7 +10,7 @@ import {
 
 /* =========================================================
    src/pages/admin/Admin_Dashbord.jsx
-   Admin Dashboard  (light theme, mobile + desktop, charts)
+   Admin Dashboard  (light theme, sidebar, mobile drawer, charts)
    APIs:
      GET /admin/deposits
      GET /admin/withdraws/counts
@@ -41,6 +41,7 @@ const CSS = `
   --warn-soft: #fdf3dc;
   --bad: #e0415f;
   --bad-soft: #fdebee;
+  --side-w: 268px;
   --shadow: 0 1px 2px rgba(16,30,54,.04), 0 6px 20px rgba(16,30,54,.05);
   --shadow-hover: 0 2px 4px rgba(16,30,54,.05), 0 12px 28px rgba(16,30,54,.09);
 
@@ -53,8 +54,110 @@ const CSS = `
   overflow-x: hidden;
 }
 .ad-wrap button { font-family: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.ad-wrap button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-/* ---------- sticky header ---------- */
+/* ---------- sidebar ---------- */
+.ad-side {
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 60;
+  width: var(--side-w);
+  display: flex; flex-direction: column;
+  background: #0f1b30;
+  color: #cbd5e6;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.ad-side-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 18px 18px 16px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.ad-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ad-brand-icon {
+  width: 42px; height: 42px; flex: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff; display: grid; place-items: center;
+  font-size: 20px; font-weight: 800;
+  box-shadow: 0 6px 16px rgba(40,125,225,.35);
+}
+.ad-brand h2 { margin: 0; font-size: 16.5px; font-weight: 800; letter-spacing: -.2px; color: #fff; }
+.ad-brand p { margin: 2px 0 0; font-size: 11.5px; color: #8a97ad; }
+.ad-side-close {
+  display: none; width: 36px; height: 36px; flex: none;
+  border: 0; border-radius: 10px;
+  background: rgba(255,255,255,.08); color: #fff;
+  font-size: 18px; line-height: 1;
+}
+
+.ad-side-scroll { flex: 1; overflow-y: auto; padding: 14px 12px; }
+.ad-side-scroll::-webkit-scrollbar { width: 6px; }
+.ad-side-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 6px; }
+.ad-side-label { padding: 8px 10px 8px; font-size: 11.5px; color: #78859b; font-weight: 600; }
+
+.ad-nav-item {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  min-height: 46px; padding: 0 12px; margin-bottom: 3px;
+  border: 0; border-radius: 11px;
+  background: transparent; color: #cbd5e6;
+  font-size: 13.5px; font-weight: 600; text-align: left;
+  transition: background .15s, color .15s;
+}
+.ad-nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
+.ad-nav-item.on {
+  background: linear-gradient(135deg, rgba(31,186,208,.22), rgba(42,125,225,.28));
+  color: #fff;
+  box-shadow: inset 3px 0 0 #3aa0f0;
+}
+.ad-nav-ic {
+  width: 32px; height: 32px; flex: none; border-radius: 9px;
+  background: rgba(255,255,255,.06);
+  display: grid; place-items: center;
+}
+.ad-nav-item.on .ad-nav-ic { background: rgba(255,255,255,.14); }
+.ad-nav-tx { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-badge {
+  flex: none; min-width: 22px; height: 22px; padding: 0 7px;
+  border-radius: 999px; background: #e0a416; color: #1b1300;
+  font-size: 11.5px; font-weight: 800;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+.ad-side-foot {
+  padding: 12px; border-top: 1px solid rgba(255,255,255,.07);
+}
+.ad-side-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px; border-radius: 12px; background: rgba(255,255,255,.05);
+  margin-bottom: 10px; min-width: 0;
+}
+.ad-avatar {
+  width: 36px; height: 36px; flex: none; border-radius: 50%;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff; display: grid; place-items: center;
+  font-size: 14px; font-weight: 800;
+}
+.ad-pinfo { min-width: 0; line-height: 1.25; }
+.ad-pinfo b { display: block; font-size: 12.5px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-pinfo small { display: block; font-size: 11px; color: #8a97ad; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-logout {
+  width: 100%; min-height: 42px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid rgba(255,107,129,.35); border-radius: 11px;
+  background: rgba(224,65,95,.12); color: #ff8ea1;
+  font-size: 13px; font-weight: 700;
+  transition: background .15s;
+}
+.ad-logout:hover { background: rgba(224,65,95,.22); }
+
+.ad-overlay {
+  display: none; position: fixed; inset: 0; z-index: 55;
+  background: rgba(10,18,32,.5);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+
+/* ---------- main area ---------- */
+.ad-main { margin-left: var(--side-w); min-width: 0; }
+
 .ad-head {
   position: sticky; top: 0; z-index: 30;
   background: rgba(255,255,255,.92);
@@ -64,21 +167,21 @@ const CSS = `
   padding-top: env(safe-area-inset-top, 0px);
 }
 .ad-head-in {
-  max-width: 1320px; margin: 0 auto;
+  max-width: 1240px; margin: 0 auto;
   padding: 12px 24px;
-  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 66px;
 }
-.ad-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.ad-brand-icon {
-  width: 42px; height: 42px; flex: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1fbad0, #2a7de1);
-  color: #fff; display: grid; place-items: center;
-  font-size: 20px; font-weight: 800;
-  box-shadow: 0 6px 16px rgba(40,125,225,.30);
+.ad-head-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ad-head-l h3 { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+.ad-head-l small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.ad-menu-btn {
+  display: none; width: 42px; height: 42px; flex: none;
+  border: 1px solid var(--line); border-radius: 11px;
+  background: var(--surface); color: var(--text);
+  place-items: center;
 }
-.ad-brand h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
-.ad-brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+.ad-menu-btn:active { transform: scale(.95); }
 .ad-actions { display: flex; align-items: center; gap: 10px; }
 
 .ad-btn {
@@ -92,8 +195,6 @@ const CSS = `
 .ad-btn:hover { border-color: #c7d3e4; background: #f8fafd; }
 .ad-btn:active { transform: scale(.97); }
 .ad-btn:disabled { opacity: .55; cursor: not-allowed; }
-.ad-btn.ghost-danger { color: var(--bad); }
-.ad-btn.ghost-danger:hover { background: var(--bad-soft); border-color: #f4c5cd; }
 .ad-btn.sm { min-height: 36px; padding: 0 12px; font-size: 12px; }
 
 .ad-profile {
@@ -102,38 +203,13 @@ const CSS = `
   border: 1px solid var(--line); border-radius: 999px;
   background: var(--surface); min-width: 0;
 }
-.ad-avatar {
-  width: 34px; height: 34px; flex: none; border-radius: 50%;
-  background: linear-gradient(135deg, #1fbad0, #2a7de1);
-  color: #fff; display: grid; place-items: center;
-  font-size: 14px; font-weight: 800;
-}
-.ad-pinfo { min-width: 0; line-height: 1.25; }
-.ad-pinfo b { display: block; font-size: 12.5px; font-weight: 700; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ad-pinfo small { display: block; font-size: 11px; color: var(--muted); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* ---------- nav tabs ---------- */
-.ad-nav-wrap { border-top: 1px solid var(--line-soft); background: var(--surface); }
-.ad-nav {
-  max-width: 1320px; margin: 0 auto; padding: 0 24px;
-  display: flex; gap: 4px;
-  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-}
-.ad-nav::-webkit-scrollbar { display: none; }
-.ad-tab {
-  flex: none; display: inline-flex; align-items: center; gap: 8px;
-  min-height: 48px; padding: 0 16px;
-  border: 0; border-bottom: 3px solid transparent;
-  background: transparent; color: var(--text-2);
-  font-size: 13.5px; font-weight: 650; white-space: nowrap;
-  transition: color .15s, border-color .15s, background .15s;
-}
-.ad-tab:hover { color: var(--text); background: #f6f8fc; }
-.ad-tab.on { color: var(--primary); border-bottom-color: var(--primary); }
+.ad-profile .ad-pinfo b { color: var(--text); max-width: 170px; }
+.ad-profile .ad-pinfo small { color: var(--muted); max-width: 170px; }
+.ad-profile .ad-avatar { width: 34px; height: 34px; }
 
 /* ---------- page ---------- */
 .ad-page {
-  max-width: 1320px; margin: 0 auto;
+  max-width: 1240px; margin: 0 auto;
   padding: 26px 24px calc(34px + env(safe-area-inset-bottom, 0px));
 }
 .ad-title { margin-bottom: 22px; }
@@ -228,7 +304,7 @@ const CSS = `
 .ad-lg-r { display: flex; align-items: baseline; gap: 8px; }
 .ad-lg-r b { font-weight: 800; font-size: 14px; }
 .ad-lg-r small { font-size: 11.5px; color: var(--muted); min-width: 36px; text-align: right; }
-.ad-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.ad-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
 
 /* compare bars */
 .ad-cmp { display: grid; gap: 18px; }
@@ -242,33 +318,8 @@ const CSS = `
 .ad-cmp-key { display: flex; gap: 16px; margin-top: 18px; font-size: 12px; color: var(--text-2); }
 .ad-cmp-key i { display: inline-block; width: 18px; height: 6px; border-radius: 999px; margin-right: 6px; vertical-align: middle; }
 
-/* quick actions */
-.ad-quick-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-.ad-quick {
-  display: flex; align-items: center; gap: 12px;
-  width: 100%; min-height: 68px; padding: 12px 14px;
-  border: 1px solid var(--line); border-radius: 13px;
-  background: #fbfcfe; color: var(--text); text-align: left;
-  transition: border-color .15s, background .15s, transform .1s;
-}
-.ad-quick:hover { border-color: #b9d3ee; background: var(--primary-soft); }
-.ad-quick:active { transform: scale(.98); }
-.ad-quick-ic {
-  width: 40px; height: 40px; flex: none; border-radius: 11px;
-  background: var(--primary-soft); color: var(--primary);
-  display: grid; place-items: center;
-}
-.ad-quick-tx { flex: 1; min-width: 0; }
-.ad-quick-tx b { display: block; font-size: 13.5px; font-weight: 700; }
-.ad-quick-tx small {
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-  margin-top: 3px; font-size: 11.5px; line-height: 1.4; color: var(--muted);
-}
-.ad-chev { flex: none; color: #a3adbd; font-size: 22px; line-height: 1; }
-.ad-quick.danger .ad-quick-ic { background: var(--bad-soft); color: var(--bad); }
-.ad-quick.danger:hover { background: var(--bad-soft); border-color: #f4c5cd; }
-
-/* overview summary */
+/* system summary */
+.ad-sumgrid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 22px; align-items: stretch; }
 .ad-sum-row {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 13px 4px; border-bottom: 1px solid var(--line-soft); font-size: 13.5px;
@@ -276,12 +327,13 @@ const CSS = `
 .ad-sum-l { display: flex; align-items: center; gap: 10px; color: var(--text-2); }
 .ad-sum-row b { font-weight: 800; font-size: 14.5px; font-variant-numeric: tabular-nums; }
 .ad-total {
-  margin-top: 14px; padding: 16px; border-radius: 13px;
+  padding: 20px; border-radius: 14px;
   background: linear-gradient(135deg, #eaf6fb, #e8f0fc);
+  display: flex; flex-direction: column; justify-content: center;
 }
 .ad-total span { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); }
-.ad-total b { display: block; margin-top: 6px; font-size: 26px; font-weight: 800; letter-spacing: -.6px; }
-.ad-total small { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.ad-total b { display: block; margin-top: 8px; font-size: 28px; font-weight: 800; letter-spacing: -.6px; word-break: break-word; }
+.ad-total small { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); }
 
 /* tables */
 .ad-recent { margin-top: 16px; }
@@ -319,32 +371,44 @@ const CSS = `
   background: linear-gradient(90deg, #eef1f6, #f6f8fb, #eef1f6);
   background-size: 200% 100%; animation: adsk 1.2s ease-in-out infinite;
 }
-.ad-sk.chart { display: block; width: 100%; height: 190px; border-radius: 12px; }
+.ad-sk.chart { display: block; width: 100%; height: 230px; border-radius: 12px; }
 @keyframes adsk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ---------- tablet ---------- */
+@media (max-width: 1280px) {
+  .ad-row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 1100px) {
   .ad-row2 { grid-template-columns: 1fr; }
-  .ad-row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
   .ad-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-sumgrid { grid-template-columns: 1fr; }
 }
 
-/* ---------- mobile ---------- */
-@media (max-width: 680px) {
-  .ad-head-in { padding: 10px 14px; gap: 10px; }
-  .ad-brand-icon { width: 38px; height: 38px; font-size: 18px; border-radius: 11px; }
-  .ad-brand h2 { font-size: 15.5px; }
-  .ad-brand p { display: none; }
-  .ad-actions { gap: 8px; }
-  .ad-btn.refresh span.t, .ad-btn.logout span.t { display: none; }
-  .ad-btn.refresh, .ad-btn.logout { width: 42px; padding: 0; }
-  .ad-pinfo { display: none; }
-  .ad-profile { padding: 4px; }
+/* ---------- mobile / drawer (sidebar hidden, 3-dot opens it) ---------- */
+@media (max-width: 960px) {
+  .ad-side {
+    transform: translateX(-102%);
+    transition: transform .26s ease;
+    box-shadow: none;
+    width: min(300px, 86vw);
+  }
+  .ad-side.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(10,18,32,.35); }
+  .ad-side-close { display: grid; place-items: center; }
+  .ad-overlay.open { display: block; }
+  .ad-main { margin-left: 0; }
+  .ad-menu-btn { display: grid; }
+}
 
-  .ad-nav { padding: 0 8px; gap: 2px; }
-  .ad-tab { padding: 0 13px; min-height: 46px; font-size: 13px; }
+@media (max-width: 680px) {
+  .ad-head-in { padding: 10px 14px; gap: 10px; min-height: 62px; }
+  .ad-head-l small { display: none; }
+  .ad-actions { gap: 8px; }
+  .ad-btn.refresh span.t { display: none; }
+  .ad-btn.refresh { width: 42px; padding: 0; }
+  .ad-profile .ad-pinfo { display: none; }
+  .ad-profile { padding: 4px; }
 
   .ad-page { padding: 18px 14px calc(28px + env(safe-area-inset-bottom, 0px)); }
   .ad-title { margin-bottom: 14px; }
@@ -364,7 +428,6 @@ const CSS = `
   .ad-ph h3 { font-size: 15px; }
   .ad-pb { padding: 12px; }
   .ad-cb { padding: 14px 14px 16px; }
-  .ad-quick-list { grid-template-columns: 1fr; }
 
   .ad-recent { margin-top: 12px; }
   .ad-table-wrap { display: none; }
@@ -379,18 +442,19 @@ const CSS = `
 }
 `;
 
-/* All admin pages (used by the top nav + quick actions) */
+/* All admin pages (sidebar) */
 const ADMIN_LINKS = [
-  { key: "admin", label: "Dashboard", icon: ICON.trade, title: "Dashboard", desc: "Platform overview and statistics" },
-  { key: "adminUsers", label: "Users", icon: ICON.eye, title: "User List", desc: "Search, edit, disable users and change passwords" },
-  { key: "adminKyc", label: "KYC", icon: ICON.lock, title: "KYC Requests", desc: "Review, approve and reject identity documents" },
-  { key: "adminDeposits", label: "Deposits", icon: ICON.doc, title: "Deposit Requests", desc: "Review, approve and reject user deposits" },
-  { key: "adminWithdrawals", label: "Withdrawals", icon: ICON.card, title: "Withdrawal Requests", desc: "Review, approve and reject user withdrawals" },
-  { key: "adminPaymentMethods", label: "Payment Methods", icon: ICON.card, title: "Payment Methods", desc: "Manage crypto wallets, networks and limits" },
-  { key: "adminOptions", label: "Options", icon: ICON.eye, title: "Options", desc: "Manage trading options and platform settings" },
+  { key: "admin", label: "Dashboard", icon: ICON.trade },
+  { key: "adminUsers", label: "Users", icon: ICON.eye },
+  { key: "adminKyc", label: "KYC", icon: ICON.lock },
+  { key: "adminDeposits", label: "Deposits", icon: ICON.doc },
+  { key: "adminWithdrawals", label: "Withdrawals", icon: ICON.card },
+  { key: "adminPaymentMethods", label: "Payment Methods", icon: ICON.card },
+  { key: "adminOptions", label: "Options", icon: ICON.eye },
 ];
 
 const CURRENT_PAGE = "admin";
+const CHART_DAYS = 10;
 
 const C_PENDING = "#e0a416";
 const C_APPROVED = GREEN || "#0e9f6e";
@@ -527,12 +591,12 @@ function Donut({ data, centerTop, centerSub, loading }) {
 }
 
 function ActivityChart({ days }) {
-  const W = 560;
-  const H = 230;
+  const W = 680;
+  const H = 240;
   const pl = 34;
   const pr = 10;
-  const pt = 16;
-  const pb = 34;
+  const pt = 18;
+  const pb = 38;
   const iw = W - pl - pr;
   const ih = H - pt - pb;
 
@@ -541,10 +605,21 @@ function ActivityChart({ days }) {
   const yMax = step * 4;
 
   const slot = iw / days.length;
-  const bw = Math.min(40, slot * 0.58);
+  const bw = Math.min(34, slot * 0.6);
 
   return (
-    <svg className="ad-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Deposit requests in the last 7 days">
+    <svg className="ad-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Deposit requests in the last ${days.length} days`}>
+      <defs>
+        <linearGradient id="adbar" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#2a7de1" />
+          <stop offset="100%" stopColor="#1fbad0" />
+        </linearGradient>
+        <linearGradient id="adbarToday" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#7c4dd8" />
+          <stop offset="100%" stopColor="#2a7de1" />
+        </linearGradient>
+      </defs>
+
       {[0, 1, 2, 3, 4].map((i) => {
         const y = pt + ih - (ih / 4) * i;
         return (
@@ -570,7 +645,7 @@ function ActivityChart({ days }) {
               width={bw}
               height={d.count > 0 ? h : 2}
               rx="6"
-              fill={d.count > 0 ? "url(#adbar)" : "#e3e8f0"}
+              fill={d.count > 0 ? (d.today ? "url(#adbarToday)" : "url(#adbar)") : "#e3e8f0"}
             >
               <title>{`${d.full}: ${d.count} request(s), ${money(d.amount)}`}</title>
             </rect>
@@ -579,22 +654,22 @@ function ActivityChart({ days }) {
                 {d.count}
               </text>
             )}
-            <text x={x + bw / 2} y={H - 16} textAnchor="middle" fontSize="11.5" fill="#4a5568" fontWeight="600">
+            <text
+              x={x + bw / 2}
+              y={H - 19}
+              textAnchor="middle"
+              fontSize="11.5"
+              fill={d.today ? "#7c4dd8" : "#4a5568"}
+              fontWeight={d.today ? "800" : "600"}
+            >
               {d.label}
             </text>
-            <text x={x + bw / 2} y={H - 3} textAnchor="middle" fontSize="10" fill="#9aa5b8">
+            <text x={x + bw / 2} y={H - 5} textAnchor="middle" fontSize="10" fill="#9aa5b8">
               {d.sub}
             </text>
           </g>
         );
       })}
-
-      <defs>
-        <linearGradient id="adbar" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#2a7de1" />
-          <stop offset="100%" stopColor="#1fbad0" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 }
@@ -753,6 +828,7 @@ export default function Admin_Dashbord({ me, go, logout }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [sideOpen, setSideOpen] = useState(false);
 
   const adminName =
     me?.full_name || me?.name || me?.username || me?.email || "Administrator";
@@ -809,6 +885,21 @@ export default function Admin_Dashbord({ me, go, logout }) {
     loadDashboard();
   }, [loadDashboard]);
 
+  /* close drawer with Escape, lock page scroll while it is open (mobile) */
+  useEffect(() => {
+    if (!sideOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key === "Escape") setSideOpen(false);
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [sideOpen]);
+
   /* ---------- derived stats ---------- */
 
   const dep = useMemo(() => {
@@ -837,14 +928,16 @@ export default function Admin_Dashbord({ me, go, logout }) {
       .slice(0, 5);
   }, [deposits]);
 
+  /* last 10 days, including today */
   const days = useMemo(() => {
     const out = [];
     const today = new Date();
-    for (let i = 6; i >= 0; i -= 1) {
+    for (let i = CHART_DAYS - 1; i >= 0; i -= 1) {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
       out.push({
         key: dayKey(d),
-        label: d.toLocaleDateString("en-US", { weekday: "short" }),
+        today: i === 0,
+        label: i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" }),
         sub: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         full: d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
         count: 0,
@@ -866,11 +959,12 @@ export default function Admin_Dashbord({ me, go, logout }) {
     return out;
   }, [deposits]);
 
-  const weekTotal = days.reduce((s, d) => s + d.count, 0);
+  const periodTotal = days.reduce((s, d) => s + d.count, 0);
 
   /* ---------- navigation ---------- */
 
   const open = (key) => {
+    setSideOpen(false);
     if (key === CURRENT_PAGE) {
       loadDashboard(true);
       return;
@@ -878,7 +972,13 @@ export default function Admin_Dashbord({ me, go, logout }) {
     if (go) go(key);
   };
 
-  const quickLinks = ADMIN_LINKS.filter((l) => l.key !== CURRENT_PAGE);
+  const badgeFor = (key) => {
+    if (loading) return 0;
+    if (key === "adminDeposits") return dep.pending;
+    if (key === "adminWithdrawals") return wdCounts.pending;
+    return 0;
+  };
+
   const val = (n) => (loading ? <i className="ad-sk" /> : n);
 
   const cards = [
@@ -960,9 +1060,16 @@ export default function Admin_Dashbord({ me, go, logout }) {
     <div className="ad-wrap">
       <style>{CSS}</style>
 
-      {/* Sticky header + navigation */}
-      <header className="ad-head">
-        <div className="ad-head-in">
+      {/* Mobile overlay */}
+      <div
+        className={"ad-overlay" + (sideOpen ? " open" : "")}
+        onClick={() => setSideOpen(false)}
+        aria-hidden="true"
+      />
+
+      {/* Sidebar (always visible on desktop, drawer on mobile) */}
+      <aside className={"ad-side" + (sideOpen ? " open" : "")} aria-label="Admin navigation">
+        <div className="ad-side-top">
           <div className="ad-brand">
             <div className="ad-brand-icon">C</div>
             <div>
@@ -970,277 +1077,277 @@ export default function Admin_Dashbord({ me, go, logout }) {
               <p>Management Dashboard</p>
             </div>
           </div>
-
-          <div className="ad-actions">
-            <button
-              type="button"
-              className="ad-btn refresh"
-              onClick={() => loadDashboard(true)}
-              disabled={refreshing}
-              aria-label="Refresh"
-            >
-              <Ic d={ICON.trade} s={16} />
-              <span className="t">{refreshing ? "Refreshing..." : "Refresh"}</span>
-            </button>
-
-            <div className="ad-profile">
-              <div className="ad-avatar">{initials}</div>
-              <div className="ad-pinfo">
-                <b>{adminName}</b>
-                <small>{adminEmail}</small>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              className="ad-btn ghost-danger logout"
-              onClick={() => logout?.()}
-              aria-label="Logout"
-            >
-              <Ic d={ICON.lock} s={15} />
-              <span className="t">Logout</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="ad-side-close"
+            onClick={() => setSideOpen(false)}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
         </div>
 
-        <div className="ad-nav-wrap">
-          <nav className="ad-nav">
-            {ADMIN_LINKS.map((link) => (
-              <button
-                key={link.key}
-                type="button"
-                className={"ad-tab" + (link.key === CURRENT_PAGE ? " on" : "")}
-                onClick={() => open(link.key)}
-              >
-                <Ic d={link.icon} s={16} />
-                {link.label}
-              </button>
-            ))}
+        <div className="ad-side-scroll">
+          <div className="ad-side-label">Menu</div>
+          <nav>
+            {ADMIN_LINKS.map((link) => {
+              const badge = badgeFor(link.key);
+              return (
+                <button
+                  key={link.key}
+                  type="button"
+                  className={"ad-nav-item" + (link.key === CURRENT_PAGE ? " on" : "")}
+                  onClick={() => open(link.key)}
+                >
+                  <span className="ad-nav-ic"><Ic d={link.icon} s={17} /></span>
+                  <span className="ad-nav-tx">{link.label}</span>
+                  {badge > 0 && <span className="ad-badge">{badge}</span>}
+                </button>
+              );
+            })}
           </nav>
         </div>
-      </header>
 
-      <main className="ad-page">
-
-        <section className="ad-title">
-          <h1>Dashboard Overview</h1>
-          <p>Welcome back, {adminName}. Here's your platform overview.</p>
-        </section>
-
-        {error && (
-          <div className="ad-error">
-            <span>{error}</span>
-            <button type="button" className="ad-btn sm" onClick={() => loadDashboard(true)}>
-              Try Again
-            </button>
+        <div className="ad-side-foot">
+          <div className="ad-side-user">
+            <div className="ad-avatar">{initials}</div>
+            <div className="ad-pinfo">
+              <b>{adminName}</b>
+              <small>{adminEmail}</small>
+            </div>
           </div>
-        )}
+          <button type="button" className="ad-logout" onClick={() => logout?.()}>
+            <Ic d={ICON.lock} s={15} />
+            Logout
+          </button>
+        </div>
+      </aside>
 
-        {/* Statistics */}
-        <section className="ad-stats">
-          {cards.map((c) => (
-            <button
-              key={c.label}
-              type="button"
-              className="ad-stat"
-              onClick={() => open(c.to)}
-            >
-              <div className="ad-stat-top">
-                <span className="ad-stat-label">{c.label}</span>
-                <span className="ad-stat-ic" style={{ color: c.color, background: c.bg }}>
-                  <Ic d={c.icon} s={19} />
+      <div className="ad-main">
+        {/* Sticky top bar */}
+        <header className="ad-head">
+          <div className="ad-head-in">
+            <div className="ad-head-l">
+              <button
+                type="button"
+                className="ad-menu-btn"
+                onClick={() => setSideOpen((v) => !v)}
+                aria-label={sideOpen ? "Hide menu" : "Open menu"}
+                aria-expanded={sideOpen}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <circle cx="12" cy="5" r="2" />
+                  <circle cx="12" cy="12" r="2" />
+                  <circle cx="12" cy="19" r="2" />
+                </svg>
+              </button>
+              <div>
+                <h3>Dashboard</h3>
+                <small>Management overview</small>
+              </div>
+            </div>
+
+            <div className="ad-actions">
+              <button
+                type="button"
+                className="ad-btn refresh"
+                onClick={() => loadDashboard(true)}
+                disabled={refreshing}
+                aria-label="Refresh"
+              >
+                <Ic d={ICON.trade} s={16} />
+                <span className="t">{refreshing ? "Refreshing..." : "Refresh"}</span>
+              </button>
+
+              <div className="ad-profile">
+                <div className="ad-avatar">{initials}</div>
+                <div className="ad-pinfo">
+                  <b>{adminName}</b>
+                  <small>{adminEmail}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="ad-page">
+          <section className="ad-title">
+            <h1>Dashboard Overview</h1>
+            <p>Welcome back, {adminName}. Here's your platform overview.</p>
+          </section>
+
+          {error && (
+            <div className="ad-error">
+              <span>{error}</span>
+              <button type="button" className="ad-btn sm" onClick={() => loadDashboard(true)}>
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {/* Statistics */}
+          <section className="ad-stats">
+            {cards.map((c) => (
+              <button
+                key={c.label}
+                type="button"
+                className="ad-stat"
+                onClick={() => open(c.to)}
+              >
+                <div className="ad-stat-top">
+                  <span className="ad-stat-label">{c.label}</span>
+                  <span className="ad-stat-ic" style={{ color: c.color, background: c.bg }}>
+                    <Ic d={c.icon} s={19} />
+                  </span>
+                </div>
+                <div className="ad-stat-val" style={c.small ? { fontSize: 24 } : undefined}>
+                  {val(c.value)}
+                </div>
+                <div className="ad-stat-foot">{c.foot}</div>
+              </button>
+            ))}
+          </section>
+
+          {/* Charts */}
+          <div className="ad-sec">
+            <h2>Statistics & Charts</h2>
+            <small>Live data</small>
+          </div>
+
+          <section className="ad-row2">
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Deposit Activity
+                  <small>Requests received in the last {CHART_DAYS} days (including today)</small>
+                </h3>
+                <span className="ad-pill blue">
+                  {loading ? "—" : `${periodTotal} IN ${CHART_DAYS} DAYS`}
                 </span>
               </div>
-              <div className="ad-stat-val" style={c.small ? { fontSize: 24 } : undefined}>
-                {val(c.value)}
-              </div>
-              <div className="ad-stat-foot">{c.foot}</div>
-            </button>
-          ))}
-        </section>
-
-        {/* Charts */}
-        <div className="ad-sec">
-          <h2>Statistics & Charts</h2>
-          <small>Live data</small>
-        </div>
-
-        <section className="ad-row2">
-          <div className="ad-panel">
-            <div className="ad-ph">
-              <h3>
-                Deposit Activity
-                <small>Requests received in the last 7 days</small>
-              </h3>
-              <span className="ad-pill blue">{loading ? "—" : `${weekTotal} THIS WEEK`}</span>
-            </div>
-            <div className="ad-cb">
-              {loading ? <i className="ad-sk chart" /> : <ActivityChart days={days} />}
-            </div>
-          </div>
-
-          <div className="ad-panel">
-            <div className="ad-ph">
-              <h3>
-                Deposit Status
-                <small>Share of all deposit requests</small>
-              </h3>
-            </div>
-            <div className="ad-cb">
-              <Donut data={depData} centerTop={dep.total} centerSub="Deposits" loading={loading} />
-            </div>
-          </div>
-        </section>
-
-        <section className="ad-row3" style={{ marginTop: 16 }}>
-          <div className="ad-panel">
-            <div className="ad-ph">
-              <h3>
-                Withdrawal Status
-                <small>Share of all withdrawals</small>
-              </h3>
-            </div>
-            <div className="ad-cb">
-              <Donut data={wdData} centerTop={wdCounts.all} centerSub="Withdrawals" loading={loading} />
-            </div>
-          </div>
-
-          <div className="ad-panel">
-            <div className="ad-ph">
-              <h3>
-                Deposits vs Withdrawals
-                <small>Requests by status</small>
-              </h3>
-            </div>
-            <div className="ad-cb">
-              <Compare dep={dep} wd={wdCounts} loading={loading} />
-            </div>
-          </div>
-
-          <div className="ad-panel">
-            <div className="ad-ph">
-              <h3>
-                Payment Methods
-                <small>Crypto wallets configured</small>
-              </h3>
-            </div>
-            <div className="ad-cb">
-              <Donut data={pmData} centerTop={pmStats.total} centerSub="Methods" loading={loading} />
-            </div>
-          </div>
-        </section>
-
-        {/* Management + overview */}
-        <div className="ad-sec">
-          <h2>Management</h2>
-          <small>Quick access</small>
-        </div>
-
-        <section className="ad-row2">
-          <div className="ad-panel">
-            <div className="ad-ph">
-              <h3>Admin Management</h3>
-              <span className="ad-pill ok">ADMIN</span>
-            </div>
-
-            <div className="ad-pb">
-              <div className="ad-quick-list">
-                {quickLinks.map((link) => (
-                  <button
-                    key={link.key}
-                    type="button"
-                    className="ad-quick"
-                    onClick={() => open(link.key)}
-                  >
-                    <span className="ad-quick-ic"><Ic d={link.icon} s={20} /></span>
-                    <span className="ad-quick-tx">
-                      <b>{link.title}</b>
-                      <small>{link.desc}</small>
-                    </span>
-                    <span className="ad-chev">›</span>
-                  </button>
-                ))}
-
-                <button type="button" className="ad-quick" onClick={() => loadDashboard(true)}>
-                  <span className="ad-quick-ic"><Ic d={ICON.trade} s={20} /></span>
-                  <span className="ad-quick-tx">
-                    <b>Refresh Statistics</b>
-                    <small>Load the latest data from the server</small>
-                  </span>
-                  <span className="ad-chev">›</span>
-                </button>
-
-                <button type="button" className="ad-quick danger" onClick={() => logout?.()}>
-                  <span className="ad-quick-ic"><Ic d={ICON.lock} s={20} /></span>
-                  <span className="ad-quick-tx">
-                    <b>Logout</b>
-                    <small>Sign out from the admin panel</small>
-                  </span>
-                  <span className="ad-chev">›</span>
-                </button>
+              <div className="ad-cb">
+                {loading ? <i className="ad-sk chart" /> : <ActivityChart days={days} />}
               </div>
             </div>
+
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Deposit Status
+                  <small>Share of all deposit requests</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                <Donut data={depData} centerTop={dep.total} centerSub="Deposits" loading={loading} />
+              </div>
+            </div>
+          </section>
+
+          <section className="ad-row3" style={{ marginTop: 16 }}>
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Withdrawal Status
+                  <small>Share of all withdrawals</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                <Donut data={wdData} centerTop={wdCounts.all} centerSub="Withdrawals" loading={loading} />
+              </div>
+            </div>
+
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Deposits vs Withdrawals
+                  <small>Requests by status</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                <Compare dep={dep} wd={wdCounts} loading={loading} />
+              </div>
+            </div>
+
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Payment Methods
+                  <small>Crypto wallets configured</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                <Donut data={pmData} centerTop={pmStats.total} centerSub="Methods" loading={loading} />
+              </div>
+            </div>
+          </section>
+
+          {/* System overview */}
+          <div className="ad-sec">
+            <h2>Overview</h2>
+            <small>System summary</small>
           </div>
 
-          <div className="ad-panel">
+          <section className="ad-panel">
             <div className="ad-ph">
               <h3>System Summary</h3>
               <span className="ad-pill blue">LIVE DATA</span>
             </div>
 
-            <div className="ad-pb">
-              <div>
-                <div className="ad-sum-row">
-                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_PENDING }} />Pending deposits</span>
-                  <b>{val(dep.pending)}</b>
+            <div className="ad-cb">
+              <div className="ad-sumgrid">
+                <div>
+                  <div className="ad-sum-row">
+                    <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_PENDING }} />Pending deposits</span>
+                    <b>{val(dep.pending)}</b>
+                  </div>
+                  <div className="ad-sum-row">
+                    <span className="ad-sum-l"><i className="ad-dot" style={{ background: "#7c4dd8" }} />Pending withdrawals</span>
+                    <b>{val(wdCounts.pending)}</b>
+                  </div>
+                  <div className="ad-sum-row">
+                    <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_APPROVED }} />Active payment methods</span>
+                    <b>{val(pmStats.active)}</b>
+                  </div>
+                  <div className="ad-sum-row" style={{ borderBottom: 0 }}>
+                    <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_BLUE }} />Deposit approval rate</span>
+                    <b>{loading ? <i className="ad-sk" /> : `${pct(dep.approved, dep.approved + dep.rejected)}%`}</b>
+                  </div>
                 </div>
-                <div className="ad-sum-row">
-                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: "#7c4dd8" }} />Pending withdrawals</span>
-                  <b>{val(wdCounts.pending)}</b>
-                </div>
-                <div className="ad-sum-row">
-                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_APPROVED }} />Active payment methods</span>
-                  <b>{val(pmStats.active)}</b>
-                </div>
-                <div className="ad-sum-row" style={{ borderBottom: 0 }}>
-                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_BLUE }} />Deposit approval rate</span>
-                  <b>{loading ? <i className="ad-sk" /> : `${pct(dep.approved, dep.approved + dep.rejected)}%`}</b>
-                </div>
-              </div>
 
-              <div className="ad-total">
-                <span>Total Requested Deposit Amount</span>
-                <b className="ad-mono">{loading ? "—" : money(dep.totalAmount)}</b>
-                <small>Sum of request amounts returned by the API</small>
+                <div className="ad-total">
+                  <span>Total Requested Deposit Amount</span>
+                  <b className="ad-mono">{loading ? "—" : money(dep.totalAmount)}</b>
+                  <small>Sum of request amounts returned by the API</small>
+                </div>
               </div>
             </div>
+          </section>
+
+          {/* Recent requests */}
+          <div className="ad-sec">
+            <h2>Recent Activity</h2>
+            <small>Latest requests</small>
           </div>
-        </section>
 
-        {/* Recent requests */}
-        <div className="ad-sec">
-          <h2>Recent Activity</h2>
-          <small>Latest requests</small>
-        </div>
+          <RecentList
+            rows={recentDeposits}
+            loading={loading}
+            onAll={() => open("adminDeposits")}
+            title="Recent Deposit Requests"
+            subtitle="Newest 5 deposits"
+          />
 
-        <RecentList
-          rows={recentDeposits}
-          loading={loading}
-          onAll={() => open("adminDeposits")}
-          title="Recent Deposit Requests"
-          subtitle="Newest 5 deposits"
-        />
+          <RecentList
+            rows={wdRecent}
+            loading={loading}
+            onAll={() => open("adminWithdrawals")}
+            title="Recent Withdrawal Requests"
+            subtitle="Newest 5 withdrawals"
+          />
 
-        <RecentList
-          rows={wdRecent}
-          loading={loading}
-          onAll={() => open("adminWithdrawals")}
-          title="Recent Withdrawal Requests"
-          subtitle="Newest 5 withdrawals"
-        />
-
-        <div className="ad-foot">Trading Admin Panel · Secure Management</div>
-      </main>
+          <div className="ad-foot">Trading Admin Panel · Secure Management</div>
+        </main>
+      </div>
     </div>
   );
 }
