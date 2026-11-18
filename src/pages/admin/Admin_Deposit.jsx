@@ -136,7 +136,8 @@ function Lightbox({ url, onClose }) {
         ✕
       </button>
 
-      <div className="adp-lb-body" onClick={(e) => e.stopPropagation()}>
+      {/* Tap anywhere (including the screenshot itself) to hide */}
+      <div className="adp-lb-body">
         {failed ? (
           <div className="adp-lb-fail">Screenshot could not be loaded.</div>
         ) : (
@@ -148,6 +149,8 @@ function Lightbox({ url, onClose }) {
           />
         )}
       </div>
+
+      <div className="adp-lb-hint">Tap to close</div>
     </div>
   );
 }
@@ -499,6 +502,16 @@ const CSS = `
   border-radius: 10px;
   background: #fff;
   box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.adp-lb-body img { cursor: zoom-out; }
+.adp-lb-hint {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,.6);
+  pointer-events: none;
 }
 .adp-lb-fail { color: #e5ebf5; font-size: 14px; }
 
