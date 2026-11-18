@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useT, api } from "./Home";
 
 const kind = (s) => {
@@ -109,6 +109,19 @@ const CSS = `
   border-radius:10px;cursor:pointer;transition:background .15s,transform .15s}
 .cx-md .cx-lo2:hover{background:rgba(240,97,109,.16)}
 .cx-md .cx-lo2:active{transform:scale(.98);background:rgba(240,97,109,.22)}
+
+/* Email verify badge + resend */
+.cx-md .cx-em{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.cx-md .cx-bdg{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;
+  font-size:11.5px;font-weight:600;line-height:1.4;white-space:nowrap}
+.cx-md .cx-bdg.ok{background:rgba(47,211,155,.14);color:#2fd39b}
+.cx-md .cx-bdg.bad{background:rgba(240,97,109,.12);color:#f0616d}
+.cx-md .cx-rv{display:block;width:100%;margin-top:10px;padding:10px 0;font-size:13px;font-weight:600;
+  text-align:center;color:#2a8fe0;background:rgba(42,143,224,.10);border:1px solid rgba(42,143,224,.35);
+  border-radius:10px;cursor:pointer;transition:background .15s,transform .15s}
+.cx-md .cx-rv:hover{background:rgba(42,143,224,.16)}
+.cx-md .cx-rv:active{transform:scale(.98)}
+.cx-md .cx-rv:disabled{opacity:.55;cursor:not-allowed;transform:none}
 `;
 
 export default function SideMenu({ open, onClose, me, logout, dark, setDark, go, notify, guest, askLogin }) {
@@ -117,6 +130,35 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
   const tx = (key, fb) => {
     const v = t(key);
     return v && v !== key ? v : fb;
+  };
+
+  const [left, setLeft] = useState(0);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (left <= 0) return undefined;
+    const id = setTimeout(() => setLeft((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [left]);
+
+  const showMailState =
+    !!me && /@/.test(String(me.email || "")) && typeof me.email_verified === "boolean";
+  const mailVerified = showMailState && me.email_verified === true;
+
+  const resendVerify = async () => {
+    if (!me || sending || left > 0) return;
+    setSending(true);
+    try {
+      await api("/auth/resend-confirm", {
+        method: "POST",
+        body: { email: me.email },
+      });
+      notify(tx("resendOk", "Verification email sent"));
+      setLeft(60);
+    } catch (e) {
+      notify(tx((e && e.message) || "err", "Something went wrong. Please try again."));
+    }
+    setSending(false);
   };
 
   const origin = () => (typeof window !== "undefined" ? window.location.origin : "");
@@ -176,6 +218,31 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
             <p>UID: {me.uid}</p>
             <p>VIP: {me.vip ?? 0}</p>
             <p>{t("rep")}: {me.reputation ?? 0}</p>
+
+            {showMailState && (
+              <>
+                <div className="cx-em">
+                  <span className={"cx-bdg " + (mailVerified ? "ok" : "bad")}>
+                    {mailVerified
+                      ? "✓ " + tx("emVerified", "Email verified")
+                      : "! " + tx("emNotVerified", "Email not verified")}
+                  </span>
+                </div>
+
+                {!mailVerified && (
+                  <button
+                    type="button"
+                    className="cx-rv"
+                    onClick={resendVerify}
+                    disabled={sending || left > 0}
+                  >
+                    {left > 0
+                      ? tx("resendIn", "Resend in") + " " + left + "s"
+                      : tx("resendVerify", "Resend verification email")}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         ) : (
           <div className="cx-mp">
@@ -231,4 +298,4 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
       </aside>
     </div>
   );
-}
+        }
