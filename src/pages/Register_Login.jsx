@@ -15,6 +15,8 @@ const strength = (p) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const RESEND_SECONDS = 60;
+
 /* Fallback text: used when the translation file returns the key itself */
 const FB = {
   login: "Log in",
@@ -50,7 +52,7 @@ const FB = {
   checkMail: "Check your email",
   checkMailReset: "Check your email",
   emailNotVerified: "Please confirm your email first.",
-  emailVerified: "Email confirmed. You can log in now.",
+  emailVerified: "Email verified successfully",
   badToken: "This link is invalid or has expired.",
   tooMany: "Too many attempts. Try again in 15 minutes.",
   resendOk: "Email sent",
@@ -59,7 +61,7 @@ const FB = {
   forgotTitle: "Forgot password?",
   forgotSub: "Enter your email and we will send you a reset link.",
   sendLink: "Send reset link",
-  sentTitle: "Check your email",
+  sentTitle: "Email sent successfully",
   sentVerify: "We sent a confirmation link to",
   sentReset: "If this email is registered, a reset link was sent to",
   sentHint: "Check your spam folder too. You can log in after confirming.",
@@ -106,24 +108,41 @@ function useTheme() {
   return [theme, toggle];
 }
 
-/* ================= URL PARAMS (?verified=1 / ?reset=TOKEN) ================= */
+/* ================= URL PARAMS =================
+   /?verified=1&token=JWT   -> email confirmed, log in automatically
+   /?verified=0             -> invalid / expired link
+   /?reset=TOKEN            -> open "set new password" view
+   The params are read once, then removed from the address bar.
+   The result is cached so React StrictMode (double effect) is safe. */
+
+let AUTH_CACHE = null;
 
 function takeAuthParams() {
-  const out = { verified: null, reset: "" };
+  if (AUTH_CACHE) return AUTH_CACHE;
+
+  const out = { verified: null, reset: "", token: "" };
+
   try {
     const u = new URL(window.location.href);
     const v = u.searchParams.get("verified");
     const r = u.searchParams.get("reset");
+    const t = u.searchParams.get("token");
+
     if (v !== null) out.verified = v === "1";
     if (r) out.reset = r;
-    if (v !== null || r) {
+    if (t && v === "1") out.token = t;
+
+    if (v !== null || r || t) {
       u.searchParams.delete("verified");
       u.searchParams.delete("reset");
+      u.searchParams.delete("token");
       window.history.replaceState(null, "", u.pathname + u.search + u.hash);
     }
   } catch (_) {
     /* ignore */
   }
+
+  AUTH_CACHE = out;
   return out;
 }
 
@@ -308,6 +327,8 @@ const CSS = `
   --menu-hover: #eef3fa;
   --menu-active: #129fb6;
   --menu-shadow: 0 18px 44px rgba(20,40,80,.22);
+  --ok-bg: rgba(15,169,104,.10);
+  --ok-ring: rgba(15,169,104,.18);
 
   position: fixed;
   inset: 0;
@@ -371,6 +392,8 @@ const CSS = `
   --menu-hover: rgba(255,255,255,.06);
   --menu-active: #4aa3ff;
   --menu-shadow: 0 18px 44px rgba(0,0,0,.55);
+  --ok-bg: rgba(25,195,125,.12);
+  --ok-ring: rgba(25,195,125,.22);
   color-scheme: dark;
 }
 
@@ -753,6 +776,45 @@ const CSS = `
   outline: none;
 }
 
+/* ---------- forgot: success panel ---------- */
+.ax-sent { text-align: center; padding: 6px 0 0; }
+.ax-sent-ic {
+  width: 64px; height: 64px;
+  margin: 0 auto 16px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok);
+  box-shadow: 0 0 0 8px var(--ok-ring);
+  animation: axpop .25s ease-out;
+}
+.ax-sent h2 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ax-sent p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.ax-sent-mail {
+  display: block;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.ax-sent-hint { margin-top: 12px !important; font-size: 12.5px !important; }
+.ax-sent .ax-btn { margin-top: 22px; }
+
 /* ---------- strength ---------- */
 .ax-str {
   display: flex;
@@ -995,14 +1057,23 @@ function Strength({ pw, tx }) {
 
 /* ================= LOGIN (+ forgot / reset views) ================= */
 
-export function Login({ onLogin, lang, setLang, go, flash = "" }) {
+export function Login({
+  onLogin,
+  lang,
+  setLang,
+  go,
+  flash = "",
+  initialView = "login", // "login" | "forgot"
+}) {
   const tx = useTx();
   const [theme, toggleTheme] = useTheme();
 
   const rem0 = store.get("cx_rem", "");
 
   // view: login | forgot | reset
-  const [view, setView] = useState("login");
+  const [view, setView] = useState(
+    initialView === "forgot" ? "forgot" : "login"
+  );
   const [resetToken, setResetToken] = useState("");
 
   const [email, setEmail] = useState(rem0);
@@ -1015,20 +1086,69 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const [cs, setCs] = useState(false);
   const [msg, setMsg] = useState(flash ? { k: flash, kind: "info" } : NONE);
 
+  // forgot password: success state + resend cooldown
+  const [sent, setSent] = useState(false);
+  const [sentTo, setSentTo] = useState("");
+  const [cool, setCool] = useState(0);
+
   const mail = email.trim().toLowerCase();
   const closeToast = useCallback(() => setMsg(NONE), []);
 
-  // Links from the mail:  /?verified=1|0   and   /?reset=TOKEN
+  // resend countdown
+  useEffect(() => {
+    if (cool <= 0) return undefined;
+    const id = setTimeout(() => setCool((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cool]);
+
+  // Links from the mail:
+  //   /?verified=1&token=JWT  -> confirmed, auto login -> dashboard
+  //   /?verified=0            -> bad / expired link
+  //   /?reset=TOKEN           -> set new password
   useEffect(() => {
     const p = takeAuthParams();
+
     if (p.reset) {
       setResetToken(p.reset);
       setView("reset");
-    } else if (p.verified === true) {
-      setMsg({ k: "emailVerified", kind: "ok" });
-    } else if (p.verified === false) {
-      setMsg({ k: "badToken", kind: "bad" });
+      return;
     }
+
+    if (p.verified === false) {
+      setMsg({ k: "badToken", kind: "bad" });
+      return;
+    }
+
+    if (p.verified === true) {
+      if (!p.token) {
+        // confirmed, but no session token in the link: ask the user to log in
+        setMsg({ k: "emailVerified", kind: "ok" });
+        return;
+      }
+
+      let alive = true;
+
+      (async () => {
+        setBusy(true);
+        setMsg({ k: "emailVerified", kind: "ok" });
+        await sleep(1300);
+        if (!alive) return;
+        setMsg(NONE);
+
+        try {
+          await onLogin({ token: p.token });
+        } catch (e) {
+          if (!alive) return;
+          setMsg({ k: (e && e.message) || "err", kind: "bad" });
+          setBusy(false);
+        }
+      })();
+
+      return () => {
+        alive = false;
+      };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const eMail = tried && !mailOk(mail) ? tx("bEmail") : "";
@@ -1038,6 +1158,8 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const toLogin = () => {
     setView("login");
     setTried(false);
+    setSent(false);
+    setCool(0);
     setPw("");
     setPw2("");
   };
@@ -1071,9 +1193,11 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
     setBusy(false);
   };
 
-  /* ----- forgot: send reset link ----- */
+  /* ----- forgot: send reset link (stays on this page) ----- */
   const sendReset = async () => {
     if (busy) return;
+    if (sent && cool > 0) return;
+
     setTried(true);
     if (!mailOk(mail)) return;
 
@@ -1082,8 +1206,11 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
     try {
       await api("/auth/forgot", { method: "POST", body: { email: mail } });
-      toLogin();
-      setMsg({ k: "checkMailReset", kind: "ok" });
+
+      setSentTo(mail);
+      setSent(true);
+      setCool(RESEND_SECONDS);
+      setMsg({ k: sent ? "resendOk" : "checkMailReset", kind: "ok" });
     } catch (e) {
       setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
@@ -1129,7 +1256,9 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
   const head =
     view === "forgot"
-      ? ["forgotTitle", "forgotSub"]
+      ? sent
+        ? ["sentTitle", ""]
+        : ["forgotTitle", "forgotSub"]
       : view === "reset"
       ? ["resetTitle", "resetSub"]
       : ["loginTitle", "loginSub"];
@@ -1204,6 +1333,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
                   className="ax-link"
                   onClick={() => {
                     setTried(false);
+                    setSent(false);
                     setView("forgot");
                   }}
                 >
@@ -1233,8 +1363,8 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
           </>
         )}
 
-        {/* ===== FORGOT ===== */}
-        {view === "forgot" && (
+        {/* ===== FORGOT: enter email ===== */}
+        {view === "forgot" && !sent && (
           <>
             <div className="ax-card">
               <Field
@@ -1263,6 +1393,41 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
             <button type="button" className="ax-ghost" onClick={toLogin}>
               {tx("backLogin")}
+            </button>
+
+            <button type="button" className="ax-help" onClick={() => setCs(true)}>
+              <Icon n="chat" s={18} />
+              {tx("csHelp")}
+            </button>
+          </>
+        )}
+
+        {/* ===== FORGOT: email sent (success, stays on this page) ===== */}
+        {view === "forgot" && sent && (
+          <>
+            <div className="ax-card">
+              <div className="ax-sent" role="status">
+                <div className="ax-sent-ic">
+                  <Icon n="check" s={32} w={2.6} />
+                </div>
+
+                <p>{tx("sentReset")}</p>
+                <span className="ax-sent-mail">{sentTo}</span>
+                <p className="ax-sent-hint">{tx("sentHintReset")}</p>
+
+                <button type="button" className="ax-btn" onClick={toLogin}>
+                  {tx("login")}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="ax-ghost"
+              onClick={sendReset}
+              disabled={busy || cool > 0}
+            >
+              {cool > 0 ? `${tx("resendIn")} ${cool}s` : tx("resend")}
             </button>
 
             <button type="button" className="ax-help" onClick={() => setCs(true)}>
@@ -1403,83 +1568,81 @@ export function Register({ onLogin, go, lang, setLang }) {
         />
         <Logo />
 
-        <>
-            <div className="ax-head">
-              <h1>{tx("createAcc")}</h1>
-              <p>{tx("createSub")}</p>
-            </div>
+        <div className="ax-head">
+          <h1>{tx("createAcc")}</h1>
+          <p>{tx("createSub")}</p>
+        </div>
 
-            <div className="ax-card">
-              <Field
-                id="ax-r-email"
-                label={tx("email")}
-                icon="mail"
-                type="email"
-                inputMode="email"
-                autoComplete="username"
-                placeholder={tx("acc")}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                error={eMail}
-              />
+        <div className="ax-card">
+          <Field
+            id="ax-r-email"
+            label={tx("email")}
+            icon="mail"
+            type="email"
+            inputMode="email"
+            autoComplete="username"
+            placeholder={tx("acc")}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={eMail}
+          />
 
-              <Field
-                id="ax-r-pw"
-                label={tx("pwLbl")}
-                icon="lock"
-                type={show ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder={tx("pw")}
-                value={pw}
-                onChange={(e) => setPw(e.target.value.slice(0, 12))}
-                maxLength={12}
-                error={ePw}
-                right={eye}
-              />
+          <Field
+            id="ax-r-pw"
+            label={tx("pwLbl")}
+            icon="lock"
+            type={show ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder={tx("pw")}
+            value={pw}
+            onChange={(e) => setPw(e.target.value.slice(0, 12))}
+            maxLength={12}
+            error={ePw}
+            right={eye}
+          />
 
-              <Strength pw={pw} tx={tx} />
+          <Strength pw={pw} tx={tx} />
 
-              <Field
-                id="ax-r-pw2"
-                label={tx("pw2Lbl")}
-                icon="lock"
-                type={show ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder={tx("pw2")}
-                value={pw2}
-                onChange={(e) => setPw2(e.target.value.slice(0, 12))}
-                onKeyDown={enter}
-                maxLength={12}
-                error={ePw2}
-                right={eye}
-              />
+          <Field
+            id="ax-r-pw2"
+            label={tx("pw2Lbl")}
+            icon="lock"
+            type={show ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder={tx("pw2")}
+            value={pw2}
+            onChange={(e) => setPw2(e.target.value.slice(0, 12))}
+            onKeyDown={enter}
+            maxLength={12}
+            error={ePw2}
+            right={eye}
+          />
 
-              <button
-                type="button"
-                className="ax-btn"
-                onClick={submit}
-                disabled={busy}
-                style={{ marginTop: 8 }}
-              >
-                {busy ? tx("wait2") : tx("register")}
-              </button>
-            </div>
+          <button
+            type="button"
+            className="ax-btn"
+            onClick={submit}
+            disabled={busy}
+            style={{ marginTop: 8 }}
+          >
+            {busy ? tx("wait2") : tx("register")}
+          </button>
+        </div>
 
-            <div className="ax-or">{tx("haveAcc")}</div>
+        <div className="ax-or">{tx("haveAcc")}</div>
 
-            <button type="button" className="ax-btn2" onClick={() => go("login")}>
-              {tx("login")}
-            </button>
+        <button type="button" className="ax-btn2" onClick={() => go("login")}>
+          {tx("login")}
+        </button>
 
-            <button type="button" className="ax-ghost" onClick={() => go("app")}>
-              {tx("guest")}
-            </button>
+        <button type="button" className="ax-ghost" onClick={() => go("app")}>
+          {tx("guest")}
+        </button>
 
-            <button type="button" className="ax-help" onClick={() => setCs(true)}>
-              <Icon n="chat" s={18} />
-              {tx("csHelp")}
-            </button>
-        </>
+        <button type="button" className="ax-help" onClick={() => setCs(true)}>
+          <Icon n="chat" s={18} />
+          {tx("csHelp")}
+        </button>
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
         {cs && (
