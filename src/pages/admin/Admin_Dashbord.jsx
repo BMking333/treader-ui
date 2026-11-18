@@ -7,10 +7,12 @@ import {
   Ic,
   ICON,
 } from "../Home";
+import AdminSidebar, { SidebarMenuButton } from "./Admin_sidbar";
 
 /* =========================================================
    src/pages/admin/Admin_Dashbord.jsx
-   Admin Dashboard  (light theme, sidebar, mobile drawer, charts)
+   Admin Dashboard  (light theme, charts)
+   Sidebar lives in: src/pages/admin/Admin_sidbar.jsx
    APIs:
      GET /admin/deposits
      GET /admin/withdraws/counts
@@ -41,7 +43,6 @@ const CSS = `
   --warn-soft: #fdf3dc;
   --bad: #e0415f;
   --bad-soft: #fdebee;
-  --side-w: 268px;
   --shadow: 0 1px 2px rgba(16,30,54,.04), 0 6px 20px rgba(16,30,54,.05);
   --shadow-hover: 0 2px 4px rgba(16,30,54,.05), 0 12px 28px rgba(16,30,54,.09);
 
@@ -56,108 +57,7 @@ const CSS = `
 .ad-wrap button { font-family: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
 .ad-wrap button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-/* ---------- sidebar ---------- */
-.ad-side {
-  position: fixed; top: 0; left: 0; bottom: 0; z-index: 60;
-  width: var(--side-w);
-  display: flex; flex-direction: column;
-  background: #0f1b30;
-  color: #cbd5e6;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-.ad-side-top {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 18px 18px 16px;
-  border-bottom: 1px solid rgba(255,255,255,.07);
-}
-.ad-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.ad-brand-icon {
-  width: 42px; height: 42px; flex: none;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #1fbad0, #2a7de1);
-  color: #fff; display: grid; place-items: center;
-  font-size: 20px; font-weight: 800;
-  box-shadow: 0 6px 16px rgba(40,125,225,.35);
-}
-.ad-brand h2 { margin: 0; font-size: 16.5px; font-weight: 800; letter-spacing: -.2px; color: #fff; }
-.ad-brand p { margin: 2px 0 0; font-size: 11.5px; color: #8a97ad; }
-.ad-side-close {
-  display: none; width: 36px; height: 36px; flex: none;
-  border: 0; border-radius: 10px;
-  background: rgba(255,255,255,.08); color: #fff;
-  font-size: 18px; line-height: 1;
-}
-
-.ad-side-scroll { flex: 1; overflow-y: auto; padding: 14px 12px; }
-.ad-side-scroll::-webkit-scrollbar { width: 6px; }
-.ad-side-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 6px; }
-.ad-side-label { padding: 8px 10px 8px; font-size: 11.5px; color: #78859b; font-weight: 600; }
-
-.ad-nav-item {
-  width: 100%; display: flex; align-items: center; gap: 12px;
-  min-height: 46px; padding: 0 12px; margin-bottom: 3px;
-  border: 0; border-radius: 11px;
-  background: transparent; color: #cbd5e6;
-  font-size: 13.5px; font-weight: 600; text-align: left;
-  transition: background .15s, color .15s;
-}
-.ad-nav-item:hover { background: rgba(255,255,255,.07); color: #fff; }
-.ad-nav-item.on {
-  background: linear-gradient(135deg, rgba(31,186,208,.22), rgba(42,125,225,.28));
-  color: #fff;
-  box-shadow: inset 3px 0 0 #3aa0f0;
-}
-.ad-nav-ic {
-  width: 32px; height: 32px; flex: none; border-radius: 9px;
-  background: rgba(255,255,255,.06);
-  display: grid; place-items: center;
-}
-.ad-nav-item.on .ad-nav-ic { background: rgba(255,255,255,.14); }
-.ad-nav-tx { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ad-badge {
-  flex: none; min-width: 22px; height: 22px; padding: 0 7px;
-  border-radius: 999px; background: #e0a416; color: #1b1300;
-  font-size: 11.5px; font-weight: 800;
-  display: inline-flex; align-items: center; justify-content: center;
-}
-
-.ad-side-foot {
-  padding: 12px; border-top: 1px solid rgba(255,255,255,.07);
-}
-.ad-side-user {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px; border-radius: 12px; background: rgba(255,255,255,.05);
-  margin-bottom: 10px; min-width: 0;
-}
-.ad-avatar {
-  width: 36px; height: 36px; flex: none; border-radius: 50%;
-  background: linear-gradient(135deg, #1fbad0, #2a7de1);
-  color: #fff; display: grid; place-items: center;
-  font-size: 14px; font-weight: 800;
-}
-.ad-pinfo { min-width: 0; line-height: 1.25; }
-.ad-pinfo b { display: block; font-size: 12.5px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ad-pinfo small { display: block; font-size: 11px; color: #8a97ad; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ad-logout {
-  width: 100%; min-height: 42px;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  border: 1px solid rgba(255,107,129,.35); border-radius: 11px;
-  background: rgba(224,65,95,.12); color: #ff8ea1;
-  font-size: 13px; font-weight: 700;
-  transition: background .15s;
-}
-.ad-logout:hover { background: rgba(224,65,95,.22); }
-
-.ad-overlay {
-  display: none; position: fixed; inset: 0; z-index: 55;
-  background: rgba(10,18,32,.5);
-  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
-}
-
-/* ---------- main area ---------- */
-.ad-main { margin-left: var(--side-w); min-width: 0; }
-
+/* ---------- top bar ---------- */
 .ad-head {
   position: sticky; top: 0; z-index: 30;
   background: rgba(255,255,255,.92);
@@ -175,13 +75,6 @@ const CSS = `
 .ad-head-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .ad-head-l h3 { margin: 0; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
 .ad-head-l small { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
-.ad-menu-btn {
-  display: none; width: 42px; height: 42px; flex: none;
-  border: 1px solid var(--line); border-radius: 11px;
-  background: var(--surface); color: var(--text);
-  place-items: center;
-}
-.ad-menu-btn:active { transform: scale(.95); }
 .ad-actions { display: flex; align-items: center; gap: 10px; }
 
 .ad-btn {
@@ -203,9 +96,15 @@ const CSS = `
   border: 1px solid var(--line); border-radius: 999px;
   background: var(--surface); min-width: 0;
 }
-.ad-profile .ad-pinfo b { color: var(--text); max-width: 170px; }
-.ad-profile .ad-pinfo small { color: var(--muted); max-width: 170px; }
-.ad-profile .ad-avatar { width: 34px; height: 34px; }
+.ad-avatar {
+  width: 34px; height: 34px; flex: none; border-radius: 50%;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff; display: grid; place-items: center;
+  font-size: 14px; font-weight: 800;
+}
+.ad-pinfo { min-width: 0; line-height: 1.25; }
+.ad-pinfo b { display: block; font-size: 12.5px; font-weight: 700; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-pinfo small { display: block; font-size: 11px; color: var(--muted); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---------- page ---------- */
 .ad-page {
@@ -267,7 +166,6 @@ const CSS = `
 }
 .ad-ph h3 { margin: 0; font-size: 15.5px; font-weight: 750; letter-spacing: -.1px; }
 .ad-ph small { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); font-weight: 400; }
-.ad-pb { padding: 16px; }
 .ad-cb { padding: 18px 20px 20px; }
 
 .ad-pill {
@@ -374,7 +272,7 @@ const CSS = `
 .ad-sk.chart { display: block; width: 100%; height: 230px; border-radius: 12px; }
 @keyframes adsk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* ---------- tablet ---------- */
+/* ---------- responsive ---------- */
 @media (max-width: 1280px) {
   .ad-row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -385,22 +283,6 @@ const CSS = `
   .ad-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ad-sumgrid { grid-template-columns: 1fr; }
 }
-
-/* ---------- mobile / drawer (sidebar hidden, 3-dot opens it) ---------- */
-@media (max-width: 960px) {
-  .ad-side {
-    transform: translateX(-102%);
-    transition: transform .26s ease;
-    box-shadow: none;
-    width: min(300px, 86vw);
-  }
-  .ad-side.open { transform: translateX(0); box-shadow: 8px 0 40px rgba(10,18,32,.35); }
-  .ad-side-close { display: grid; place-items: center; }
-  .ad-overlay.open { display: block; }
-  .ad-main { margin-left: 0; }
-  .ad-menu-btn { display: grid; }
-}
-
 @media (max-width: 680px) {
   .ad-head-in { padding: 10px 14px; gap: 10px; min-height: 62px; }
   .ad-head-l small { display: none; }
@@ -426,7 +308,6 @@ const CSS = `
   .ad-row2, .ad-row3 { grid-template-columns: 1fr; gap: 12px; }
   .ad-ph { padding: 14px 16px; }
   .ad-ph h3 { font-size: 15px; }
-  .ad-pb { padding: 12px; }
   .ad-cb { padding: 14px 14px 16px; }
 
   .ad-recent { margin-top: 12px; }
@@ -441,17 +322,6 @@ const CSS = `
   .ad-wrap * { animation: none !important; transition: none !important; }
 }
 `;
-
-/* All admin pages (sidebar) */
-const ADMIN_LINKS = [
-  { key: "admin", label: "Dashboard", icon: ICON.trade },
-  { key: "adminUsers", label: "Users", icon: ICON.eye },
-  { key: "adminKyc", label: "KYC", icon: ICON.lock },
-  { key: "adminDeposits", label: "Deposits", icon: ICON.doc },
-  { key: "adminWithdrawals", label: "Withdrawals", icon: ICON.card },
-  { key: "adminPaymentMethods", label: "Payment Methods", icon: ICON.card },
-  { key: "adminOptions", label: "Options", icon: ICON.eye },
-];
 
 const CURRENT_PAGE = "admin";
 const CHART_DAYS = 10;
@@ -885,21 +755,6 @@ export default function Admin_Dashbord({ me, go, logout }) {
     loadDashboard();
   }, [loadDashboard]);
 
-  /* close drawer with Escape, lock page scroll while it is open (mobile) */
-  useEffect(() => {
-    if (!sideOpen) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") setSideOpen(false);
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [sideOpen]);
-
   /* ---------- derived stats ---------- */
 
   const dep = useMemo(() => {
@@ -964,7 +819,6 @@ export default function Admin_Dashbord({ me, go, logout }) {
   /* ---------- navigation ---------- */
 
   const open = (key) => {
-    setSideOpen(false);
     if (key === CURRENT_PAGE) {
       loadDashboard(true);
       return;
@@ -972,11 +826,11 @@ export default function Admin_Dashbord({ me, go, logout }) {
     if (go) go(key);
   };
 
-  const badgeFor = (key) => {
-    if (loading) return 0;
-    if (key === "adminDeposits") return dep.pending;
-    if (key === "adminWithdrawals") return wdCounts.pending;
-    return 0;
+  const closeSide = useCallback(() => setSideOpen(false), []);
+
+  const sideBadges = {
+    adminDeposits: loading ? 0 : dep.pending,
+    adminWithdrawals: loading ? 0 : wdCounts.pending,
   };
 
   const val = (n) => (loading ? <i className="ad-sk" /> : n);
@@ -1060,87 +914,23 @@ export default function Admin_Dashbord({ me, go, logout }) {
     <div className="ad-wrap">
       <style>{CSS}</style>
 
-      {/* Mobile overlay */}
-      <div
-        className={"ad-overlay" + (sideOpen ? " open" : "")}
-        onClick={() => setSideOpen(false)}
-        aria-hidden="true"
+      {/* Sidebar (separate file) */}
+      <AdminSidebar
+        current={CURRENT_PAGE}
+        open={sideOpen}
+        onClose={closeSide}
+        onNavigate={open}
+        me={me}
+        logout={logout}
+        badges={sideBadges}
       />
 
-      {/* Sidebar (always visible on desktop, drawer on mobile) */}
-      <aside className={"ad-side" + (sideOpen ? " open" : "")} aria-label="Admin navigation">
-        <div className="ad-side-top">
-          <div className="ad-brand">
-            <div className="ad-brand-icon">C</div>
-            <div>
-              <h2>Trading Admin</h2>
-              <p>Management Dashboard</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            className="ad-side-close"
-            onClick={() => setSideOpen(false)}
-            aria-label="Close menu"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="ad-side-scroll">
-          <div className="ad-side-label">Menu</div>
-          <nav>
-            {ADMIN_LINKS.map((link) => {
-              const badge = badgeFor(link.key);
-              return (
-                <button
-                  key={link.key}
-                  type="button"
-                  className={"ad-nav-item" + (link.key === CURRENT_PAGE ? " on" : "")}
-                  onClick={() => open(link.key)}
-                >
-                  <span className="ad-nav-ic"><Ic d={link.icon} s={17} /></span>
-                  <span className="ad-nav-tx">{link.label}</span>
-                  {badge > 0 && <span className="ad-badge">{badge}</span>}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        <div className="ad-side-foot">
-          <div className="ad-side-user">
-            <div className="ad-avatar">{initials}</div>
-            <div className="ad-pinfo">
-              <b>{adminName}</b>
-              <small>{adminEmail}</small>
-            </div>
-          </div>
-          <button type="button" className="ad-logout" onClick={() => logout?.()}>
-            <Ic d={ICON.lock} s={15} />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <div className="ad-main">
+      <div className="as-content">
         {/* Sticky top bar */}
         <header className="ad-head">
           <div className="ad-head-in">
             <div className="ad-head-l">
-              <button
-                type="button"
-                className="ad-menu-btn"
-                onClick={() => setSideOpen((v) => !v)}
-                aria-label={sideOpen ? "Hide menu" : "Open menu"}
-                aria-expanded={sideOpen}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <circle cx="12" cy="5" r="2" />
-                  <circle cx="12" cy="12" r="2" />
-                  <circle cx="12" cy="19" r="2" />
-                </svg>
-              </button>
+              <SidebarMenuButton open={sideOpen} onToggle={() => setSideOpen((v) => !v)} />
               <div>
                 <h3>Dashboard</h3>
                 <small>Management overview</small>
