@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../Home";
 
 /* =========================================================
@@ -33,10 +33,10 @@ const isLong = (d) => d === "long";
 
 const ruleOf = (x) => {
   if (x.mode === "proportional") return "×" + Number(x.leverage || 1);
-  return x.yield_rate != null
-    ? Math.round(x.yield_rate * 100) + "%"
-    : "--";
+  return x.yield_rate != null ? Math.round(x.yield_rate * 100) + "%" : "--";
 };
+
+const sign = (v) => (v > 0 ? "up" : v < 0 ? "dn" : "");
 
 // Signed decimal, max 8 places (same as backend)
 const DEC8 = /^-?\d+(\.\d{1,8})?$/;
@@ -85,83 +85,165 @@ const formFrom = (c) => ({
 });
 
 const CSS = `
-.ao{font-family:Inter,Arial,sans-serif;color:#1a1a1a;background:#f3f5fa;min-height:100vh;padding:16px;box-sizing:border-box}
+.ao{--bg:#f2f4f8;--card:#fff;--line:#e3e7ee;--ink:#17202e;--mute:#6b7689;--faint:#98a2b3;--pri:#1a6fd1;--pri-d:#1459a8;--grn:#0f9d6b;--red:#d6414f;--amber:#c9820a;
+  font-family:Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;min-height:100dvh;font-size:14px;line-height:1.45;-webkit-text-size-adjust:100%}
 .ao *{box-sizing:border-box}
 .ao button{font:inherit;cursor:pointer}
-.ao-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.ao-brand{display:flex;align-items:center;gap:10px}
-.ao-brand i{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#1f7acb,#19c5c8);display:grid;place-items:center;color:#fff;font-style:normal;font-weight:900;font-size:19px}
-.ao-brand b{display:block;font-size:16px}
-.ao-brand small{color:#8a94a6;font-size:11px}
-.ao-user{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ao-user span{font-size:12px;color:#6b7183;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ao-top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.ao-btn.back{background:#fff;border-color:#cfd3d9;color:#26364a;font-weight:700}
-.ao-btn.back:hover{background:#eaf2fb;border-color:#1a82d6;color:#1a82d6}
-.ao-nav{display:flex;gap:8px;margin-bottom:16px;padding:6px;background:#fff;border:1px solid #e4e7ec;border-radius:12px;overflow-x:auto;scrollbar-width:none}
+.ao button:focus-visible,.ao input:focus-visible,.ao select:focus-visible,.ao textarea:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
+.ao-wrap{max-width:1320px;margin:0 auto;padding:0 16px 40px}
+
+/* Top bar */
+.ao-bar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line)}
+.ao-bar-in{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ao-brand{display:flex;align-items:center;gap:10px;min-width:0}
+.ao-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1a6fd1,#18b6c4);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;flex:none}
+.ao-brand b{display:block;font-size:15px;line-height:1.2}
+.ao-brand small{color:var(--faint);font-size:11px}
+.ao-bar-r{display:flex;align-items:center;gap:8px;min-width:0}
+.ao-admin{font-size:12px;color:var(--mute);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ao-nav{display:flex;gap:6px;padding:8px 16px;max-width:1320px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
 .ao-nav::-webkit-scrollbar{display:none}
-.ao-nav button{flex:1 0 auto;min-width:120px;height:38px;padding:0 14px;border-radius:8px;border:1px solid transparent;background:transparent;color:#5b6475;font-weight:600;font-size:13px;white-space:nowrap}
-.ao-nav button:hover{background:#eef3fa}
-.ao-nav button.on{background:#1a82d6;border-color:#1a82d6;color:#fff}
-.ao-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.ao-h h1{margin:0;font-size:22px}
-.ao-sw{display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:10px;background:#fff;border:1px solid #e4e7ec}
-.ao-sw b.on{color:#00a870}.ao-sw b.off{color:#d84d5a}
-.ao-btn{height:34px;padding:0 14px;border-radius:8px;border:1px solid #cfd3d9;background:#fff}
-.ao-btn.pri{background:#1a82d6;border-color:#1a82d6;color:#fff}
-.ao-btn.red{background:#d84d5a;border-color:#d84d5a;color:#fff}
-.ao-btn.grn{background:#00a870;border-color:#00a870;color:#fff}
-.ao-btn.out{color:#d84d5a;border-color:#e9b3b8}
-.ao-btn.sm{height:28px;padding:0 10px;font-size:12px}
+.ao-nav button{flex:0 0 auto;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--mute);font-weight:600;font-size:13px;white-space:nowrap}
+.ao-nav button:hover{background:#eef3fb;color:var(--pri)}
+.ao-nav button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+
+/* Buttons */
+.ao-btn{height:36px;padding:0 14px;border-radius:9px;border:1px solid #cfd5df;background:#fff;color:var(--ink);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;transition:background .15s,border-color .15s}
+.ao-btn:hover:not(:disabled){background:#f3f6fb}
+.ao-btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}.ao-btn.pri:hover:not(:disabled){background:var(--pri-d)}
+.ao-btn.red{background:var(--red);border-color:var(--red);color:#fff}.ao-btn.red:hover:not(:disabled){background:#bb3441}
+.ao-btn.grn{background:var(--grn);border-color:var(--grn);color:#fff}.ao-btn.grn:hover:not(:disabled){background:#0b8459}
+.ao-btn.ghost-red{color:var(--red);border-color:#ecbcc1}
+.ao-btn.sm{height:30px;padding:0 11px;font-size:12px;border-radius:8px}
+.ao-btn.block{width:100%}
 .ao-btn:disabled{opacity:.5;cursor:not-allowed}
-.ao-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px}
-.ao-card{background:#fff;border:1px solid #e4e7ec;border-radius:10px;padding:12px 14px}
-.ao-card small{display:block;color:#8a94a6;font-size:12px;margin-bottom:4px}
-.ao-card b{font-size:20px}
-.ao-pan{background:#fff;border:1px solid #e4e7ec;border-radius:10px;padding:14px;margin-bottom:14px}
-.ao-pan h3{margin:0 0 10px;font-size:15px}
-.ao-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-.ao-chip{padding:6px 12px;border-radius:16px;border:1px solid #00a870;background:#e3f7ee;color:#0a8a5f;font-size:13px}
-.ao-chip.off{border-color:#d84d5a;background:#fdecee;color:#c8323f;text-decoration:line-through}
-.ao-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
-.ao-row label{display:flex;flex-direction:column;gap:4px;font-size:12px;color:#6b7183}
-.ao-row input,.ao-row select,.ao-row textarea{height:36px;padding:0 10px;border:1px solid #cfd3d9;border-radius:8px;min-width:110px;font:inherit;background:#fff}
-.ao-row textarea{height:70px;padding:9px;min-width:220px}
-.ao-row input:disabled{background:#f0f2f6;color:#9aa0ad}
-.ao-tabs{display:flex;gap:8px;margin-bottom:10px;overflow-x:auto}
-.ao-tabs button{height:36px;padding:0 18px;border-radius:8px;border:1px solid #cfd3d9;background:#fff;white-space:nowrap}
-.ao-tabs button.on{background:#1a82d6;border-color:#1a82d6;color:#fff}
-.ao-tw{overflow-x:auto;background:#fff;border:1px solid #e4e7ec;border-radius:10px;margin-bottom:14px}
-.ao table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
-.ao th{background:#f7f8fb;text-align:left;padding:9px 10px;color:#6b7183;font-weight:600}
-.ao td{padding:8px 10px;border-top:1px solid #eef0f3}
-.ao .up{color:#00a870}.ao .dn{color:#d84d5a}
-.ao-sn{display:inline-block;min-width:28px;text-align:center;padding:2px 6px;border-radius:6px;background:#eef3fa;color:#26364a;font-weight:700;font-size:12px}
-.ao-tag{padding:2px 8px;border-radius:4px;color:#fff;font-size:12px}
-.ao-err{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#fdecee;color:#c8323f;font-size:14px}
-.ao-success{margin-bottom:12px;padding:10px 14px;border-radius:8px;background:#e3f7ee;color:#087d58;font-size:14px;line-height:1.5}
-.ao-none{text-align:center;color:#9aa0ad;padding:30px}
-.ao-note{margin-top:8px;font-size:12px;color:#8a94a6;line-height:1.5}
-.ao-actions{display:flex;gap:6px;flex-wrap:wrap}
-.ao-adj{display:flex;flex-direction:column;gap:4px;min-width:200px}
-.ao-adj input{height:30px;padding:0 8px;border:1px solid #cfd3d9;border-radius:6px;font:inherit;background:#fff}
-.ao-adj small{white-space:normal;font-size:12px;color:#6b7183}
-.ao-adj small.bad{color:#c8323f}
-.ao-modal-bg{position:fixed;inset:0;background:#0008;z-index:9999;display:flex;align-items:center;justify-content:center;padding:15px}
-.ao-modal{width:min(520px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 15px 50px #0003}
-.ao-modal h3{margin:0 0 14px;font-size:18px}
-.ao-modal .ao-row{display:grid;grid-template-columns:1fr 1fr;align-items:end}
-.ao-modal .ao-row label{min-width:0}
-.ao-modal .ao-row input,.ao-modal .ao-row select,.ao-modal .ao-row textarea{width:100%;min-width:0}
-.ao-modal .full{grid-column:1/-1}
-.ao-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
-.ao-pill{font-size:11px;border-radius:20px;padding:4px 8px;background:#edf1f7;color:#536174}
-@media(max-width:550px){
-  .ao{padding:12px}
-  .ao-nav button{min-width:110px}
-  .ao-modal .ao-row{grid-template-columns:1fr}
+
+/* Header */
+.ao-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 14px}
+.ao-h h1{margin:0;font-size:22px;letter-spacing:-.01em}
+.ao-h-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ao-sw{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 14px;border-radius:12px;background:#fff;border:1px solid var(--line)}
+.ao-sw b.on{color:var(--grn)}.ao-sw b.off{color:var(--red)}
+
+/* Stats */
+.ao-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+@media(min-width:700px){.ao-stats{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1100px){.ao-stats{grid-template-columns:repeat(6,1fr)}}
+.ao-stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:0}
+.ao-stat small{display:block;color:var(--mute);font-size:12px;margin-bottom:4px}
+.ao-stat b{font-size:19px;word-break:break-word}
+
+/* Panels */
+.ao-pan{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.ao-pan h3{margin:0 0 12px;font-size:15px}
+.ao-pan h3:not(:first-child){margin-top:18px}
+.ao-chips{display:flex;flex-wrap:wrap;gap:8px}
+.ao-chip{padding:6px 12px;border-radius:999px;border:1px solid #9ad8bf;background:#e6f7ef;color:#0b7c55;font-size:13px;font-weight:600}
+button.ao-chip:hover:not(:disabled){filter:brightness(.97)}
+.ao-chip.off{border-color:#eab2b8;background:#fdecee;color:#bb3441;text-decoration:line-through}
+.ao-chip.plain{background:#f3f5fa;border-color:var(--line);color:var(--ink);font-weight:500}
+.ao-form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:900px){.ao-form{grid-template-columns:repeat(6,1fr) auto;align-items:end}}
+.ao-form label,.ao-filters label,.ao-modal label{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--mute);font-weight:600;min-width:0}
+.ao input,.ao select,.ao textarea{width:100%;height:38px;padding:0 11px;border:1px solid #cfd5df;border-radius:9px;font:inherit;color:var(--ink);background:#fff}
+.ao textarea{height:84px;padding:9px 11px;resize:vertical}
+.ao input:disabled{background:#f0f2f6;color:#9aa0ad}
+.ao-note{margin-top:12px;font-size:12px;color:var(--mute);line-height:1.55}
+
+/* Tabs + filters */
+.ao-tabs{display:inline-flex;gap:4px;padding:4px;background:#e7ebf2;border-radius:11px;margin-bottom:12px;max-width:100%;overflow-x:auto}
+.ao-tabs button{height:34px;padding:0 18px;border-radius:8px;border:0;background:transparent;color:var(--mute);font-weight:600;white-space:nowrap}
+.ao-tabs button.on{background:#fff;color:var(--pri);box-shadow:0 1px 3px #0001}
+.ao-filters{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:600px){.ao-filters{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1000px){.ao-filters{grid-template-columns:2fr 1fr 1fr auto;align-items:end}}
+
+/* Card grid */
+.ao-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:14px}
+@media(min-width:760px){.ao-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1180px){.ao-grid{grid-template-columns:repeat(3,1fr)}}
+.ao-item{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.ao-item-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid #eef1f5;background:#fafbfd}
+.ao-item-h-l{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+.ao-sn{min-width:26px;text-align:center;padding:2px 7px;border-radius:6px;background:#eaf0f9;color:#26364a;font-weight:700;font-size:12px}
+.ao-id{font-weight:700}
+.ao-tag{padding:2px 9px;border-radius:5px;color:#fff;font-size:11px;font-weight:700}
+.ao-st{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;text-transform:capitalize}
+.ao-st.open{background:#e4effd;color:#1459a8}
+.ao-st.closed{background:#e6f7ef;color:#0b7c55}
+.ao-st.canceled{background:#f1f2f5;color:#6b7689}
+.ao-st.blocked{background:#fdecee;color:#bb3441}
+.ao-st.active{background:#e6f7ef;color:#0b7c55}
+.ao-item-b{padding:12px 14px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 14px}
+.ao-kv{min-width:0}
+.ao-kv.full{grid-column:1/-1}
+.ao-kv small{display:block;color:var(--faint);font-size:11px;margin-bottom:1px}
+.ao-kv span,.ao-kv b{font-size:13px;word-break:break-word}
+.ao-kv b{font-weight:600}
+.ao .up{color:var(--grn)}.ao .dn{color:var(--red)}
+.ao-adj{margin:0 14px 12px;padding:10px;border:1px dashed #cdd5e1;border-radius:10px;background:#fafbfd;display:flex;flex-direction:column;gap:8px}
+.ao-adj>small{color:var(--mute);font-weight:600}
+.ao-adj .pv{font-size:12px;color:var(--mute)}
+.ao-adj .pv.bad{color:var(--red)}
+.ao-item-f{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid #eef1f5;margin-top:auto}
+.ao-item-f:empty{display:none}
+.ao-item-f .ao-btn{flex:1 1 auto}
+.ao-empty{text-align:center;color:var(--faint);padding:40px 16px;background:#fff;border:1px dashed #cfd5df;border-radius:14px;margin-bottom:14px}
+.ao-pill{font-size:11px;border-radius:999px;padding:3px 9px;background:#edf1f7;color:#455468;font-weight:600}
+
+/* Toasts */
+.ao-toasts{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:10020;display:flex;flex-direction:column;gap:8px;width:min(460px,calc(100vw - 24px));pointer-events:none}
+.ao-toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:#fff;border-radius:12px;border:1px solid var(--line);border-left:4px solid var(--pri);box-shadow:0 10px 30px #0b1a3a26;animation:aoIn .22s ease-out}
+.ao-toast.success{border-left-color:var(--grn)}
+.ao-toast.error{border-left-color:var(--red)}
+.ao-toast i{font-style:normal;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800;flex:none;background:var(--pri)}
+.ao-toast.success i{background:var(--grn)}.ao-toast.error i{background:var(--red)}
+.ao-toast p{margin:0;flex:1;font-size:13.5px;line-height:1.5;word-break:break-word}
+.ao-toast button{border:0;background:transparent;color:var(--faint);font-size:18px;line-height:1;padding:0 2px}
+@keyframes aoIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+
+/* Modals (always centered on the device screen) */
+.ao-modal-bg{position:fixed;inset:0;background:#0a142588;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;animation:aoFade .15s}
+.ao-modal-bg.top{z-index:10010}
+.ao-modal{width:min(520px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 24px 70px #0b1a3a40;animation:aoPop .2s ease-out;margin:auto}
+.ao-modal h3{margin:0 0 6px;font-size:18px}
+.ao-modal .msg{white-space:pre-line;color:var(--mute);font-size:14px;line-height:1.6;margin:8px 0 0}
+.ao-modal .fields{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+.ao-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+@media(max-width:480px){.ao-modal-footer{flex-direction:column-reverse}.ao-modal-footer .ao-btn{width:100%;height:42px}}
+@keyframes aoFade{from{opacity:0}to{opacity:1}}
+@keyframes aoPop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
+
+@media(max-width:480px){
+  .ao-wrap{padding:0 12px 32px}
+  .ao-bar-in{padding:8px 12px}
+  .ao-nav{padding:8px 12px}
+  .ao-admin{display:none}
+  .ao-h h1{font-size:19px}
+  .ao-sw{width:100%;justify-content:space-between}
+  .ao-h-r{width:100%}
+  .ao-form{grid-template-columns:1fr}
 }
+@media(prefers-reduced-motion:reduce){.ao *{animation:none!important;transition:none!important}}
 `;
+
+/* =========================================================
+   Small presentational pieces
+   ========================================================= */
+
+const Kv = ({ label, children, full, cls }) => (
+  <div className={"ao-kv" + (full ? " full" : "")}>
+    <small>{label}</small>
+    <b className={cls || ""}>{children}</b>
+  </div>
+);
+
+const Stat = ({ label, children, cls }) => (
+  <div className="ao-stat">
+    <small>{label}</small>
+    <b className={cls || ""}>{children}</b>
+  </div>
+);
 
 /* =========================================================
    Component
@@ -177,31 +259,20 @@ export default function AdminOptions({ me, go, logout }) {
   const [users, setUsers] = useState([]);
   const [audits, setAudits] = useState([]);
 
-  const [f, setF] = useState({
-    status: "open",
-    q: "",
-    sym: "",
-  });
+  const [f, setF] = useState({ status: "open", q: "", sym: "" });
 
-  const [err, setErr] = useState("");
-  const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
-
   const [modal, setModal] = useState(null);
-  const [walletForm, setWalletForm] = useState({
-    amount: "",
-    reason: "",
-  });
-
-  // Used only by the open-trade settlement modal
-  const [pnlForm, setPnlForm] = useState({
-    pnl: "",
-    close_price: "",
-    reason: "",
-  });
+  const [walletForm, setWalletForm] = useState({ amount: "", reason: "" });
+  const [pnlForm, setPnlForm] = useState({ pnl: "", close_price: "", reason: "" });
 
   // Per-trade closed P&L adjustment inputs: { [tradeId]: { adj, reason } }
   const [rowAdj, setRowAdj] = useState({});
+
+  // Toast + confirm dialog
+  const [toasts, setToasts] = useState([]);
+  const [dlg, setDlg] = useState(null);
+  const toastId = useRef(0);
 
   const setRow = (id, patch) =>
     setRowAdj((s) => ({
@@ -210,25 +281,73 @@ export default function AdminOptions({ me, go, logout }) {
     }));
 
   const adminLabel =
-    me?.full_name ||
-    me?.name ||
-    me?.username ||
-    me?.email ||
-    "Administrator";
+    me?.full_name || me?.name || me?.username || me?.email || "Administrator";
 
   const open = (key) => {
     if (key !== CURRENT_PAGE && go) go(key);
   };
 
+  /* -------------------------
+     Toasts
+     ------------------------- */
+
+  const dismissToast = useCallback(
+    (id) => setToasts((t) => t.filter((x) => x.id !== id)),
+    []
+  );
+
+  const toast = useCallback(
+    (type, msg) => {
+      const id = ++toastId.current;
+      setToasts((t) => [...t.slice(-3), { id, type, msg }]);
+      setTimeout(() => dismissToast(id), type === "error" ? 6000 : 4200);
+    },
+    [dismissToast]
+  );
+
+  const ok = (m) => toast("success", m);
+  const bad = (m) => toast("error", m);
+
+  /* -------------------------
+     Confirm / reason dialog (replaces window.confirm / prompt / alert)
+     ask({ title, message, confirmLabel, tone, input: { label, placeholder, required } })
+     resolves to { value } on confirm, or null on cancel
+     ------------------------- */
+
+  const ask = (opts) =>
+    new Promise((resolve) => setDlg({ ...opts, value: "", resolve }));
+
+  const closeDlg = (result) => {
+    if (dlg) dlg.resolve(result);
+    setDlg(null);
+  };
+
+  const confirmDlg = () => {
+    if (dlg.input?.required && !dlg.value.trim()) {
+      bad(`${dlg.input.label || "Reason"} is required.`);
+      return;
+    }
+    closeDlg({ value: dlg.value.trim() });
+  };
+
+  // Escape closes the top-most layer
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (dlg) closeDlg(null);
+      else if (modal && !busy) setModal(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   const run = async (fn) => {
     setBusy(true);
-    setErr("");
-    setSuccess("");
     try {
       await fn();
     } catch (e) {
       const raw = (e && e.message) || "Request failed";
-      setErr(ERR_MAP[raw] || raw);
+      bad(ERR_MAP[raw] || raw);
     } finally {
       setBusy(false);
     }
@@ -250,24 +369,21 @@ export default function AdminOptions({ me, go, logout }) {
       setCfg(c);
       setForm(formFrom(c));
     } catch (e) {
-      setErr((e && e.message) || "Settings load failed");
+      bad((e && e.message) || "Settings load failed");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadRows = useCallback(async () => {
     try {
-      const r = await api(
-        "/admin/options/positions" + qs({ ...f, limit: 200 })
-      );
+      const r = await api("/admin/options/positions" + qs({ ...f, limit: 200 }));
       setRows(Array.isArray(r) ? r : []);
     } catch (_) {}
   }, [f]);
 
   const loadUsers = useCallback(async () => {
     try {
-      const r = await api(
-        "/admin/options/users" + qs({ q: f.q, limit: 200 })
-      );
+      const r = await api("/admin/options/users" + qs({ q: f.q, limit: 200 }));
       setUsers(Array.isArray(r) ? r : []);
     } catch (_) {}
   }, [f.q]);
@@ -290,7 +406,6 @@ export default function AdminOptions({ me, go, logout }) {
       if (tab === "usr") loadUsers();
       if (tab === "audit") loadAudits();
     };
-
     tick();
     const id = setInterval(tick, 5000);
     return () => clearInterval(id);
@@ -316,30 +431,30 @@ export default function AdminOptions({ me, go, logout }) {
       });
       setCfg(c);
       setForm(formFrom(c));
-      setSuccess("Settings updated successfully.");
+      ok("Settings updated successfully.");
       loadSum();
     });
 
-  const toggleMaster = () => {
+  const toggleMaster = async () => {
     if (!cfg) return;
     const next = !cfg.enabled;
 
-    if (
-      !next &&
-      !window.confirm(
-        "Turn OFF all Options trading? Existing open trades will continue."
-      )
-    ) return;
-
+    if (!next) {
+      const r = await ask({
+        title: "Turn off Options trading?",
+        message: "New trades will be blocked for all users. Existing open trades will continue.",
+        confirmLabel: "Turn OFF",
+        tone: "red",
+      });
+      if (!r) return;
+    }
     saveCfg({ enabled: next });
   };
 
   const toggleCoin = (coin) => {
     if (!cfg) return;
-
     const off = new Set(cfg.disabled_syms || []);
     off.has(coin) ? off.delete(coin) : off.add(coin);
-
     saveCfg({ disabled_syms: [...off] });
   };
 
@@ -357,42 +472,42 @@ export default function AdminOptions({ me, go, logout }) {
      Cancel
      ------------------------- */
 
-  const cancelOne = (x) => {
-    const note = window.prompt(
-      `Cancel trade #${x.id}. Stake ${n2(x.qty)} USDT will be refunded. Reason:`,
-      ""
-    );
-
-    if (note === null) return;
+  const cancelOne = async (x) => {
+    const r = await ask({
+      title: `Cancel trade #${x.id}`,
+      message: `Stake ${n2(x.qty)} USDT will be refunded to the user.`,
+      confirmLabel: "Cancel trade",
+      tone: "red",
+      input: { label: "Reason (optional)", placeholder: "Why is this trade canceled?" },
+    });
+    if (!r) return;
 
     run(async () => {
       await api(`/admin/options/positions/${x.id}/cancel`, {
         method: "POST",
-        body: { note },
+        body: { note: r.value },
       });
-      setSuccess(`Trade #${x.id} canceled and refund processed.`);
+      ok(`Trade #${x.id} canceled and refund processed.`);
       refresh();
     });
   };
 
-  const cancelAll = (body, label) => {
-    if (
-      !window.confirm(
-        `Cancel ALL open trades ${label}? Stakes will be refunded.`
-      )
-    ) return;
-
-    const note = window.prompt("Reason (optional):", "");
-    if (note === null) return;
+  const cancelAll = async (body, label) => {
+    const r = await ask({
+      title: "Cancel all open trades?",
+      message: `All open trades ${label} will be canceled and stakes refunded.`,
+      confirmLabel: "Cancel all",
+      tone: "red",
+      input: { label: "Reason (optional)", placeholder: "Reason for bulk cancel" },
+    });
+    if (!r) return;
 
     run(async () => {
-      const r = await api("/admin/options/cancel-all", {
+      const res = await api("/admin/options/cancel-all", {
         method: "POST",
-        body: { ...body, note },
+        body: { ...body, note: r.value },
       });
-
-      window.alert(`Canceled: ${r.canceled}`);
-      setSuccess(`${r.canceled} trades canceled.`);
+      ok(`${res.canceled} trade${res.canceled === 1 ? "" : "s"} canceled.`);
       refresh();
     });
   };
@@ -401,58 +516,64 @@ export default function AdminOptions({ me, go, logout }) {
      Block / Unblock
      ------------------------- */
 
-  const blockUser = (u) => {
+  const blockUser = async (u) => {
     if (u.blocked) {
-      if (!window.confirm(`Enable trading for ${u.email}?`)) return;
+      const r = await ask({
+        title: "Enable trading?",
+        message: `${u.email} will be able to trade Options again.`,
+        confirmLabel: "Enable",
+        tone: "grn",
+      });
+      if (!r) return;
 
       run(async () => {
         await api(`/admin/options/users/${u.user_id}/unblock`, {
           method: "POST",
           body: {},
         });
-        setSuccess("User trading enabled.");
+        ok("User trading enabled.");
         refresh();
       });
       return;
     }
 
-    const reason = window.prompt(
-      `Disable Options trading for ${u.email}. Reason:`,
-      ""
-    );
-
-    if (reason === null) return;
+    const r = await ask({
+      title: "Disable Options trading",
+      message: `${u.email} will not be able to open new trades.`,
+      confirmLabel: "Disable",
+      tone: "red",
+      input: { label: "Reason", placeholder: "Why is this user blocked?" },
+    });
+    if (!r) return;
 
     run(async () => {
       await api(`/admin/options/users/${u.user_id}/block`, {
         method: "POST",
-        body: { reason },
+        body: { reason: r.value },
       });
-      setSuccess("User trading disabled.");
+      ok("User trading disabled.");
       refresh();
     });
   };
 
-  const setUserTrading = (u) => {
+  const setUserTrading = async (u) => {
     const enabled = !!u.blocked;
 
-    const reason = window.prompt(
-      `${enabled ? "Enable" : "Disable"} trading for ${u.email}. Reason:`,
-      ""
-    );
-
-    if (reason === null) return;
+    const r = await ask({
+      title: `${enabled ? "Enable" : "Disable"} trading`,
+      message: u.email,
+      confirmLabel: enabled ? "Enable" : "Disable",
+      tone: enabled ? "grn" : "red",
+      input: { label: "Reason", placeholder: "Reason for this change" },
+    });
+    if (!r) return;
 
     run(async () => {
       await api(`/admin/options/users/${u.user_id}/trading`, {
         method: "PUT",
-        body: {
-          enabled,
-          reason,
-        },
+        body: { enabled, reason: r.value },
       });
-
-      setSuccess(`User trading ${enabled ? "enabled" : "disabled"}.`);
+      ok(`User trading ${enabled ? "enabled" : "disabled"}.`);
       refresh();
     });
   };
@@ -463,44 +584,37 @@ export default function AdminOptions({ me, go, logout }) {
 
   const openWalletModal = (u, action) => {
     setWalletForm({ amount: "", reason: "" });
-    setModal({
-      type: "wallet",
-      user: u,
-      action,
-    });
+    setModal({ type: "wallet", user: u, action });
   };
 
-  const submitWallet = () => {
+  const submitWallet = async () => {
     if (!modal?.user) return;
 
     const amount = Number(walletForm.amount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      setErr("Enter a valid amount greater than zero.");
+      bad("Enter a valid amount greater than zero.");
       return;
     }
-
     if (!walletForm.reason.trim()) {
-      setErr("Reason is required.");
+      bad("Reason is required.");
       return;
     }
 
     const action = modal.action;
     const userId = modal.user.user_id;
-    const verb = action === "add" ? "Add" : "Deduct";
+    const isAdd = action === "add";
 
-    if (
-      !window.confirm(
-        `${verb} ${n2(amount)} USDT ${action === "add" ? "to" : "from"} ${modal.user.email}?`
-      )
-    ) return;
+    const r = await ask({
+      title: isAdd ? "Confirm add" : "Confirm deduct",
+      message: `${isAdd ? "Add" : "Deduct"} ${n2(amount)} USDT ${isAdd ? "to" : "from"} ${modal.user.email}?`,
+      confirmLabel: isAdd ? "Add funds" : "Deduct funds",
+      tone: isAdd ? "grn" : "red",
+    });
+    if (!r) return;
 
     run(async () => {
-      const path =
-        action === "add"
-          ? `/admin/options/users/${userId}/wallet/add`
-          : `/admin/options/users/${userId}/wallet/deduct`;
-
-      const r = await api(path, {
+      const path = `/admin/options/users/${userId}/wallet/${isAdd ? "add" : "deduct"}`;
+      const res = await api(path, {
         method: "POST",
         body: {
           amount: String(walletForm.amount),
@@ -510,10 +624,10 @@ export default function AdminOptions({ me, go, logout }) {
       });
 
       setModal(null);
-      setSuccess(
-        `Wallet ${action === "add" ? "credited" : "debited"} successfully.` +
-          (r && r.available_after != null
-            ? ` Available: ${n8(r.available_before)} → ${n8(r.available_after)} USDT.`
+      ok(
+        `Wallet ${isAdd ? "credited" : "debited"} successfully.` +
+          (res && res.available_after != null
+            ? ` Available: ${n8(res.available_before)} → ${n8(res.available_after)} USDT.`
             : "")
       );
       loadUsers();
@@ -521,14 +635,8 @@ export default function AdminOptions({ me, go, logout }) {
   };
 
   /* -------------------------
-     Closed Trade P&L Adjustment
-     Every trade has its OWN input / preview / Apply button.
-
-     new P&L = old P&L + adjustment
-     + adjustment  -> available wallet +
-     - adjustment  -> available wallet -
-     frozen        -> never changes
-     insufficient  -> rejected, nothing changes
+     Closed trade P&L adjustment (per trade)
+     new P&L = old P&L + adjustment. Frozen balance never changes.
      ------------------------- */
 
   const previewOf = (x) => {
@@ -538,61 +646,54 @@ export default function AdminOptions({ me, go, logout }) {
     const oldPnl = Number(x.pnl || 0);
     const newPnl = oldPnl + adj;
     const tooLow = valid && newPnl < -Number(x.qty);
-
     return { raw, valid, adj, oldPnl, newPnl, tooLow };
   };
 
-  const submitRowPnl = (x) => {
+  const submitRowPnl = async (x) => {
     const { raw, valid, adj, oldPnl, newPnl, tooLow } = previewOf(x);
     const reason = (rowAdj[x.id]?.reason || "").trim();
 
     if (!valid) {
-      setErr(
-        "Enter a valid non-zero adjustment (max 8 decimal places). Example: 5 or -3.5"
-      );
+      bad("Enter a valid non-zero adjustment (max 8 decimals). Example: 5 or -3.5");
       return;
     }
-
     if (tooLow) {
-      setErr("New P&L cannot be lower than negative stake.");
+      bad("New P&L cannot be lower than the negative stake.");
       return;
     }
 
     const credit = adj > 0;
 
-    if (
-      !window.confirm(
-        `Trade #${x.id} (${x.email || "user"})\n` +
-          `Old P&L: ${n8(oldPnl)} USDT\n` +
-          `Adjustment: ${credit ? "+" : ""}${n8(adj)} USDT\n` +
-          `New P&L: ${n8(newPnl)} USDT\n\n` +
-          `User's available wallet will be ${credit ? "credited" : "debited"} by ${n8(Math.abs(adj))} USDT.\n` +
-          `Frozen balance will not change.\n` +
-          `Only this trade is changed. Continue?`
-      )
-    ) return;
+    const r = await ask({
+      title: `Adjust trade #${x.id}`,
+      message:
+        `User: ${x.email || "user"}\n` +
+        `Old P&L: ${n8(oldPnl)} USDT\n` +
+        `Adjustment: ${credit ? "+" : ""}${n8(adj)} USDT\n` +
+        `New P&L: ${n8(newPnl)} USDT\n\n` +
+        `Available wallet will be ${credit ? "credited" : "debited"} by ${n8(Math.abs(adj))} USDT. ` +
+        `Frozen balance will not change.`,
+      confirmLabel: "Apply adjustment",
+      tone: credit ? "grn" : "red",
+    });
+    if (!r) return;
 
     run(async () => {
-      const r = await api(`/admin/options/positions/${x.id}/adjust-pnl`, {
+      const res = await api(`/admin/options/positions/${x.id}/adjust-pnl`, {
         method: "POST",
-        body: {
-          adjustment: raw,
-          reason: reason || null,
-        },
+        body: { adjustment: raw, reason: reason || null },
       });
 
-      // clear only this trade's inputs
       setRowAdj((s) => {
         const c = { ...s };
         delete c[x.id];
         return c;
       });
 
-      setSuccess(
-        `Trade #${x.id} P&L: ${n8(r?.old_pnl ?? oldPnl)} → ${n8(r?.new_pnl ?? newPnl)} USDT. ` +
-          `Wallet ${credit ? "credit" : "debit"}: ${n8(Math.abs(adj))} USDT.` +
-          (r && r.available_after != null
-            ? ` Available: ${n8(r.available_before)} → ${n8(r.available_after)} USDT. Frozen: ${n8(r.frozen)} (unchanged).`
+      ok(
+        `Trade #${x.id} P&L: ${n8(res?.old_pnl ?? oldPnl)} → ${n8(res?.new_pnl ?? newPnl)} USDT.` +
+          (res && res.available_after != null
+            ? ` Available: ${n8(res.available_before)} → ${n8(res.available_after)} USDT.`
             : "")
       );
       refresh();
@@ -600,32 +701,23 @@ export default function AdminOptions({ me, go, logout }) {
   };
 
   /* -------------------------
-     Open Trade Settlement Override
+     Open trade settlement override
      ------------------------- */
 
   const openSettlementModal = (x) => {
-    setPnlForm({
-      pnl: "",
-      close_price: "",
-      reason: "",
-    });
-
-    setModal({
-      type: "settlement",
-      trade: x,
-    });
+    setPnlForm({ pnl: "", close_price: "", reason: "" });
+    setModal({ type: "settlement", trade: x });
   };
 
-  const submitSettlement = () => {
+  const submitSettlement = async () => {
     if (!modal?.trade) return;
 
     if (pnlForm.pnl.trim() === "" || !Number.isFinite(Number(pnlForm.pnl))) {
-      setErr("Enter a valid settlement P&L.");
+      bad("Enter a valid settlement P&L.");
       return;
     }
-
     if (!pnlForm.reason.trim()) {
-      setErr("Reason is required.");
+      bad("Reason is required.");
       return;
     }
 
@@ -633,29 +725,30 @@ export default function AdminOptions({ me, go, logout }) {
     const pnl = Number(pnlForm.pnl);
 
     if (pnl < -Number(x.qty)) {
-      setErr("P&L cannot be lower than negative stake.");
+      bad("P&L cannot be lower than the negative stake.");
       return;
     }
 
-    if (
-      !window.confirm(
-        `Settle trade #${x.id} with P&L ${n8(pnl)} USDT? This closes the trade.`
-      )
-    ) return;
+    let closePrice = null;
+    if (pnlForm.close_price.trim() !== "") {
+      closePrice = Number(pnlForm.close_price);
+      if (!Number.isFinite(closePrice) || closePrice <= 0) {
+        bad("Enter a valid close price.");
+        return;
+      }
+    }
+
+    const r = await ask({
+      title: `Settle trade #${x.id}`,
+      message: `Settle with P&L ${n8(pnl)} USDT? This closes the trade and pays out stake + P&L.`,
+      confirmLabel: "Settle trade",
+      tone: "pri",
+    });
+    if (!r) return;
 
     run(async () => {
-      const body = {
-        pnl: String(pnlForm.pnl),
-        reason: pnlForm.reason.trim(),
-      };
-
-      if (pnlForm.close_price.trim() !== "") {
-        const closePrice = Number(pnlForm.close_price);
-        if (!Number.isFinite(closePrice) || closePrice <= 0) {
-          throw new Error("Enter a valid close price.");
-        }
-        body.close_price = String(pnlForm.close_price);
-      }
+      const body = { pnl: String(pnlForm.pnl), reason: pnlForm.reason.trim() };
+      if (closePrice != null) body.close_price = String(pnlForm.close_price);
 
       await api(`/admin/options/positions/${x.id}/settlement-override`, {
         method: "POST",
@@ -663,7 +756,7 @@ export default function AdminOptions({ me, go, logout }) {
       });
 
       setModal(null);
-      setSuccess(`Trade #${x.id} settled successfully.`);
+      ok(`Trade #${x.id} settled successfully.`);
       refresh();
     });
   };
@@ -679,676 +772,592 @@ export default function AdminOptions({ me, go, logout }) {
     <div className="ao">
       <style>{CSS}</style>
 
-      {/* Top bar */}
-      <div className="ao-top">
-        <div className="ao-brand">
-          <i>C</i>
-          <div>
-            <b>Trading Admin</b>
-            <small>Options Management</small>
+      {/* Toasts */}
+      <div className="ao-toasts" aria-live="polite">
+        {toasts.map((t) => (
+          <div key={t.id} className={"ao-toast " + t.type} role="status">
+            <i>{t.type === "success" ? "✓" : t.type === "error" ? "!" : "i"}</i>
+            <p>{t.msg}</p>
+            <button type="button" aria-label="Dismiss" onClick={() => dismissToast(t.id)}>
+              ×
+            </button>
           </div>
-        </div>
+        ))}
+      </div>
 
-        <div className="ao-top-actions">
-          <button
-            type="button"
-            className="ao-btn back"
-            onClick={() => open("admin")}
-            title="Back to Admin Dashboard"
-          >
-            ← Back
-          </button>
+      {/* Top bar */}
+      <header className="ao-bar">
+        <div className="ao-bar-in">
+          <div className="ao-brand">
+            <div className="ao-logo">C</div>
+            <div>
+              <b>Trading Admin</b>
+              <small>Options Management</small>
+            </div>
+          </div>
 
-          <div className="ao-user">
-            <span>{adminLabel}</span>
+          <div className="ao-bar-r">
+            <button type="button" className="ao-btn sm" onClick={() => open("admin")}>
+              ← Back
+            </button>
+            <span className="ao-admin">{adminLabel}</span>
             <button
               type="button"
-              className="ao-btn out"
+              className="ao-btn sm ghost-red"
               onClick={() => logout && logout()}
             >
               Logout
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Navigation */}
-      <nav className="ao-nav">
-        {ADMIN_LINKS.map((l) => (
-          <button
-            key={l.key}
-            type="button"
-            className={l.key === CURRENT_PAGE ? "on" : ""}
-            onClick={() => open(l.key)}
-          >
-            {l.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* Header */}
-      <div className="ao-h">
-        <h1>Options trading</h1>
-
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-          {cfg && (
-            <div className="ao-sw">
-              <span>Trading:</span>
-              <b className={cfg.enabled ? "on" : "off"}>
-                {cfg.enabled ? "ON" : "OFF"}
-              </b>
-              <button
-                type="button"
-                className={"ao-btn " + (cfg.enabled ? "red" : "grn")}
-                disabled={busy}
-                onClick={toggleMaster}
-              >
-                {cfg.enabled ? "Turn OFF" : "Turn ON"}
-              </button>
-            </div>
-          )}
-
-          <button type="button" className="ao-btn" disabled={busy} onClick={refresh}>
-            ↻ Refresh
-          </button>
-        </div>
-      </div>
-
-      {err && <div className="ao-err">{err}</div>}
-      {success && <div className="ao-success">{success}</div>}
-
-      {/* Summary */}
-      {sum && (
-        <div className="ao-cards">
-          <div className="ao-card">
-            <small>Open trades</small>
-            <b>{sum.open_count}</b>
-          </div>
-          <div className="ao-card">
-            <small>Open volume (USDT)</small>
-            <b>{n2(sum.open_volume)}</b>
-          </div>
-          <div className="ao-card">
-            <small>Today trades / users</small>
-            <b>{sum.today_trades} / {sum.today_users}</b>
-          </div>
-          <div className="ao-card">
-            <small>Today volume (USDT)</small>
-            <b>{n2(sum.today_volume)}</b>
-          </div>
-          <div className="ao-card">
-            <small>Today platform P&amp;L</small>
-            <b className={platPnl >= 0 ? "up" : "dn"}>{n2(platPnl)}</b>
-          </div>
-          <div className="ao-card">
-            <small>Total platform P&amp;L</small>
-            <b className={sum.total_platform_pnl >= 0 ? "up" : "dn"}>
-              {n2(sum.total_platform_pnl)}
-            </b>
-          </div>
-        </div>
-      )}
-
-      {/* Exposure */}
-      {sum?.exposure?.length > 0 && (
-        <div className="ao-pan">
-          <h3>Open exposure by coin (USDT)</h3>
-          <div className="ao-chips">
-            {sum.exposure.map((e) => (
-              <span
-                key={e.sym}
-                className="ao-chip"
-                style={{
-                  background: "#f3f5fa",
-                  borderColor: "#cfd3d9",
-                  color: "#1a1a1a",
-                }}
-              >
-                {e.sym}: <b className="up">Long {n2(e.long)}</b> ·{" "}
-                <b className="dn">Short {n2(e.short)}</b>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Trading settings */}
-      {cfg && (
-        <div className="ao-pan">
-          <h3>Coins — Enable / Disable</h3>
-
-          <div className="ao-chips">
-            {(cfg.coins || []).map((c) => {
-              const disabled = (cfg.disabled_syms || []).includes(c);
-
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  disabled={busy}
-                  className={"ao-chip" + (disabled ? " off" : "")}
-                  onClick={() => toggleCoin(c)}
-                >
-                  {c} · {disabled ? "OFF" : "ON"}
-                </button>
-              );
-            })}
-          </div>
-
-          <h3>Trading rules &amp; limits</h3>
-
-          <div className="ao-row">
-            <label>
-              Mode
-              <select
-                value={form.mode}
-                onChange={(e) => setForm({ ...form, mode: e.target.value })}
-              >
-                <option value="proportional">Proportional (real P&amp;L)</option>
-                <option value="fixed">Fixed yield (all-or-nothing)</option>
-              </select>
-            </label>
-
-            <label>
-              Leverage (×)
-              <input
-                value={form.leverage}
-                disabled={!isProp}
-                onChange={(e) => setForm({ ...form, leverage: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Yield (0.85 = 85%)
-              <input
-                value={form.yield}
-                disabled={isProp}
-                onChange={(e) => setForm({ ...form, yield: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Min stake
-              <input
-                value={form.qty_min}
-                onChange={(e) => setForm({ ...form, qty_min: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Max stake
-              <input
-                value={form.qty_max}
-                onChange={(e) => setForm({ ...form, qty_max: e.target.value })}
-              />
-            </label>
-
-            <label>
-              Max open / user (0 = ∞)
-              <input
-                value={form.max_open}
-                onChange={(e) => setForm({ ...form, max_open: e.target.value })}
-              />
-            </label>
-
+        <nav className="ao-nav">
+          {ADMIN_LINKS.map((l) => (
             <button
+              key={l.key}
               type="button"
-              className="ao-btn pri"
-              disabled={busy}
-              onClick={saveLimits}
+              className={l.key === CURRENT_PAGE ? "on" : ""}
+              onClick={() => open(l.key)}
             >
-              Save rules
+              {l.label}
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <main className="ao-wrap">
+        {/* Header */}
+        <div className="ao-h">
+          <h1>Options trading</h1>
+
+          <div className="ao-h-r">
+            {cfg && (
+              <div className="ao-sw">
+                <span>Trading:</span>
+                <b className={cfg.enabled ? "on" : "off"}>{cfg.enabled ? "ON" : "OFF"}</b>
+                <button
+                  type="button"
+                  className={"ao-btn sm " + (cfg.enabled ? "red" : "grn")}
+                  disabled={busy}
+                  onClick={toggleMaster}
+                >
+                  {cfg.enabled ? "Turn OFF" : "Turn ON"}
+                </button>
+              </div>
+            )}
+
+            <button type="button" className="ao-btn" disabled={busy} onClick={refresh}>
+              ↻ Refresh
             </button>
           </div>
-
-          <div className="ao-note">
-            Proportional: profit/loss = stake × price change % × leverage.
-            Loss never exceeds stake. Fixed: win = stake × yield, loss = whole
-            stake.
-            <br />
-            Changes apply to new trades only. Open trades keep their original rules.
-          </div>
         </div>
-      )}
 
-      {/* Tabs */}
-      <div className="ao-tabs">
-        <button
-          type="button"
-          className={tab === "pos" ? "on" : ""}
-          onClick={() => setTab("pos")}
-        >
-          Trades
-        </button>
-        <button
-          type="button"
-          className={tab === "usr" ? "on" : ""}
-          onClick={() => setTab("usr")}
-        >
-          Users
-        </button>
-        <button
-          type="button"
-          className={tab === "audit" ? "on" : ""}
-          onClick={() => setTab("audit")}
-        >
-          Audit History
-        </button>
-      </div>
+        {/* Summary */}
+        {sum && (
+          <div className="ao-stats">
+            <Stat label="Open trades">{sum.open_count}</Stat>
+            <Stat label="Open volume (USDT)">{n2(sum.open_volume)}</Stat>
+            <Stat label="Today trades / users">
+              {sum.today_trades} / {sum.today_users}
+            </Stat>
+            <Stat label="Today volume (USDT)">{n2(sum.today_volume)}</Stat>
+            <Stat label="Today platform P&L" cls={platPnl >= 0 ? "up" : "dn"}>
+              {n2(platPnl)}
+            </Stat>
+            <Stat label="Total platform P&L" cls={sum.total_platform_pnl >= 0 ? "up" : "dn"}>
+              {n2(sum.total_platform_pnl)}
+            </Stat>
+          </div>
+        )}
 
-      {/* Search filters */}
-      {tab !== "audit" && (
-        <div className="ao-pan">
-          <div className="ao-row">
-            <label>
-              Search (email / UID / ID)
-              <input
-                value={f.q}
-                onChange={(e) => setF({ ...f, q: e.target.value })}
-                placeholder="Search user"
-              />
-            </label>
+        {/* Exposure */}
+        {sum?.exposure?.length > 0 && (
+          <div className="ao-pan">
+            <h3>Open exposure by coin (USDT)</h3>
+            <div className="ao-chips">
+              {sum.exposure.map((e) => (
+                <span key={e.sym} className="ao-chip plain">
+                  {e.sym}: <b className="up">Long {n2(e.long)}</b> ·{" "}
+                  <b className="dn">Short {n2(e.short)}</b>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
-            {tab === "pos" && (
-              <>
-                <label>
-                  Status
-                  <select
-                    value={f.status}
-                    onChange={(e) => setF({ ...f, status: e.target.value })}
+        {/* Trading settings */}
+        {cfg && (
+          <div className="ao-pan">
+            <h3>Coins — enable / disable</h3>
+
+            <div className="ao-chips">
+              {(cfg.coins || []).map((c) => {
+                const disabled = (cfg.disabled_syms || []).includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    disabled={busy}
+                    className={"ao-chip" + (disabled ? " off" : "")}
+                    onClick={() => toggleCoin(c)}
                   >
-                    <option value="">All</option>
-                    <option value="open">Open</option>
-                    <option value="closed">Closed</option>
-                    <option value="canceled">Canceled</option>
-                  </select>
-                </label>
+                    {c} · {disabled ? "OFF" : "ON"}
+                  </button>
+                );
+              })}
+            </div>
 
-                <label>
-                  Coin
-                  <select
-                    value={f.sym}
-                    onChange={(e) => setF({ ...f, sym: e.target.value })}
-                  >
-                    <option value="">All</option>
-                    {(cfg?.coins || []).map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </label>
+            <h3>Trading rules &amp; limits</h3>
 
-                <button
-                  type="button"
-                  className="ao-btn red"
-                  disabled={busy}
-                  onClick={() =>
-                    cancelAll(
-                      { sym: f.sym || null },
-                      f.sym ? `for ${f.sym}` : "(ALL coins)"
-                    )
-                  }
+            <div className="ao-form">
+              <label>
+                Mode
+                <select
+                  value={form.mode}
+                  onChange={(e) => setForm({ ...form, mode: e.target.value })}
                 >
-                  Cancel all open {f.sym || ""}
-                </button>
-              </>
-            )}
+                  <option value="proportional">Proportional (real P&amp;L)</option>
+                  <option value="fixed">Fixed yield (all-or-nothing)</option>
+                </select>
+              </label>
+
+              <label>
+                Leverage (×)
+                <input
+                  value={form.leverage}
+                  disabled={!isProp}
+                  inputMode="decimal"
+                  onChange={(e) => setForm({ ...form, leverage: e.target.value })}
+                />
+              </label>
+
+              <label>
+                Yield (0.85 = 85%)
+                <input
+                  value={form.yield}
+                  disabled={isProp}
+                  inputMode="decimal"
+                  onChange={(e) => setForm({ ...form, yield: e.target.value })}
+                />
+              </label>
+
+              <label>
+                Min stake
+                <input
+                  value={form.qty_min}
+                  inputMode="decimal"
+                  onChange={(e) => setForm({ ...form, qty_min: e.target.value })}
+                />
+              </label>
+
+              <label>
+                Max stake
+                <input
+                  value={form.qty_max}
+                  inputMode="decimal"
+                  onChange={(e) => setForm({ ...form, qty_max: e.target.value })}
+                />
+              </label>
+
+              <label>
+                Max open / user (0 = ∞)
+                <input
+                  value={form.max_open}
+                  inputMode="numeric"
+                  onChange={(e) => setForm({ ...form, max_open: e.target.value })}
+                />
+              </label>
+
+              <button
+                type="button"
+                className="ao-btn pri"
+                style={{ height: 38 }}
+                disabled={busy}
+                onClick={saveLimits}
+              >
+                Save rules
+              </button>
+            </div>
+
+            <div className="ao-note">
+              Proportional: profit/loss = stake × price change % × leverage. Loss never
+              exceeds stake. Fixed: win = stake × yield, loss = whole stake.
+              <br />
+              Changes apply to new trades only. Open trades keep their original rules.
+            </div>
           </div>
+        )}
+
+        {/* Tabs */}
+        <div className="ao-tabs" role="tablist">
+          {[
+            ["pos", "Trades"],
+            ["usr", "Users"],
+            ["audit", "Audit history"],
+          ].map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={tab === k}
+              className={tab === k ? "on" : ""}
+              onClick={() => setTab(k)}
+            >
+              {label}
+            </button>
+          ))}
         </div>
-      )}
 
-      {/* =====================================================
-          Trades  (every trade = its own row, serial 1,2,3...)
-          ===================================================== */}
-      {tab === "pos" && (
-        <div className="ao-tw">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Trade ID</th>
-                <th>User</th>
-                <th>Pair</th>
-                <th>Side</th>
-                <th>Stake</th>
-                <th>Open</th>
-                <th>Close</th>
-                <th>P&amp;L (user)</th>
-                <th>Live P&amp;L</th>
-                <th>Rule</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Closed P&amp;L ± (this trade)</th>
-                <th>Admin actions</th>
-              </tr>
-            </thead>
+        {/* Filters */}
+        {tab !== "audit" && (
+          <div className="ao-pan">
+            <div className="ao-filters">
+              <label>
+                Search (email / UID / ID)
+                <input
+                  value={f.q}
+                  onChange={(e) => setF({ ...f, q: e.target.value })}
+                  placeholder="Search user"
+                />
+              </label>
 
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={15} className="ao-none">No trades</td>
-                </tr>
-              )}
-
-              {rows.map((x, i) => (
-                <tr key={x.id}>
-                  <td><span className="ao-sn">{i + 1}</span></td>
-                  <td>{x.id}</td>
-                  <td>
-                    {x.email}
-                    <br />
-                    <small style={{ color: "#8a94a6" }}>UID {x.uid}</small>
-                  </td>
-                  <td>{x.sym}/USDT</td>
-                  <td>
-                    <span
-                      className="ao-tag"
-                      style={{
-                        background: isLong(x.direction) ? "#00a870" : "#d84d5a",
-                      }}
+              {tab === "pos" && (
+                <>
+                  <label>
+                    Status
+                    <select
+                      value={f.status}
+                      onChange={(e) => setF({ ...f, status: e.target.value })}
                     >
-                      {isLong(x.direction) ? "LONG" : "SHORT"}
-                    </span>
-                  </td>
-                  <td>{n2(x.qty)}</td>
-                  <td>{x.open_price}</td>
-                  <td>{x.close_price != null ? x.close_price : "--"}</td>
-                  <td className={x.pnl > 0 ? "up" : x.pnl < 0 ? "dn" : ""}>
-                    {x.pnl != null ? n8(x.pnl) : "--"}
-                  </td>
-                  <td className={x.floating_pnl > 0 ? "up" : x.floating_pnl < 0 ? "dn" : ""}>
-                    {x.floating_pnl != null ? n2(x.floating_pnl) : "--"}
-                  </td>
-                  <td>{ruleOf(x)}</td>
-                  <td>{x.status === "open" ? "ends " + dt(x.end_at) : dt(x.end_at)}</td>
-                  <td>
-                    {x.status}
-                    {x.admin_note && (
-                      <>
-                        <br />
-                        <small style={{ color: "#8a94a6" }}>{x.admin_note}</small>
-                      </>
-                    )}
-                  </td>
+                      <option value="">All</option>
+                      <option value="open">Open</option>
+                      <option value="closed">Closed</option>
+                      <option value="canceled">Canceled</option>
+                    </select>
+                  </label>
 
-                  {/* Separate P&L +/- cell for THIS trade only */}
-                  <td>
-                    {x.status === "closed" ? (() => {
-                      const pv = previewOf(x);
-                      const cur = rowAdj[x.id] || { adj: "", reason: "" };
+                  <label>
+                    Coin
+                    <select
+                      value={f.sym}
+                      onChange={(e) => setF({ ...f, sym: e.target.value })}
+                    >
+                      <option value="">All</option>
+                      {(cfg?.coins || []).map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-                      return (
-                        <div className="ao-adj">
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            placeholder="+5 or -3.5"
-                            value={cur.adj}
-                            onChange={(e) => setRow(x.id, { adj: e.target.value })}
-                          />
-                          <input
-                            type="text"
-                            placeholder="Reason (optional)"
-                            value={cur.reason}
-                            onChange={(e) => setRow(x.id, { reason: e.target.value })}
-                          />
-                          {pv.valid && (
-                            <small className={pv.tooLow ? "bad" : ""}>
-                              {n8(pv.oldPnl)} → <b>{n8(pv.newPnl)}</b>
-                              {pv.tooLow ? " (below -stake!)" : ""}
-                            </small>
-                          )}
-                          <button
-                            type="button"
-                            className="ao-btn pri sm"
-                            disabled={busy || !pv.valid || pv.tooLow}
-                            onClick={() => submitRowPnl(x)}
-                          >
-                            Apply to #{x.id}
-                          </button>
-                        </div>
-                      );
-                    })() : "--"}
-                  </td>
+                  <button
+                    type="button"
+                    className="ao-btn red"
+                    style={{ height: 38 }}
+                    disabled={busy}
+                    onClick={() =>
+                      cancelAll({ sym: f.sym || null }, f.sym ? `for ${f.sym}` : "(all coins)")
+                    }
+                  >
+                    Cancel all open {f.sym || ""}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
-                  <td>
-                    <div className="ao-actions">
-                      {x.status === "open" && (
-                        <>
-                          <button
-                            type="button"
-                            className="ao-btn red sm"
-                            disabled={busy}
-                            onClick={() => cancelOne(x)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            className="ao-btn pri sm"
-                            disabled={busy}
-                            onClick={() => openSettlementModal(x)}
-                          >
-                            Settle
-                          </button>
-                        </>
+        {/* =====================================================
+            Trades — one card per trade
+            ===================================================== */}
+        {tab === "pos" &&
+          (rows.length === 0 ? (
+            <div className="ao-empty">No trades found.</div>
+          ) : (
+            <div className="ao-grid">
+              {rows.map((x, i) => {
+                const long = isLong(x.direction);
+                const pv = x.status === "closed" ? previewOf(x) : null;
+                const cur = rowAdj[x.id] || { adj: "", reason: "" };
+
+                return (
+                  <article className="ao-item" key={x.id}>
+                    <div className="ao-item-h">
+                      <div className="ao-item-h-l">
+                        <span className="ao-sn">{i + 1}</span>
+                        <span className="ao-id">#{x.id}</span>
+                        <span className="ao-id">{x.sym}/USDT</span>
+                        <span className="ao-tag" style={{ background: long ? "#0f9d6b" : "#d6414f" }}>
+                          {long ? "LONG" : "SHORT"}
+                        </span>
+                      </div>
+                      <span className={"ao-st " + x.status}>{x.status}</span>
+                    </div>
+
+                    <div className="ao-item-b">
+                      <Kv label="User" full>
+                        {x.email} <span style={{ color: "#98a2b3", fontWeight: 400 }}>· UID {x.uid}</span>
+                      </Kv>
+                      <Kv label="Stake (USDT)">{n2(x.qty)}</Kv>
+                      <Kv label="Rule">{ruleOf(x)}</Kv>
+                      <Kv label="Open price">{x.open_price}</Kv>
+                      <Kv label="Close price">{x.close_price != null ? x.close_price : "--"}</Kv>
+                      <Kv label="P&L (user)" cls={sign(x.pnl)}>
+                        {x.pnl != null ? n8(x.pnl) : "--"}
+                      </Kv>
+                      <Kv label="Live P&L" cls={sign(x.floating_pnl)}>
+                        {x.floating_pnl != null ? n2(x.floating_pnl) : "--"}
+                      </Kv>
+                      <Kv label={x.status === "open" ? "Ends at" : "Closed at"} full>
+                        {dt(x.end_at)}
+                      </Kv>
+                      {x.admin_note && (
+                        <Kv label="Admin note" full>
+                          {x.admin_note}
+                        </Kv>
                       )}
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
-      {/* Users */}
-      {tab === "usr" && (
-        <div className="ao-tw">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>User</th>
-                <th>Trades</th>
-                <th>Volume</th>
-                <th>Win / Loss</th>
-                <th>Net P&amp;L</th>
-                <th>Open</th>
-                <th>Last trade</th>
-                <th>Status</th>
-                <th>Wallet / Trading</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {users.length === 0 && (
-                <tr><td colSpan={10} className="ao-none">No users</td></tr>
-              )}
-
-              {users.map((u, i) => (
-                <tr key={u.user_id}>
-                  <td><span className="ao-sn">{i + 1}</span></td>
-                  <td>
-                    {u.email}
-                    <br />
-                    <small style={{ color: "#8a94a6" }}>
-                      UID {u.uid} · ID {u.user_id}
-                    </small>
-                  </td>
-                  <td>{u.trades}</td>
-                  <td>{n2(u.volume)}</td>
-                  <td>
-                    <span className="up">{u.wins}</span> /{" "}
-                    <span className="dn">{u.losses}</span>
-                  </td>
-                  <td className={u.net_pnl >= 0 ? "up" : "dn"}>
-                    {n2(u.net_pnl)}
-                  </td>
-                  <td>{u.open_count} ({n2(u.open_volume)})</td>
-                  <td>{dt(u.last_trade)}</td>
-                  <td>
-                    {u.blocked ? <b className="dn">Blocked</b> : "Active"}
-                    {u.block_reason && (
-                      <>
-                        <br />
-                        <small>{u.block_reason}</small>
-                      </>
+                    {x.status === "closed" && (
+                      <div className="ao-adj">
+                        <small>Adjust closed P&amp;L (this trade only)</small>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          placeholder="+5 or -3.5"
+                          value={cur.adj}
+                          onChange={(e) => setRow(x.id, { adj: e.target.value })}
+                        />
+                        <input
+                          type="text"
+                          placeholder="Reason (optional)"
+                          value={cur.reason}
+                          onChange={(e) => setRow(x.id, { reason: e.target.value })}
+                        />
+                        {pv.valid && (
+                          <div className={"pv" + (pv.tooLow ? " bad" : "")}>
+                            {n8(pv.oldPnl)} → <b>{n8(pv.newPnl)}</b>
+                            {pv.tooLow ? " (below negative stake!)" : ""}
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          className="ao-btn pri sm block"
+                          disabled={busy || !pv.valid || pv.tooLow}
+                          onClick={() => submitRowPnl(x)}
+                        >
+                          Apply to #{x.id}
+                        </button>
+                      </div>
                     )}
-                  </td>
-                  <td>
-                    <div className="ao-actions">
-                      <button
-                        type="button"
-                        className="ao-btn grn sm"
-                        disabled={busy}
-                        onClick={() => openWalletModal(u, "add")}
-                      >
-                        + Add
-                      </button>
-                      <button
-                        type="button"
-                        className="ao-btn red sm"
-                        disabled={busy}
-                        onClick={() => openWalletModal(u, "deduct")}
-                      >
-                        − Deduct
-                      </button>
-                      <button
-                        type="button"
-                        className={"ao-btn sm " + (u.blocked ? "grn" : "red")}
-                        disabled={busy}
-                        onClick={() => blockUser(u)}
-                      >
-                        {u.blocked ? "Unblock" : "Block"}
-                      </button>
+
+                    {x.status === "open" && (
+                      <div className="ao-item-f">
+                        <button
+                          type="button"
+                          className="ao-btn red sm"
+                          disabled={busy}
+                          onClick={() => cancelOne(x)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          className="ao-btn pri sm"
+                          disabled={busy}
+                          onClick={() => openSettlementModal(x)}
+                        >
+                          Settle
+                        </button>
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          ))}
+
+        {/* =====================================================
+            Users — one card per user
+            ===================================================== */}
+        {tab === "usr" &&
+          (users.length === 0 ? (
+            <div className="ao-empty">No users found.</div>
+          ) : (
+            <div className="ao-grid">
+              {users.map((u, i) => (
+                <article className="ao-item" key={u.user_id}>
+                  <div className="ao-item-h">
+                    <div className="ao-item-h-l">
+                      <span className="ao-sn">{i + 1}</span>
+                      <span className="ao-id" style={{ wordBreak: "break-all" }}>
+                        {u.email}
+                      </span>
+                    </div>
+                    <span className={"ao-st " + (u.blocked ? "blocked" : "active")}>
+                      {u.blocked ? "Blocked" : "Active"}
+                    </span>
+                  </div>
+
+                  <div className="ao-item-b">
+                    <Kv label="UID / ID" full>
+                      UID {u.uid} · ID {u.user_id}
+                    </Kv>
+                    <Kv label="Trades">{u.trades}</Kv>
+                    <Kv label="Volume (USDT)">{n2(u.volume)}</Kv>
+                    <Kv label="Win / Loss">
+                      <span className="up">{u.wins}</span> / <span className="dn">{u.losses}</span>
+                    </Kv>
+                    <Kv label="Net P&L" cls={u.net_pnl >= 0 ? "up" : "dn"}>
+                      {n2(u.net_pnl)}
+                    </Kv>
+                    <Kv label="Open trades">
+                      {u.open_count} ({n2(u.open_volume)})
+                    </Kv>
+                    <Kv label="Last trade">{dt(u.last_trade)}</Kv>
+                    {u.block_reason && (
+                      <Kv label="Block reason" full>
+                        {u.block_reason}
+                      </Kv>
+                    )}
+                  </div>
+
+                  <div className="ao-item-f">
+                    <button
+                      type="button"
+                      className="ao-btn grn sm"
+                      disabled={busy}
+                      onClick={() => openWalletModal(u, "add")}
+                    >
+                      + Add
+                    </button>
+                    <button
+                      type="button"
+                      className="ao-btn red sm"
+                      disabled={busy}
+                      onClick={() => openWalletModal(u, "deduct")}
+                    >
+                      − Deduct
+                    </button>
+                    <button
+                      type="button"
+                      className={"ao-btn sm " + (u.blocked ? "grn" : "red")}
+                      disabled={busy}
+                      onClick={() => blockUser(u)}
+                    >
+                      {u.blocked ? "Unblock" : "Block"}
+                    </button>
+                    <button
+                      type="button"
+                      className="ao-btn sm"
+                      disabled={busy}
+                      onClick={() => setUserTrading(u)}
+                    >
+                      Trading
+                    </button>
+                    {u.open_count > 0 && (
                       <button
                         type="button"
                         className="ao-btn sm"
                         disabled={busy}
-                        onClick={() => setUserTrading(u)}
+                        onClick={() => cancelAll({ user_id: u.user_id }, `of ${u.email}`)}
                       >
-                        Trading
+                        Cancel open
                       </button>
-                      {u.open_count > 0 && (
-                        <button
-                          type="button"
-                          className="ao-btn sm"
-                          disabled={busy}
-                          onClick={() =>
-                            cancelAll({ user_id: u.user_id }, `of ${u.email}`)
-                          }
-                        >
-                          Cancel open
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                    )}
+                  </div>
+                </article>
               ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+            </div>
+          ))}
 
-      {/* Audit History */}
-      {tab === "audit" && (
-        <div className="ao-tw">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Audit ID</th>
-                <th>Admin</th>
-                <th>User ID</th>
-                <th>Trade ID</th>
-                <th>Action</th>
-                <th>Amount</th>
-                <th>Old value</th>
-                <th>New value</th>
-                <th>Coin</th>
-                <th>Reason</th>
-                <th>Time</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {audits.length === 0 && (
-                <tr><td colSpan={12} className="ao-none">No audit records</td></tr>
-              )}
-
+        {/* =====================================================
+            Audit history — one card per record
+            ===================================================== */}
+        {tab === "audit" &&
+          (audits.length === 0 ? (
+            <div className="ao-empty">No audit records.</div>
+          ) : (
+            <div className="ao-grid">
               {audits.map((a, i) => (
-                <tr key={a.id}>
-                  <td><span className="ao-sn">{i + 1}</span></td>
-                  <td>{a.id}</td>
-                  <td>{a.admin_id}</td>
-                  <td>{a.user_id}</td>
-                  <td>{a.position_id ?? "--"}</td>
-                  <td><span className="ao-pill">{a.action}</span></td>
-                  <td>{a.amount != null ? n8(a.amount) : "--"}</td>
-                  <td>{a.old_value != null ? n8(a.old_value) : "--"}</td>
-                  <td>{a.new_value != null ? n8(a.new_value) : "--"}</td>
-                  <td>{a.coin || "--"}</td>
-                  <td style={{ whiteSpace: "normal", minWidth: 160 }}>{a.reason || "--"}</td>
-                  <td>{dt(a.created_at)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                <article className="ao-item" key={a.id}>
+                  <div className="ao-item-h">
+                    <div className="ao-item-h-l">
+                      <span className="ao-sn">{i + 1}</span>
+                      <span className="ao-id">Audit #{a.id}</span>
+                    </div>
+                    <span className="ao-pill">{a.action}</span>
+                  </div>
 
-      {/* Wallet Modal */}
+                  <div className="ao-item-b">
+                    <Kv label="Admin ID">{a.admin_id}</Kv>
+                    <Kv label="User ID">{a.user_id}</Kv>
+                    <Kv label="Trade ID">{a.position_id ?? "--"}</Kv>
+                    <Kv label="Coin">{a.coin || "--"}</Kv>
+                    <Kv label="Amount">{a.amount != null ? n8(a.amount) : "--"}</Kv>
+                    <Kv label="Old → New">
+                      {a.old_value != null ? n8(a.old_value) : "--"} →{" "}
+                      {a.new_value != null ? n8(a.new_value) : "--"}
+                    </Kv>
+                    <Kv label="Reason" full>
+                      {a.reason || "--"}
+                    </Kv>
+                    <Kv label="Time" full>
+                      {dt(a.created_at)}
+                    </Kv>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ))}
+      </main>
+
+      {/* Wallet modal (centered) */}
       {modal?.type === "wallet" && (
         <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
-          <div className="ao-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>
-              {modal.action === "add" ? "Add USDT" : "Deduct USDT"}
-            </h3>
-
-            <div className="ao-note">
+          <div
+            className="ao-modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>{modal.action === "add" ? "Add USDT" : "Deduct USDT"}</h3>
+            <div className="ao-note" style={{ marginTop: 0 }}>
               User: <b>{modal.user.email}</b> · ID {modal.user.user_id}
             </div>
 
-            <div className="ao-row" style={{ marginTop: 15 }}>
-              <label className="full">
+            <div className="fields">
+              <label>
                 Amount (USDT)
                 <input
                   type="number"
                   min="0.00000001"
                   step="0.00000001"
+                  inputMode="decimal"
                   value={walletForm.amount}
-                  onChange={(e) =>
-                    setWalletForm({ ...walletForm, amount: e.target.value })
-                  }
+                  onChange={(e) => setWalletForm({ ...walletForm, amount: e.target.value })}
                   placeholder="Enter amount"
                 />
               </label>
 
-              <label className="full">
+              <label>
                 Reason (required)
                 <textarea
                   value={walletForm.reason}
-                  onChange={(e) =>
-                    setWalletForm({ ...walletForm, reason: e.target.value })
-                  }
+                  onChange={(e) => setWalletForm({ ...walletForm, reason: e.target.value })}
                   placeholder="Write adjustment reason"
                 />
               </label>
             </div>
 
             <div className="ao-note">
-              Only the available balance changes. Frozen balance is never
-              changed. If the available balance is not enough for a deduct,
-              the request is rejected.
+              Only the available balance changes. Frozen balance is never changed. If the
+              available balance is not enough for a deduct, the request is rejected.
             </div>
 
             <div className="ao-modal-footer">
-              <button
-                type="button"
-                className="ao-btn"
-                disabled={busy}
-                onClick={() => setModal(null)}
-              >
+              <button type="button" className="ao-btn" disabled={busy} onClick={() => setModal(null)}>
                 Close
               </button>
               <button
@@ -1357,86 +1366,118 @@ export default function AdminOptions({ me, go, logout }) {
                 disabled={busy}
                 onClick={submitWallet}
               >
-                {busy ? "Processing..." : modal.action === "add" ? "Confirm Add" : "Confirm Deduct"}
+                {busy ? "Processing..." : modal.action === "add" ? "Confirm add" : "Confirm deduct"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Open trade settlement modal */}
+      {/* Settlement modal (centered) */}
       {modal?.type === "settlement" && (
         <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
-          <div className="ao-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Override Trade Settlement</h3>
-
-            <div className="ao-note">
-              Trade <b>#{modal.trade.id}</b> · {modal.trade.email || "User"} ·{" "}
-              {modal.trade.sym} · Stake {n2(modal.trade.qty)} USDT
+          <div
+            className="ao-modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>Override trade settlement</h3>
+            <div className="ao-note" style={{ marginTop: 0 }}>
+              Trade <b>#{modal.trade.id}</b> · {modal.trade.email || "User"} · {modal.trade.sym} ·
+              Stake {n2(modal.trade.qty)} USDT
             </div>
 
-            <div className="ao-row" style={{ marginTop: 15 }}>
-              <label className="full">
+            <div className="fields">
+              <label>
                 Settlement P&amp;L (USDT)
                 <input
                   type="number"
                   step="0.00000001"
+                  inputMode="decimal"
                   value={pnlForm.pnl}
-                  onChange={(e) =>
-                    setPnlForm({ ...pnlForm, pnl: e.target.value })
-                  }
+                  onChange={(e) => setPnlForm({ ...pnlForm, pnl: e.target.value })}
                   placeholder="Positive = profit, negative = loss"
                 />
               </label>
 
-              <label className="full">
+              <label>
                 Close price (optional)
                 <input
                   type="number"
                   min="0.00000001"
                   step="any"
+                  inputMode="decimal"
                   value={pnlForm.close_price}
-                  onChange={(e) =>
-                    setPnlForm({ ...pnlForm, close_price: e.target.value })
-                  }
+                  onChange={(e) => setPnlForm({ ...pnlForm, close_price: e.target.value })}
                   placeholder="Optional close price"
                 />
               </label>
 
-              <label className="full">
+              <label>
                 Reason (required)
                 <textarea
                   value={pnlForm.reason}
-                  onChange={(e) =>
-                    setPnlForm({ ...pnlForm, reason: e.target.value })
-                  }
+                  onChange={(e) => setPnlForm({ ...pnlForm, reason: e.target.value })}
                   placeholder="Explain why this settlement is needed"
                 />
               </label>
             </div>
 
             <div className="ao-note">
-              This closes the open trade. The backend pays out stake + P&amp;L
-              to the available wallet. P&amp;L cannot be lower than the
-              negative stake.
+              This closes the open trade. The backend pays out stake + P&amp;L to the available
+              wallet. P&amp;L cannot be lower than the negative stake.
             </div>
 
             <div className="ao-modal-footer">
-              <button
-                type="button"
-                className="ao-btn"
-                disabled={busy}
-                onClick={() => setModal(null)}
-              >
+              <button type="button" className="ao-btn" disabled={busy} onClick={() => setModal(null)}>
                 Close
+              </button>
+              <button type="button" className="ao-btn pri" disabled={busy} onClick={submitSettlement}>
+                {busy ? "Processing..." : "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm / reason dialog (centered, above everything) */}
+      {dlg && (
+        <div className="ao-modal-bg top" onClick={() => closeDlg(null)}>
+          <div
+            className="ao-modal"
+            style={{ width: "min(440px,100%)" }}
+            role="alertdialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3>{dlg.title}</h3>
+            {dlg.message && <p className="msg">{dlg.message}</p>}
+
+            {dlg.input && (
+              <div className="fields">
+                <label>
+                  {dlg.input.label || "Reason"}
+                  <textarea
+                    autoFocus
+                    value={dlg.value}
+                    placeholder={dlg.input.placeholder || ""}
+                    onChange={(e) => setDlg({ ...dlg, value: e.target.value })}
+                  />
+                </label>
+              </div>
+            )}
+
+            <div className="ao-modal-footer">
+              <button type="button" className="ao-btn" onClick={() => closeDlg(null)}>
+                Cancel
               </button>
               <button
                 type="button"
-                className="ao-btn pri"
-                disabled={busy}
-                onClick={submitSettlement}
+                className={"ao-btn " + (dlg.tone || "pri")}
+                onClick={confirmDlg}
               >
-                {busy ? "Processing..." : "Confirm"}
+                {dlg.confirmLabel || "Confirm"}
               </button>
             </div>
           </div>
