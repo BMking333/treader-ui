@@ -16,6 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import { Login, Register } from "./pages/Register_Login";
 
 // Admin Pages (src/pages/admin/)
+// Sidebar (src/pages/admin/Admin_sidbar.jsx) is imported inside each admin page.
 import Admin_Login from "./pages/admin/Admin_Login";
 import Admin_Dashbord from "./pages/admin/Admin_Dashbord";
 import Admin_PaymentMethod from "./pages/admin/Admin_PaymentMethod";
@@ -29,6 +30,11 @@ import Admin_Userlist from "./pages/admin/Admin_Userlist";
    APP ROUTING
    Admin login:      example.com/V8/login
    Admin dashboard:  example.com/V8/dashboard
+
+   To add a new admin page:
+     1) add its path in ADMIN_PATH
+     2) add its component in ADMIN_VIEWS
+     3) add the same key in ADMIN_LINKS inside Admin_sidbar.jsx
 ========================================================= */
 
 const ADMIN_BASE = "/V8";
@@ -42,12 +48,23 @@ const AUTH_PATH = {
 
 const ADMIN_PATH = {
   admin: ADMIN_BASE + "/dashboard",
-  adminPaymentMethods: ADMIN_BASE + "/payment-methods",
+  adminUsers: ADMIN_BASE + "/users",
+  adminKyc: ADMIN_BASE + "/kyc",
   adminDeposits: ADMIN_BASE + "/deposits",
   adminWithdrawals: ADMIN_BASE + "/withdrawals",
+  adminPaymentMethods: ADMIN_BASE + "/payment-methods",
   adminOptions: ADMIN_BASE + "/options",
-  adminKyc: ADMIN_BASE + "/kyc",
-  adminUsers: ADMIN_BASE + "/users",
+};
+
+// view key -> page component (all receive me, go, logout)
+const ADMIN_VIEWS = {
+  admin: Admin_Dashbord,
+  adminUsers: Admin_Userlist,
+  adminKyc: Admin_Kyclist,
+  adminDeposits: Admin_Deposit,
+  adminWithdrawals: Admin_Withdrew,
+  adminPaymentMethods: Admin_PaymentMethod,
+  adminOptions: AdminOptions,
 };
 
 // current path, lowercased (so /V8/login and /v8/login both match)
@@ -56,40 +73,39 @@ const cleanPath = () =>
 
 const low = (s) => s.toLowerCase();
 
-const pathToView = (path) => {
-  if (path === "/login") return "login";
-  if (path === "/register") return "register";
-  if (path === "/forgot") return "forgot";
+// any path under /V8 (login page included)
+const isAdminArea = (path) =>
+  path === low(ADMIN_BASE) || path.startsWith(low(ADMIN_BASE) + "/");
 
-  if (path === low(AUTH_PATH.adminLogin)) return "adminLogin";
+const isAdminLoginPath = (path) => path === low(AUTH_PATH.adminLogin);
 
-  // /V8 on its own -> dashboard
-  if (path === low(ADMIN_BASE)) return "admin";
-  if (path === low(ADMIN_PATH.admin)) return "admin";
-  if (path === low(ADMIN_PATH.adminPaymentMethods)) return "adminPaymentMethods";
-  if (path === low(ADMIN_PATH.adminDeposits)) return "adminDeposits";
-  if (path === low(ADMIN_PATH.adminWithdrawals)) return "adminWithdrawals";
-  if (path === low(ADMIN_PATH.adminOptions)) return "adminOptions";
-  if (path === low(ADMIN_PATH.adminKyc)) return "adminKyc";
-  if (path === low(ADMIN_PATH.adminUsers)) return "adminUsers";
-
-  return "app";
-};
+// protected admin pages (login page excluded)
+const isAdminPath = (path) =>
+  isAdminArea(path) && !isAdminLoginPath(path);
 
 const isAuthPath = (path) =>
   path === "/login" ||
   path === "/register" ||
   path === "/forgot";
 
-const isAdminLoginPath = (path) => path === low(AUTH_PATH.adminLogin);
+const pathToView = (path) => {
+  if (path === "/login") return "login";
+  if (path === "/register") return "register";
+  if (path === "/forgot") return "forgot";
 
-// any path under /V8 (login page included)
-const isAdminArea = (path) =>
-  path === low(ADMIN_BASE) || path.startsWith(low(ADMIN_BASE) + "/");
+  if (isAdminLoginPath(path)) return "adminLogin";
 
-// protected admin pages (login page excluded)
-const isAdminPath = (path) =>
-  isAdminArea(path) && !isAdminLoginPath(path);
+  // exact admin pages
+  const adminKey = Object.keys(ADMIN_PATH).find(
+    (key) => path === low(ADMIN_PATH[key])
+  );
+  if (adminKey) return adminKey;
+
+  // /V8 on its own, or any unknown /V8/... path -> dashboard
+  if (isAdminArea(path)) return "admin";
+
+  return "app";
+};
 
 const pushUrl = (url) => {
   if (url !== window.location.pathname + window.location.search) {
@@ -108,7 +124,6 @@ const isAdmin = (user) => {
   const role = String(user?.role || "").toLowerCase();
   return role === "admin" && user?.is_active !== false;
 };
-
 
 const isEditable = (node) => {
   const el = node && node.nodeType === 3 ? node.parentElement : node;
@@ -134,7 +149,7 @@ export default function App() {
   const [flash, setFlash] = useState("");
 
   /* =====================================================
-  
+     TRACKING
   ===================================================== */
 
   useEffect(() => {
@@ -153,10 +168,12 @@ export default function App() {
 
   /* =====================================================
      NO SELECT / NO COPY MENU (long-press)
+     (not applied inside the admin area)
   ===================================================== */
 
   useEffect(() => {
     const block = (e) => {
+      if (isAdminArea(cleanPath())) return;
       if (isEditable(e.target)) return;
       e.preventDefault();
     };
@@ -231,6 +248,7 @@ export default function App() {
 
       setView(target);
       pushUrl(ADMIN_PATH[target]);
+      window.scrollTo(0, 0);
       return;
     }
 
@@ -248,7 +266,6 @@ export default function App() {
   ===================================================== */
 
   const logout = () => {
-    
     const fromAdmin = isAdminArea(cleanPath());
 
     trackEvent("logout", { admin: fromAdmin });
@@ -462,10 +479,13 @@ export default function App() {
      RENDER
   ===================================================== */
 
+  const AdminView = ADMIN_VIEWS[view];
+  const adminScreen = !!AdminView && isAdmin(me);
+
   return (
     <LangCtx.Provider value={{ lang, t }}>
       <div
-        className={"cx" + (dark ? " dark" : "")}
+        className={"cx" + (dark ? " dark" : "") + (adminScreen ? " adm" : "")}
         dir={RTL.includes(lang) ? "rtl" : "ltr"}
       >
         <style>{CSS}</style>
@@ -527,56 +547,10 @@ export default function App() {
           />
         )}
 
-        {view === "admin" && isAdmin(me) && (
-          <Admin_Dashbord
-            me={me}
-            go={go}
-            logout={logout}
-          />
-        )}
-
-        {view === "adminPaymentMethods" && isAdmin(me) && (
-          <Admin_PaymentMethod
-            me={me}
-            go={go}
-            logout={logout}
-          />
-        )}
-
-        {view === "adminDeposits" && isAdmin(me) && (
-          <Admin_Deposit
-            me={me}
-            go={go}
-            logout={logout}
-          />
-        )}
-
-        {view === "adminWithdrawals" && isAdmin(me) && (
-          <Admin_Withdrew
-            me={me}
-            go={go}
-            logout={logout}
-          />
-        )}
-
-        {view === "adminOptions" && isAdmin(me) && (
-          <AdminOptions
-            me={me}
-            go={go}
-            logout={logout}
-          />
-        )}
-
-        {view === "adminKyc" && isAdmin(me) && (
-          <Admin_Kyclist
-            me={me}
-            go={go}
-            logout={logout}
-          />
-        )}
-
-        {view === "adminUsers" && isAdmin(me) && (
-          <Admin_Userlist
+        {/* All admin pages (dashboard, users, kyc, deposits, ...) */}
+        {adminScreen && (
+          <AdminView
+            key={view}
             me={me}
             go={go}
             logout={logout}
@@ -595,8 +569,8 @@ const CSS = `
 .cx,.cx *{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
 .cx input,.cx textarea,.cx [contenteditable="true"],.cx .sel,.cx .sel *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .cx img,.cx svg{-webkit-user-drag:none;user-drag:none}
-.cx button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:start}
-.cx small{color:#8a8d99;font-size:13px;display:block}
+.cx:where(:not(.adm)) button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:start}
+.cx:where(:not(.adm)) small{color:#8a8d99;font-size:13px;display:block}
 .cx-pg{width:100%;min-width:0;max-width:520px;background:#fff;min-height:100vh;padding-bottom:90px;box-shadow:0 0 40px rgba(0,0,0,.08);overflow-x:hidden}
 .cx-bar{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;position:relative;z-index:40}
 .cx-logo{width:42px;height:42px;flex:none;padding:0;border-radius:13px;border:0!important;background:#fff!important;display:grid;place-items:center;text-align:center!important;box-shadow:0 4px 14px rgba(25,176,200,.28);transition:transform .15s}
@@ -915,12 +889,12 @@ const CSS = `
 .cx-prow .cx-rm{padding:8px 0;font-size:14px;color:#4a5062}
 .cx-prow .cx-rm input{width:18px;height:18px}
 .cx-plink{color:${BLUE}!important;font-size:14px;font-weight:600}
+.cx-pfoot .cx-plink{font-size:15px;margin-inline-start:4px}
 .cx-pbtn{display:block;width:100%;margin-top:16px;padding:16px 0;border-radius:12px;background:linear-gradient(135deg,#2a8fe0,#1f7acb)!important;color:#fff!important;font-size:17px;font-weight:600;text-align:center!important;box-shadow:0 6px 16px rgba(31,122,203,.35)}
 .cx-pbtn:active{transform:translateY(1px)}
 .cx-pdiv{display:flex;align-items:center;margin:20px 0 14px}
 .cx-pdiv span{flex:1;height:1px;background:#e5e8f0}
 .cx-pfoot{margin:0;text-align:center;font-size:15px;color:#6b7183}
-.cx-pfoot .cx-plink{font-size:15px;margin-inline-start:4px}
 .cx-pghost{display:block;width:100%;margin-top:14px;padding:13px 0;border:1.5px solid #dfe3ec!important;border-radius:12px;text-align:center!important;font-size:15px;color:#4a5062}
 .cx-pcs{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 32px);margin:22px 16px 0;padding:14px 0;color:${BLUE}!important;font-size:14px;text-align:center!important}
 .cx-str{display:flex;align-items:center;gap:10px;margin:-6px 0 14px}
@@ -998,4 +972,11 @@ const CSS = `
 
 .cx-pg:has(.cx-op){max-width:none;padding-bottom:0;box-shadow:none}
 .cx:has(.cx-op) .cx-nav{max-width:none}
+
+/* ===== Admin area: full-width layout, light background, normal text selection ===== */
+.cx.adm,.cx.dark.adm{display:block;background:#f4f6fa;color:#0f1b30}
+.cx.adm .ad-wrap,.cx.adm .as-content{width:100%}
+.cx.adm,.cx.adm *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+.cx.adm button,.cx.adm .as-side,.cx.adm .as-side *{-webkit-user-select:none;user-select:none}
+.cx.adm button{cursor:pointer}
 `;
