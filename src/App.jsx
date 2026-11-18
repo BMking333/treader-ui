@@ -27,10 +27,11 @@ import Admin_Userlist from "./pages/admin/Admin_Userlist";
 
 /* =========================================================
    APP ROUTING
-   Admin base path:  example.com/v2/admin-dashbord
+   Admin login:      example.com/V8/login
+   Admin dashboard:  example.com/V8/dashboard
 ========================================================= */
 
-const ADMIN_BASE = "/v2/admin-dashbord";
+const ADMIN_BASE = "/V8";
 
 const AUTH_PATH = {
   login: "/login",
@@ -40,7 +41,7 @@ const AUTH_PATH = {
 };
 
 const ADMIN_PATH = {
-  admin: ADMIN_BASE,
+  admin: ADMIN_BASE + "/dashboard",
   adminPaymentMethods: ADMIN_BASE + "/payment-methods",
   adminDeposits: ADMIN_BASE + "/deposits",
   adminWithdrawals: ADMIN_BASE + "/withdrawals",
@@ -49,23 +50,28 @@ const ADMIN_PATH = {
   adminUsers: ADMIN_BASE + "/users",
 };
 
+// current path, lowercased (so /V8/login and /v8/login both match)
 const cleanPath = () =>
-  window.location.pathname.replace(/\/+$/, "") || "/";
+  (window.location.pathname.replace(/\/+$/, "") || "/").toLowerCase();
+
+const low = (s) => s.toLowerCase();
 
 const pathToView = (path) => {
   if (path === "/login") return "login";
   if (path === "/register") return "register";
   if (path === "/forgot") return "forgot";
 
-  if (path === AUTH_PATH.adminLogin) return "adminLogin";
+  if (path === low(AUTH_PATH.adminLogin)) return "adminLogin";
 
-  if (path === ADMIN_PATH.admin) return "admin";
-  if (path === ADMIN_PATH.adminPaymentMethods) return "adminPaymentMethods";
-  if (path === ADMIN_PATH.adminDeposits) return "adminDeposits";
-  if (path === ADMIN_PATH.adminWithdrawals) return "adminWithdrawals";
-  if (path === ADMIN_PATH.adminOptions) return "adminOptions";
-  if (path === ADMIN_PATH.adminKyc) return "adminKyc";
-  if (path === ADMIN_PATH.adminUsers) return "adminUsers";
+  // /V8 on its own -> dashboard
+  if (path === low(ADMIN_BASE)) return "admin";
+  if (path === low(ADMIN_PATH.admin)) return "admin";
+  if (path === low(ADMIN_PATH.adminPaymentMethods)) return "adminPaymentMethods";
+  if (path === low(ADMIN_PATH.adminDeposits)) return "adminDeposits";
+  if (path === low(ADMIN_PATH.adminWithdrawals)) return "adminWithdrawals";
+  if (path === low(ADMIN_PATH.adminOptions)) return "adminOptions";
+  if (path === low(ADMIN_PATH.adminKyc)) return "adminKyc";
+  if (path === low(ADMIN_PATH.adminUsers)) return "adminUsers";
 
   return "app";
 };
@@ -75,11 +81,11 @@ const isAuthPath = (path) =>
   path === "/register" ||
   path === "/forgot";
 
-const isAdminLoginPath = (path) => path === AUTH_PATH.adminLogin;
+const isAdminLoginPath = (path) => path === low(AUTH_PATH.adminLogin);
 
-// any path under /v2/admin-dashbord (login page included)
+// any path under /V8 (login page included)
 const isAdminArea = (path) =>
-  path === ADMIN_BASE || path.startsWith(ADMIN_BASE + "/");
+  path === low(ADMIN_BASE) || path.startsWith(low(ADMIN_BASE) + "/");
 
 // protected admin pages (login page excluded)
 const isAdminPath = (path) =>
