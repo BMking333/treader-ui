@@ -16,7 +16,7 @@ import Dashboard from "./pages/Dashboard";
 import { Login, Register } from "./pages/Register_Login";
 
 // Admin Pages (src/pages/admin/)
-// Sidebar (src/pages/admin/Admin_sidbar.jsx) is imported inside each admin page.
+// Sidebar (src/pages/admin/Admin_sidbar.jsx) is rendered here, once, for every admin page.
 import Admin_Login from "./pages/admin/Admin_Login";
 import Admin_Dashbord from "./pages/admin/Admin_Dashbord";
 import Admin_PaymentMethod from "./pages/admin/Admin_PaymentMethod";
@@ -25,6 +25,7 @@ import Admin_Withdrew from "./pages/admin/Admin_Withdrew";
 import AdminOptions from "./pages/admin/AdminOptions";
 import Admin_Kyclist from "./pages/admin/Admin_kyclist";
 import Admin_Userlist from "./pages/admin/Admin_Userlist";
+import AdminSidebar from "./pages/admin/Admin_sidbar";
 
 /* =========================================================
    APP ROUTING
@@ -125,6 +126,14 @@ const isAdmin = (user) => {
   return role === "admin" && user?.is_active !== false;
 };
 
+// rows from an API response ({data:[..]}, {items:[..]}, [..] ...)
+const rowsOf = (data) => {
+  if (data?.data !== undefined) data = data.data;
+  else if (data?.result !== undefined) data = data.result;
+  if (Array.isArray(data)) return data;
+  return data?.items || data?.deposits || data?.requests || data?.results || [];
+};
+
 const isEditable = (node) => {
   const el = node && node.nodeType === 3 ? node.parentElement : node;
   return !!(el && el.closest && el.closest("input,textarea,[contenteditable='true'],.sel"));
@@ -147,6 +156,10 @@ export default function App() {
   );
 
   const [flash, setFlash] = useState("");
+
+  // admin sidebar (mobile drawer) + pending badges
+  const [sideOpen, setSideOpen] = useState(false);
+  const [badges, setBadges] = useState({});
 
   /* =====================================================
      TRACKING
@@ -476,11 +489,59 @@ export default function App() {
   }, [me]);
 
   /* =====================================================
-     RENDER
+     ADMIN SIDEBAR (shared layout for every admin page)
   ===================================================== */
 
   const AdminView = ADMIN_VIEWS[view];
   const adminScreen = !!AdminView && isAdmin(me);
+
+  const closeSide = () => setSideOpen(false);
+
+  // drawer is always closed when leaving the admin area
+  useEffect(() => {
+    if (!adminScreen) setSideOpen(false);
+  }, [adminScreen]);
+
+  // pending badges: refresh on every page change + every 60s
+  useEffect(() => {
+    if (!adminScreen) return undefined;
+
+    let alive = true;
+
+    const loadBadges = async () => {
+      const [dep, wc] = await Promise.allSettled([
+        api("/admin/deposits"),
+        api("/admin/withdraws/counts"),
+      ]);
+      if (!alive) return;
+
+      const next = {};
+
+      if (dep.status === "fulfilled") {
+        next.adminDeposits = rowsOf(dep.value).filter(
+          (x) => String(x?.status || "pending").toLowerCase() === "pending"
+        ).length;
+      }
+      if (wc.status === "fulfilled") {
+        const c = wc.value?.data ?? wc.value ?? {};
+        next.adminWithdrawals = Number(c.pending || 0);
+      }
+
+      setBadges((old) => ({ ...old, ...next }));
+    };
+
+    loadBadges();
+    const timer = setInterval(loadBadges, 60000);
+
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, [adminScreen, view]);
+
+  /* =====================================================
+     RENDER
+  ===================================================== */
 
   return (
     <LangCtx.Provider value={{ lang, t }}>
@@ -547,14 +608,45 @@ export default function App() {
           />
         )}
 
-        {/* All admin pages (dashboard, users, kyc, deposits, ...) */}
+        {/* All admin pages: one sidebar + one 3-dot button for everything */}
         {adminScreen && (
-          <AdminView
-            key={view}
-            me={me}
-            go={go}
-            logout={logout}
-          />
+          <>
+            <AdminSidebar
+              current={view}
+              open={sideOpen}
+              onClose={closeSide}
+              onNavigate={(key) => go(key)}
+              me={me}
+              logout={logout}
+              badges={badges}
+            />
+
+            <div className="as-content">
+              <AdminView
+                key={view}
+                me={me}
+                go={go}
+                logout={logout}
+              />
+            </div>
+
+            <button
+              type="button"
+              className={"adm-fab" + (sideOpen ? " open" : "")}
+              onClick={() => setSideOpen((v) => !v)}
+              aria-label={sideOpen ? "Close menu" : "Open menu"}
+              aria-expanded={sideOpen}
+            >
+              <svg className="dots" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <circle cx="12" cy="5" r="2.2" />
+                <circle cx="12" cy="12" r="2.2" />
+                <circle cx="12" cy="19" r="2.2" />
+              </svg>
+              <svg className="x" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            </button>
+          </>
         )}
       </div>
     </LangCtx.Provider>
@@ -974,9 +1066,21 @@ const CSS = `
 .cx:has(.cx-op) .cx-nav{max-width:none}
 
 /* ===== Admin area: full-width layout, light background, normal text selection ===== */
-.cx.adm,.cx.dark.adm{display:block;background:#f4f6fa;color:#0f1b30}
+.cx.adm,.cx.dark.adm{display:block;background:#f4f6fa;color:#0f1b30;overflow-x:clip}
 .cx.adm .ad-wrap,.cx.adm .as-content{width:100%}
 .cx.adm,.cx.adm *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .cx.adm button,.cx.adm .as-side,.cx.adm .as-side *{-webkit-user-select:none;user-select:none}
 .cx.adm button{cursor:pointer}
+
+/* ===== Admin: floating 3-dot menu button (mobile / tablet only) ===== */
+.adm-fab{display:none;position:fixed;right:16px;bottom:calc(18px + env(safe-area-inset-bottom,0px));z-index:70;width:56px;height:56px;padding:0;border:0;border-radius:50%;color:#fff;background:linear-gradient(135deg,#1fbad0,#2a7de1);box-shadow:0 12px 26px rgba(31,122,203,.45),0 2px 6px rgba(15,27,48,.2),inset 0 0 0 1px rgba(255,255,255,.25);place-items:center;transition:transform .2s ease,box-shadow .2s ease,background .2s ease}
+.adm-fab svg{grid-area:1/1;transition:transform .28s ease,opacity .2s ease}
+.adm-fab .x{opacity:0;transform:rotate(-90deg) scale(.5)}
+.adm-fab.open{background:linear-gradient(135deg,#2b3a55,#0f1b30);box-shadow:0 12px 26px rgba(15,27,48,.4),inset 0 0 0 1px rgba(255,255,255,.18)}
+.adm-fab.open .dots{opacity:0;transform:rotate(90deg) scale(.5)}
+.adm-fab.open .x{opacity:1;transform:none}
+.adm-fab:active{transform:scale(.92)}
+.adm-fab:focus-visible{outline:3px solid rgba(31,122,203,.45);outline-offset:3px}
+@media(max-width:960px){.adm-fab{display:grid}}
+@media(prefers-reduced-motion:reduce){.adm-fab,.adm-fab svg{transition:none}}
 `;
