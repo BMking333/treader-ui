@@ -139,6 +139,16 @@ const isEditable = (node) => {
   return !!(el && el.closest && el.closest("input,textarea,[contenteditable='true'],.sel"));
 };
 
+// opened from an email link: /?reset=TOKEN  or  /?verified=1|0
+const FROM_MAIL = (() => {
+  try {
+    const q = new URLSearchParams(window.location.search);
+    return q.has("reset") || q.has("verified");
+  } catch (_) {
+    return false;
+  }
+})();
+
 export default function App() {
   const [lang, setLangS] = useState(() => {
     const l = store.get("cx_lang", "en");
@@ -151,9 +161,10 @@ export default function App() {
 
   const [me, setMe] = useState(null);
 
-  const [view, setView] = useState(() =>
-    TOKEN ? "boot" : pathToView(cleanPath())
-  );
+  const [view, setView] = useState(() => {
+    if (FROM_MAIL) return "login";
+    return TOKEN ? "boot" : pathToView(cleanPath());
+  });
 
   const [flash, setFlash] = useState("");
 
@@ -396,6 +407,11 @@ export default function App() {
   ===================================================== */
 
   useEffect(() => {
+    if (FROM_MAIL) {
+      if (TOKEN) setToken("");
+      return;
+    }
+
     if (!TOKEN) {
       if (isAdminPath(cleanPath())) {
         replaceUrl(AUTH_PATH.adminLogin);
