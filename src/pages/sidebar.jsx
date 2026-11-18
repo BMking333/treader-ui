@@ -79,10 +79,39 @@ const Icon = ({ name, size = 20 }) => (
   </svg>
 );
 
+/* Blue verified badge (shown only when the email is verified) */
+const VerifiedBadge = ({ label }) => (
+  <svg
+    className="cx-vb"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    role="img"
+    aria-label={label}
+  >
+    <title>{label}</title>
+    <path
+      fill="#1d9bf0"
+      d="M12 1.8l2.4 1.7 2.9-.2 1.2 2.7 2.5 1.5-.5 2.9L21.6 12l-1.1 2.6.5 2.9-2.5 1.5-1.2 2.7-2.9-.2L12 22.2l-2.4-1.7-2.9.2-1.2-2.7L3 16.5l.5-2.9L2.4 12l1.1-2.6L3 6.5 5.5 5l1.2-2.7 2.9.2L12 1.8z"
+    />
+    <path
+      d="M7.9 12.2l2.7 2.7 5.6-5.8"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const CSS = `
 .cx-md .cx-mp{padding:20px 20px 16px;border-bottom:1px solid rgba(128,128,128,.18);margin-bottom:4px}
 .cx-md .cx-mp p{margin:0 0 4px;font-size:12.5px;line-height:1.45;opacity:.75;word-break:break-all}
 .cx-md .cx-mp p:first-child{font-size:14.5px;font-weight:600;opacity:1}
+.cx-md .cx-mp p.cx-mailrow{display:flex;align-items:center;gap:6px;word-break:normal}
+.cx-md .cx-mailtx{min-width:0;word-break:break-all}
+.cx-md .cx-vb{flex:none;display:block}
 .cx-md .cx-mp .cx-a1{font-size:13px;padding:10px 0;border-radius:10px;font-weight:600}
 .cx-md .cx-mr{display:flex;align-items:center;gap:12px;width:100%;padding:11px 18px;min-height:50px;
   font-size:13.5px;font-weight:500;background:none;border:0;border-bottom:1px solid rgba(128,128,128,.1);
@@ -110,12 +139,7 @@ const CSS = `
 .cx-md .cx-lo2:hover{background:rgba(240,97,109,.16)}
 .cx-md .cx-lo2:active{transform:scale(.98);background:rgba(240,97,109,.22)}
 
-/* Email verify badge + resend */
-.cx-md .cx-em{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-.cx-md .cx-bdg{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;
-  font-size:11.5px;font-weight:600;line-height:1.4;white-space:nowrap}
-.cx-md .cx-bdg.ok{background:rgba(47,211,155,.14);color:#2fd39b}
-.cx-md .cx-bdg.bad{background:rgba(240,97,109,.12);color:#f0616d}
+/* Resend verification email */
 .cx-md .cx-rv{display:block;width:100%;margin-top:10px;padding:10px 0;font-size:13px;font-weight:600;
   text-align:center;color:#2a8fe0;background:rgba(42,143,224,.10);border:1px solid rgba(42,143,224,.35);
   border-radius:10px;cursor:pointer;transition:background .15s,transform .15s}
@@ -135,15 +159,17 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
   const [left, setLeft] = useState(0);
   const [sending, setSending] = useState(false);
 
+  // resend cooldown countdown
   useEffect(() => {
     if (left <= 0) return undefined;
     const id = setTimeout(() => setLeft((n) => n - 1), 1000);
     return () => clearTimeout(id);
   }, [left]);
 
-  const showMailState =
-    !!me && /@/.test(String(me.email || "")) && typeof me.email_verified === "boolean";
-  const mailVerified = showMailState && me.email_verified === true;
+  // blue badge only when the email is verified
+  const mailVerified = !!me && me.email_verified === true;
+  // resend button only when the email is known to be NOT verified
+  const canResend = !!me && /@/.test(String(me.email || "")) && me.email_verified === false;
 
   const resendVerify = async () => {
     if (!me || sending || left > 0) return;
@@ -214,34 +240,27 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
       <aside className="cx-md" onClick={(e) => e.stopPropagation()}>
         {me ? (
           <div className="cx-mp">
-            <p>{me.email}</p>
+            <p className="cx-mailrow">
+              <span className="cx-mailtx">{me.email}</span>
+              {mailVerified && (
+                <VerifiedBadge label={tx("emVerified", "Email verified")} />
+              )}
+            </p>
             <p>UID: {me.uid}</p>
             <p>VIP: {me.vip ?? 0}</p>
             <p>{t("rep")}: {me.reputation ?? 0}</p>
 
-            {showMailState && (
-              <>
-                <div className="cx-em">
-                  <span className={"cx-bdg " + (mailVerified ? "ok" : "bad")}>
-                    {mailVerified
-                      ? "✓ " + tx("emVerified", "Email verified")
-                      : "! " + tx("emNotVerified", "Email not verified")}
-                  </span>
-                </div>
-
-                {!mailVerified && (
-                  <button
-                    type="button"
-                    className="cx-rv"
-                    onClick={resendVerify}
-                    disabled={sending || left > 0}
-                  >
-                    {left > 0
-                      ? tx("resendIn", "Resend in") + " " + left + "s"
-                      : tx("resendVerify", "Resend verification email")}
-                  </button>
-                )}
-              </>
+            {canResend && (
+              <button
+                type="button"
+                className="cx-rv"
+                onClick={resendVerify}
+                disabled={sending || left > 0}
+              >
+                {left > 0
+                  ? tx("resendIn", "Resend in") + " " + left + "s"
+                  : tx("resendVerify", "Resend verification email")}
+              </button>
             )}
           </div>
         ) : (
@@ -298,4 +317,4 @@ export default function SideMenu({ open, onClose, me, logout, dark, setDark, go,
       </aside>
     </div>
   );
-        }
+}
