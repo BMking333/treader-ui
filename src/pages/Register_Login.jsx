@@ -55,6 +55,7 @@ const FB = {
   tooMany: "Too many attempts. Try again in 15 minutes.",
   resendOk: "Email sent",
   resetOk: "Password changed. Please log in.",
+  resetDone: "Password changed successfully",
   forgotTitle: "Forgot password?",
   forgotSub: "Enter your email and we will send you a reset link.",
   sendLink: "Send reset link",
@@ -103,21 +104,6 @@ function useTheme() {
   }, []);
 
   return [theme, toggle];
-}
-
-/* ================= RESEND COOLDOWN ================= */
-
-function useCooldown(sec = 60) {
-  const [left, setLeft] = useState(0);
-
-  useEffect(() => {
-    if (left <= 0) return;
-    const id = setTimeout(() => setLeft((n) => n - 1), 1000);
-    return () => clearTimeout(id);
-  }, [left]);
-
-  const start = useCallback(() => setLeft(sec), [sec]);
-  return [left, start];
 }
 
 /* ================= URL PARAMS (?verified=1 / ?reset=TOKEN) ================= */
@@ -594,6 +580,18 @@ const CSS = `
   -webkit-text-fill-color: var(--placeholder);
   opacity: 1;
 }
+.ax .ax-in::-ms-reveal,
+.ax .ax-in::-ms-clear {
+  display: none !important;
+  width: 0;
+  height: 0;
+}
+.ax .ax-in::-webkit-credentials-auto-fill-button,
+.ax .ax-in::-webkit-contacts-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
 .ax .ax-in:-webkit-autofill,
 .ax .ax-in:-webkit-autofill:hover,
 .ax .ax-in:-webkit-autofill:focus {
@@ -754,26 +752,6 @@ const CSS = `
   color: var(--accent);
   outline: none;
 }
-
-/* ---------- "check your email" panel ---------- */
-.ax-sent { text-align: center; }
-.ax-sent-ic {
-  width: 72px; height: 72px;
-  margin: 2px auto 16px;
-  display: flex; align-items: center; justify-content: center;
-  border-radius: 50%;
-  background: var(--accent-bg);
-  color: var(--accent);
-}
-.ax-sent p { margin: 0 0 6px; font-size: 14px; color: var(--muted); line-height: 1.5; }
-.ax-sent b {
-  display: block;
-  margin: 4px 0 12px;
-  font-size: 15px;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-.ax-sent small { display: block; margin: 0 0 20px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 
 /* ---------- strength ---------- */
 .ax-str {
@@ -1015,40 +993,7 @@ function Strength({ pw, tx }) {
   );
 }
 
-/* "Check your email" card: used after register, after forgot, and when login says emailNotVerified */
-function MailSent({ kind, email, tx, onResend, onBack, left, busy }) {
-  const isReset = kind === "reset";
-  return (
-    <div className="ax-card ax-sent">
-      <div className="ax-sent-ic">
-        <Icon n="mail" s={34} w={1.8} />
-      </div>
-      <p>{isReset ? tx("sentReset") : tx("sentVerify")}</p>
-      <b>{email}</b>
-      <small>{isReset ? tx("sentHintReset") : tx("sentHint")}</small>
-
-      <button
-        type="button"
-        className="ax-btn"
-        onClick={onResend}
-        disabled={busy || left > 0}
-      >
-        {left > 0 ? `${tx("resendIn")} ${left}s` : tx("resend")}
-      </button>
-
-      <button
-        type="button"
-        className="ax-btn2"
-        onClick={onBack}
-        style={{ marginTop: 12 }}
-      >
-        {tx("backLogin")}
-      </button>
-    </div>
-  );
-}
-
-/* ================= LOGIN (+ forgot / reset / mail-sent views) ================= */
+/* ================= LOGIN (+ forgot / reset views) ================= */
 
 export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const tx = useTx();
@@ -1056,9 +1001,8 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
   const rem0 = store.get("cx_rem", "");
 
-  // view: login | forgot | sent | reset
+  // view: login | forgot | reset
   const [view, setView] = useState("login");
-  const [sentKind, setSentKind] = useState("verify"); // verify | reset
   const [resetToken, setResetToken] = useState("");
 
   const [email, setEmail] = useState(rem0);
@@ -1070,7 +1014,6 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const [tried, setTried] = useState(false);
   const [cs, setCs] = useState(false);
   const [msg, setMsg] = useState(flash ? { k: flash, kind: "info" } : NONE);
-  const [left, startCooldown] = useCooldown(60);
 
   const mail = email.trim().toLowerCase();
   const closeToast = useCallback(() => setMsg(NONE), []);
@@ -1122,15 +1065,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
       await onLogin(r);
     } catch (e) {
-      const k = (e && e.message) || "err";
-      if (k === "emailNotVerified") {
-        // password was right but mail not confirmed -> show the "check email" card
-        setMsg(NONE);
-        setSentKind("verify");
-        setView("sent");
-      } else {
-        setMsg({ k, kind: "bad" });
-      }
+      setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
 
     setBusy(false);
@@ -1147,31 +1082,12 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
     try {
       await api("/auth/forgot", { method: "POST", body: { email: mail } });
-      setMsg(NONE);
-      setSentKind("reset");
-      setView("sent");
-      startCooldown();
+      toLogin();
+      setMsg({ k: "checkMailReset", kind: "ok" });
     } catch (e) {
       setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
 
-    setBusy(false);
-  };
-
-  /* ----- resend (confirm mail or reset mail) ----- */
-  const resend = async () => {
-    if (busy || left > 0) return;
-    setBusy(true);
-    try {
-      await api(
-        sentKind === "reset" ? "/auth/forgot" : "/auth/resend-confirm",
-        { method: "POST", body: { email: mail } }
-      );
-      setMsg({ k: "resendOk", kind: "ok" });
-      startCooldown();
-    } catch (e) {
-      setMsg({ k: (e && e.message) || "err", kind: "bad" });
-    }
     setBusy(false);
   };
 
@@ -1185,13 +1101,17 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
     setMsg({ k: "wait2", kind: "load" });
 
     try {
-      await api("/auth/reset", {
+      const r = await api("/auth/reset", {
         method: "POST",
         body: { token: resetToken, password: pw, password2: pw2 },
       });
       setResetToken("");
-      toLogin();
-      setMsg({ k: "resetOk", kind: "ok" });
+
+      setMsg({ k: "resetDone", kind: "ok" });
+      await sleep(900);
+      setMsg(NONE);
+
+      await onLogin(r);
     } catch (e) {
       setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
@@ -1210,8 +1130,6 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const head =
     view === "forgot"
       ? ["forgotTitle", "forgotSub"]
-      : view === "sent"
-      ? ["sentTitle", ""]
       : view === "reset"
       ? ["resetTitle", "resetSub"]
       : ["loginTitle", "loginSub"];
@@ -1354,19 +1272,6 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
           </>
         )}
 
-        {/* ===== MAIL SENT ===== */}
-        {view === "sent" && (
-          <MailSent
-            kind={sentKind}
-            email={mail}
-            tx={tx}
-            onResend={resend}
-            onBack={toLogin}
-            left={left}
-            busy={busy}
-          />
-        )}
-
         {/* ===== RESET (from mail link) ===== */}
         {view === "reset" && (
           <>
@@ -1444,8 +1349,6 @@ export function Register({ onLogin, go, lang, setLang }) {
   const [msg, setMsg] = useState(NONE);
   const [tried, setTried] = useState(false);
   const [cs, setCs] = useState(false);
-  const [sent, setSent] = useState(false); // true after successful register
-  const [left, startCooldown] = useCooldown(60);
 
   const mail = email.trim().toLowerCase();
   const closeToast = useCallback(() => setMsg(NONE), []);
@@ -1463,35 +1366,20 @@ export function Register({ onLogin, go, lang, setLang }) {
     setMsg({ k: "wait2", kind: "load" });
 
     try {
-      // No token comes back any more: user must confirm the mail first
-      await api("/auth/register", {
+      const r = await api("/auth/register", {
         method: "POST",
         body: { email: mail, password: pw, password2: pw2 },
       });
 
+      setMsg({ k: "regOk", kind: "ok" });
+      await sleep(900);
       setMsg(NONE);
-      setSent(true);
-      startCooldown();
+
+      await onLogin(r);
     } catch (e) {
       setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
 
-    setBusy(false);
-  };
-
-  const resend = async () => {
-    if (busy || left > 0) return;
-    setBusy(true);
-    try {
-      await api("/auth/resend-confirm", {
-        method: "POST",
-        body: { email: mail },
-      });
-      setMsg({ k: "resendOk", kind: "ok" });
-      startCooldown();
-    } catch (e) {
-      setMsg({ k: (e && e.message) || "err", kind: "bad" });
-    }
     setBusy(false);
   };
 
@@ -1507,7 +1395,7 @@ export function Register({ onLogin, go, lang, setLang }) {
 
       <div className="ax-box">
         <TopBar
-          onBack={() => (sent ? setSent(false) : go("app"))}
+          onBack={() => go("app")}
           lang={lang}
           setLang={setLang}
           theme={theme}
@@ -1515,23 +1403,7 @@ export function Register({ onLogin, go, lang, setLang }) {
         />
         <Logo />
 
-        {sent ? (
-          <>
-            <div className="ax-head">
-              <h1>{tx("sentTitle")}</h1>
-            </div>
-            <MailSent
-              kind="verify"
-              email={mail}
-              tx={tx}
-              onResend={resend}
-              onBack={() => go("login")}
-              left={left}
-              busy={busy}
-            />
-          </>
-        ) : (
-          <>
+        <>
             <div className="ax-head">
               <h1>{tx("createAcc")}</h1>
               <p>{tx("createSub")}</p>
@@ -1607,8 +1479,7 @@ export function Register({ onLogin, go, lang, setLang }) {
               <Icon n="chat" s={18} />
               {tx("csHelp")}
             </button>
-          </>
-        )}
+        </>
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
         {cs && (
