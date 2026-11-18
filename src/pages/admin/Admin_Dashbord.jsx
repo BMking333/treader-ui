@@ -7,12 +7,11 @@ import {
   Ic,
   ICON,
 } from "../Home";
-import AdminSidebar, { SidebarMenuButton } from "./Admin_sidbar";
 
 /* =========================================================
    src/pages/admin/Admin_Dashbord.jsx
    Admin Dashboard  (light theme, charts)
-   Sidebar lives in: src/pages/admin/Admin_sidbar.jsx
+   Sidebar + mobile 3-dot button are rendered by App.jsx (all admin pages)
    APIs:
      GET /admin/deposits
      GET /admin/withdraws/counts
@@ -52,7 +51,7 @@ const CSS = `
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 .ad-wrap button { font-family: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
 .ad-wrap button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
@@ -698,7 +697,6 @@ export default function Admin_Dashbord({ me, go, logout }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [sideOpen, setSideOpen] = useState(false);
 
   const adminName =
     me?.full_name || me?.name || me?.username || me?.email || "Administrator";
@@ -826,13 +824,6 @@ export default function Admin_Dashbord({ me, go, logout }) {
     if (go) go(key);
   };
 
-  const closeSide = useCallback(() => setSideOpen(false), []);
-
-  const sideBadges = {
-    adminDeposits: loading ? 0 : dep.pending,
-    adminWithdrawals: loading ? 0 : wdCounts.pending,
-  };
-
   const val = (n) => (loading ? <i className="ad-sk" /> : n);
 
   const cards = [
@@ -914,23 +905,11 @@ export default function Admin_Dashbord({ me, go, logout }) {
     <div className="ad-wrap">
       <style>{CSS}</style>
 
-      {/* Sidebar (separate file) */}
-      <AdminSidebar
-        current={CURRENT_PAGE}
-        open={sideOpen}
-        onClose={closeSide}
-        onNavigate={open}
-        me={me}
-        logout={logout}
-        badges={sideBadges}
-      />
-
-      <div className="as-content">
+      <div className="ad-body">
         {/* Sticky top bar */}
         <header className="ad-head">
           <div className="ad-head-in">
             <div className="ad-head-l">
-              <SidebarMenuButton open={sideOpen} onToggle={() => setSideOpen((v) => !v)} />
               <div>
                 <h3>Dashboard</h3>
                 <small>Management overview</small>
