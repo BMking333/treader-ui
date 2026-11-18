@@ -11,7 +11,7 @@ const n2 = (v) =>
     maximumFractionDigits: 2,
   });
 
-// Up to 8 decimals (matches backend Q8 precision)
+// Up to 8 decimals (matches backend precision)
 const n8 = (v) =>
   Number(v || 0).toLocaleString("en-US", {
     minimumFractionDigits: 2,
@@ -38,13 +38,12 @@ const ruleOf = (x) => {
 
 const sign = (v) => (v > 0 ? "up" : v < 0 ? "dn" : "");
 
-// Signed decimal, max 8 places (same as backend)
+// Signed decimal, max 8 places
 const DEC8 = /^-?\d+(\.\d{1,8})?$/;
 
 // Backend error codes -> readable messages
 const ERR_MAP = {
-  insufficientBalance:
-    "User's available balance is not enough. Nothing was changed.",
+  insufficientBalance: "User's available balance is not enough. Nothing was changed.",
   notClosed: "Only CLOSED trades can be adjusted.",
   notOpen: "Only OPEN trades can be canceled or settled.",
   notFound: "Record not found.",
@@ -55,16 +54,6 @@ const ERR_MAP = {
   frozenMismatch: "Frozen balance mismatch. Nothing was changed.",
   forbidden: "Admin access required.",
 };
-
-const ADMIN_LINKS = [
-  { key: "admin", label: "Dashboard" },
-  { key: "adminDeposits", label: "Deposits" },
-  { key: "adminWithdrawals", label: "Withdrawals" },
-  { key: "adminPaymentMethods", label: "Payment Methods" },
-  { key: "adminOptions", label: "Options" },
-];
-
-const CURRENT_PAGE = "adminOptions";
 
 const EMPTY_FORM = {
   yield: "",
@@ -85,27 +74,23 @@ const formFrom = (c) => ({
 });
 
 const CSS = `
-.ao{--bg:#f2f4f8;--card:#fff;--line:#e3e7ee;--ink:#17202e;--mute:#6b7689;--faint:#98a2b3;--pri:#1a6fd1;--pri-d:#1459a8;--grn:#0f9d6b;--red:#d6414f;--amber:#c9820a;
+.ao{--bg:#f1f4f9;--card:#fff;--line:#e2e7ef;--ink:#162033;--mute:#677489;--faint:#98a2b3;--pri:#1a6fd1;--pri-d:#1459a8;--grn:#0f9d6b;--red:#d6414f;
   font-family:Inter,"Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:var(--ink);background:var(--bg);min-height:100vh;min-height:100dvh;font-size:14px;line-height:1.45;-webkit-text-size-adjust:100%}
 .ao *{box-sizing:border-box}
 .ao button{font:inherit;cursor:pointer}
 .ao button:focus-visible,.ao input:focus-visible,.ao select:focus-visible,.ao textarea:focus-visible{outline:2px solid var(--pri);outline-offset:1px}
 .ao-wrap{max-width:1320px;margin:0 auto;padding:0 16px 40px}
 
-/* Top bar */
+/* Top bar (no buttons) */
 .ao-bar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line)}
-.ao-bar-in{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.ao-bar-in{max-width:1320px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .ao-brand{display:flex;align-items:center;gap:10px;min-width:0}
-.ao-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#1a6fd1,#18b6c4);display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;flex:none}
+.ao-logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#1a6fd1,#18b6c4);display:grid;place-items:center;color:#fff;font-weight:800;font-size:19px;flex:none}
 .ao-brand b{display:block;font-size:15px;line-height:1.2}
 .ao-brand small{color:var(--faint);font-size:11px}
-.ao-bar-r{display:flex;align-items:center;gap:8px;min-width:0}
-.ao-admin{font-size:12px;color:var(--mute);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ao-nav{display:flex;gap:6px;padding:8px 16px;max-width:1320px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
-.ao-nav::-webkit-scrollbar{display:none}
-.ao-nav button{flex:0 0 auto;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--mute);font-weight:600;font-size:13px;white-space:nowrap}
-.ao-nav button:hover{background:#eef3fb;color:var(--pri)}
-.ao-nav button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.ao-admin{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--mute);min-width:0}
+.ao-admin span{max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ao-admin i{width:8px;height:8px;border-radius:50%;background:var(--grn);flex:none;box-shadow:0 0 0 3px #0f9d6b26}
 
 /* Buttons */
 .ao-btn{height:36px;padding:0 14px;border-radius:9px;border:1px solid #cfd5df;background:#fff;color:var(--ink);font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:6px;white-space:nowrap;transition:background .15s,border-color .15s}
@@ -113,13 +98,12 @@ const CSS = `
 .ao-btn.pri{background:var(--pri);border-color:var(--pri);color:#fff}.ao-btn.pri:hover:not(:disabled){background:var(--pri-d)}
 .ao-btn.red{background:var(--red);border-color:var(--red);color:#fff}.ao-btn.red:hover:not(:disabled){background:#bb3441}
 .ao-btn.grn{background:var(--grn);border-color:var(--grn);color:#fff}.ao-btn.grn:hover:not(:disabled){background:#0b8459}
-.ao-btn.ghost-red{color:var(--red);border-color:#ecbcc1}
 .ao-btn.sm{height:30px;padding:0 11px;font-size:12px;border-radius:8px}
 .ao-btn.block{width:100%}
 .ao-btn:disabled{opacity:.5;cursor:not-allowed}
 
-/* Header */
-.ao-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:18px 0 14px}
+/* Page header */
+.ao-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:20px 0 14px}
 .ao-h h1{margin:0;font-size:22px;letter-spacing:-.01em}
 .ao-h-r{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .ao-sw{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 14px;border-radius:12px;background:#fff;border:1px solid var(--line)}
@@ -151,7 +135,7 @@ button.ao-chip:hover:not(:disabled){filter:brightness(.97)}
 .ao-note{margin-top:12px;font-size:12px;color:var(--mute);line-height:1.55}
 
 /* Tabs + filters */
-.ao-tabs{display:inline-flex;gap:4px;padding:4px;background:#e7ebf2;border-radius:11px;margin-bottom:12px;max-width:100%;overflow-x:auto}
+.ao-tabs{display:inline-flex;gap:4px;padding:4px;background:#e5eaf2;border-radius:11px;margin-bottom:12px;max-width:100%;overflow-x:auto}
 .ao-tabs button{height:34px;padding:0 18px;border-radius:8px;border:0;background:transparent;color:var(--mute);font-weight:600;white-space:nowrap}
 .ao-tabs button.on{background:#fff;color:var(--pri);box-shadow:0 1px 3px #0001}
 .ao-filters{display:grid;grid-template-columns:1fr;gap:12px}
@@ -170,23 +154,20 @@ button.ao-chip:hover:not(:disabled){filter:brightness(.97)}
 .ao-tag{padding:2px 9px;border-radius:5px;color:#fff;font-size:11px;font-weight:700}
 .ao-st{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600;text-transform:capitalize}
 .ao-st.open{background:#e4effd;color:#1459a8}
-.ao-st.closed{background:#e6f7ef;color:#0b7c55}
-.ao-st.canceled{background:#f1f2f5;color:#6b7689}
+.ao-st.closed,.ao-st.active{background:#e6f7ef;color:#0b7c55}
+.ao-st.canceled{background:#f1f2f5;color:#677489}
 .ao-st.blocked{background:#fdecee;color:#bb3441}
-.ao-st.active{background:#e6f7ef;color:#0b7c55}
 .ao-item-b{padding:12px 14px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px 14px}
 .ao-kv{min-width:0}
 .ao-kv.full{grid-column:1/-1}
 .ao-kv small{display:block;color:var(--faint);font-size:11px;margin-bottom:1px}
-.ao-kv span,.ao-kv b{font-size:13px;word-break:break-word}
-.ao-kv b{font-weight:600}
+.ao-kv b{font-size:13px;font-weight:600;word-break:break-word}
 .ao .up{color:var(--grn)}.ao .dn{color:var(--red)}
 .ao-adj{margin:0 14px 12px;padding:10px;border:1px dashed #cdd5e1;border-radius:10px;background:#fafbfd;display:flex;flex-direction:column;gap:8px}
 .ao-adj>small{color:var(--mute);font-weight:600}
 .ao-adj .pv{font-size:12px;color:var(--mute)}
 .ao-adj .pv.bad{color:var(--red)}
 .ao-item-f{display:flex;gap:8px;flex-wrap:wrap;padding:12px 14px;border-top:1px solid #eef1f5;margin-top:auto}
-.ao-item-f:empty{display:none}
 .ao-item-f .ao-btn{flex:1 1 auto}
 .ao-empty{text-align:center;color:var(--faint);padding:40px 16px;background:#fff;border:1px dashed #cfd5df;border-radius:14px;margin-bottom:14px}
 .ao-pill{font-size:11px;border-radius:999px;padding:3px 9px;background:#edf1f7;color:#455468;font-weight:600}
@@ -202,7 +183,7 @@ button.ao-chip:hover:not(:disabled){filter:brightness(.97)}
 .ao-toast button{border:0;background:transparent;color:var(--faint);font-size:18px;line-height:1;padding:0 2px}
 @keyframes aoIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
 
-/* Modals (always centered on the device screen) */
+/* Modals (always centered on screen) */
 .ao-modal-bg{position:fixed;inset:0;background:#0a142588;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto;animation:aoFade .15s}
 .ao-modal-bg.top{z-index:10010}
 .ao-modal{width:min(520px,100%);max-height:calc(100dvh - 32px);overflow-y:auto;background:#fff;border-radius:16px;padding:20px;box-shadow:0 24px 70px #0b1a3a40;animation:aoPop .2s ease-out;margin:auto}
@@ -210,19 +191,19 @@ button.ao-chip:hover:not(:disabled){filter:brightness(.97)}
 .ao-modal .msg{white-space:pre-line;color:var(--mute);font-size:14px;line-height:1.6;margin:8px 0 0}
 .ao-modal .fields{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
 .ao-modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
-@media(max-width:480px){.ao-modal-footer{flex-direction:column-reverse}.ao-modal-footer .ao-btn{width:100%;height:42px}}
 @keyframes aoFade{from{opacity:0}to{opacity:1}}
 @keyframes aoPop{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:none}}
 
 @media(max-width:480px){
   .ao-wrap{padding:0 12px 32px}
-  .ao-bar-in{padding:8px 12px}
-  .ao-nav{padding:8px 12px}
-  .ao-admin{display:none}
+  .ao-bar-in{padding:10px 12px}
+  .ao-admin span{max-width:120px}
   .ao-h h1{font-size:19px}
   .ao-sw{width:100%;justify-content:space-between}
   .ao-h-r{width:100%}
   .ao-form{grid-template-columns:1fr}
+  .ao-modal-footer{flex-direction:column-reverse}
+  .ao-modal-footer .ao-btn{width:100%;height:42px}
 }
 @media(prefers-reduced-motion:reduce){.ao *{animation:none!important;transition:none!important}}
 `;
@@ -249,7 +230,7 @@ const Stat = ({ label, children, cls }) => (
    Component
    ========================================================= */
 
-export default function AdminOptions({ me, go, logout }) {
+export default function AdminOptions({ me }) {
   const [sum, setSum] = useState(null);
   const [cfg, setCfg] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -269,7 +250,6 @@ export default function AdminOptions({ me, go, logout }) {
   // Per-trade closed P&L adjustment inputs: { [tradeId]: { adj, reason } }
   const [rowAdj, setRowAdj] = useState({});
 
-  // Toast + confirm dialog
   const [toasts, setToasts] = useState([]);
   const [dlg, setDlg] = useState(null);
   const toastId = useRef(0);
@@ -282,10 +262,6 @@ export default function AdminOptions({ me, go, logout }) {
 
   const adminLabel =
     me?.full_name || me?.name || me?.username || me?.email || "Administrator";
-
-  const open = (key) => {
-    if (key !== CURRENT_PAGE && go) go(key);
-  };
 
   /* -------------------------
      Toasts
@@ -309,7 +285,7 @@ export default function AdminOptions({ me, go, logout }) {
   const bad = (m) => toast("error", m);
 
   /* -------------------------
-     Confirm / reason dialog (replaces window.confirm / prompt / alert)
+     Confirm / reason dialog
      ask({ title, message, confirmLabel, tone, input: { label, placeholder, required } })
      resolves to { value } on confirm, or null on cancel
      ------------------------- */
@@ -579,7 +555,7 @@ export default function AdminOptions({ me, go, logout }) {
   };
 
   /* -------------------------
-     Wallet Add / Deduct
+     Wallet add / deduct
      ------------------------- */
 
   const openWalletModal = (u, action) => {
@@ -600,9 +576,8 @@ export default function AdminOptions({ me, go, logout }) {
       return;
     }
 
-    const action = modal.action;
     const userId = modal.user.user_id;
-    const isAdd = action === "add";
+    const isAdd = modal.action === "add";
 
     const r = await ask({
       title: isAdd ? "Confirm add" : "Confirm deduct",
@@ -613,15 +588,17 @@ export default function AdminOptions({ me, go, logout }) {
     if (!r) return;
 
     run(async () => {
-      const path = `/admin/options/users/${userId}/wallet/${isAdd ? "add" : "deduct"}`;
-      const res = await api(path, {
-        method: "POST",
-        body: {
-          amount: String(walletForm.amount),
-          coin: "USDT",
-          reason: walletForm.reason.trim(),
-        },
-      });
+      const res = await api(
+        `/admin/options/users/${userId}/wallet/${isAdd ? "add" : "deduct"}`,
+        {
+          method: "POST",
+          body: {
+            amount: String(walletForm.amount),
+            coin: "USDT",
+            reason: walletForm.reason.trim(),
+          },
+        }
+      );
 
       setModal(null);
       ok(
@@ -785,7 +762,7 @@ export default function AdminOptions({ me, go, logout }) {
         ))}
       </div>
 
-      {/* Top bar */}
+      {/* Top bar — brand and admin name only, no buttons */}
       <header className="ao-bar">
         <div className="ao-bar-in">
           <div className="ao-brand">
@@ -796,37 +773,15 @@ export default function AdminOptions({ me, go, logout }) {
             </div>
           </div>
 
-          <div className="ao-bar-r">
-            <button type="button" className="ao-btn sm" onClick={() => open("admin")}>
-              ← Back
-            </button>
-            <span className="ao-admin">{adminLabel}</span>
-            <button
-              type="button"
-              className="ao-btn sm ghost-red"
-              onClick={() => logout && logout()}
-            >
-              Logout
-            </button>
+          <div className="ao-admin">
+            <i aria-hidden="true" />
+            <span>{adminLabel}</span>
           </div>
         </div>
-
-        <nav className="ao-nav">
-          {ADMIN_LINKS.map((l) => (
-            <button
-              key={l.key}
-              type="button"
-              className={l.key === CURRENT_PAGE ? "on" : ""}
-              onClick={() => open(l.key)}
-            >
-              {l.label}
-            </button>
-          ))}
-        </nav>
       </header>
 
       <main className="ao-wrap">
-        {/* Header */}
+        {/* Page header */}
         <div className="ao-h">
           <h1>Options trading</h1>
 
@@ -1068,9 +1023,7 @@ export default function AdminOptions({ me, go, logout }) {
           </div>
         )}
 
-        {/* =====================================================
-            Trades — one card per trade
-            ===================================================== */}
+        {/* Trades */}
         {tab === "pos" &&
           (rows.length === 0 ? (
             <div className="ao-empty">No trades found.</div>
@@ -1097,7 +1050,8 @@ export default function AdminOptions({ me, go, logout }) {
 
                     <div className="ao-item-b">
                       <Kv label="User" full>
-                        {x.email} <span style={{ color: "#98a2b3", fontWeight: 400 }}>· UID {x.uid}</span>
+                        {x.email}{" "}
+                        <span style={{ color: "#98a2b3", fontWeight: 400 }}>· UID {x.uid}</span>
                       </Kv>
                       <Kv label="Stake (USDT)">{n2(x.qty)}</Kv>
                       <Kv label="Rule">{ruleOf(x)}</Kv>
@@ -1178,9 +1132,7 @@ export default function AdminOptions({ me, go, logout }) {
             </div>
           ))}
 
-        {/* =====================================================
-            Users — one card per user
-            ===================================================== */}
+        {/* Users */}
         {tab === "usr" &&
           (users.length === 0 ? (
             <div className="ao-empty">No users found.</div>
@@ -1272,9 +1224,7 @@ export default function AdminOptions({ me, go, logout }) {
             </div>
           ))}
 
-        {/* =====================================================
-            Audit history — one card per record
-            ===================================================== */}
+        {/* Audit history */}
         {tab === "audit" &&
           (audits.length === 0 ? (
             <div className="ao-empty">No audit records.</div>
@@ -1313,7 +1263,7 @@ export default function AdminOptions({ me, go, logout }) {
           ))}
       </main>
 
-      {/* Wallet modal (centered) */}
+      {/* Wallet modal */}
       {modal?.type === "wallet" && (
         <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
           <div
@@ -1373,7 +1323,7 @@ export default function AdminOptions({ me, go, logout }) {
         </div>
       )}
 
-      {/* Settlement modal (centered) */}
+      {/* Settlement modal */}
       {modal?.type === "settlement" && (
         <div className="ao-modal-bg" onClick={() => !busy && setModal(null)}>
           <div
