@@ -1,5 +1,5 @@
 
-const API_BASE_URL = "https://tread-d84x.onrender.com";
+const API_BASE_URL = "https://treadapi.onlieshop.online";
 
 export const API = API_BASE_URL;
 
