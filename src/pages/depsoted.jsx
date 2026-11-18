@@ -70,6 +70,8 @@ const num = (v) => {
 
 const fmt = (v, max = 8) => num(v).toLocaleString("en-US", { maximumFractionDigits: max });
 
+const inRange = (m, a) => a >= num(m.min_amount) && a <= num(m.max_amount);
+
 // ছবি ছোট করে (max 1000px, JPEG) dataURL বানায়
 function compressImage(file) {
   return new Promise((resolve, reject) => {
@@ -155,38 +157,29 @@ function CoinLogo({ coin, size = 40, url }) {
 const CSS = `
 .dp, .dp * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-/* ---------- Light (ডিফল্ট) ---------- */
+/* ---------- Light (default) ---------- */
 .dp {
-  --bg: #f1f4fa;
+  --bg: #f4f6fa;
   --panel: #ffffff;
   --panel2: #f4f6fb;
-  --line: #e2e8f2;
-  --line2: #d3dcea;
+  --line: #e3e8f0;
+  --line2: #d3dbe8;
   --text: #0f1b2e;
   --muted: #66758c;
   --ph: #9aa7bb;
-  --blue: #1a73ff;
-  --blue2: #1a6bea;
+  --blue: #1a6bff;
+  --blue-soft: rgba(26,107,255,.08);
   --green: #12a870;
   --red: #e5484d;
-  --amber: #a86a00;
-  --warnbg: rgba(245,185,66,.14);
-  --warnline: rgba(214,150,20,.4);
-  --cardA: #ffffff;
-  --cardB: #f8faff;
-  --topbg: rgba(255,255,255,.9);
-  --chip: rgba(26,115,255,.08);
-  --chiptext: #1a5fd0;
-  --ghost: rgba(15,27,46,.04);
-  --shadow: 0 10px 28px rgba(30,60,110,.1);
-  --inset: rgba(255,255,255,.8);
-  --glow: rgba(26,115,255,.12);
+  --red-soft: rgba(229,72,77,.08);
+  --red-line: rgba(229,72,77,.28);
+  --topbg: rgba(255,255,255,.92);
+  --ghost: rgba(15,27,46,.05);
+  --shadow: 0 1px 2px rgba(15,27,46,.04), 0 8px 24px rgba(30,60,110,.07);
   --sheet: #ffffff;
   --dash: #b9c6da;
   color-scheme: light;
-  background:
-    radial-gradient(900px 320px at 50% -140px, var(--glow), transparent 70%),
-    var(--bg);
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   padding-bottom: 60px;
@@ -194,7 +187,7 @@ const CSS = `
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---------- Dark (App-এর .cx.dark) ---------- */
+/* ---------- Dark (App .cx.dark) ---------- */
 .cx.dark .dp {
   --bg: #070e1a;
   --panel: #0e1a2c;
@@ -204,21 +197,15 @@ const CSS = `
   --text: #f3f7fd;
   --muted: #8494ae;
   --ph: #50617d;
-  --blue2: #4a9bff;
+  --blue: #4a9bff;
+  --blue-soft: rgba(74,155,255,.12);
   --green: #2ecc8f;
   --red: #ff6b7a;
-  --amber: #f5b942;
-  --warnbg: rgba(245,185,66,.08);
-  --warnline: rgba(245,185,66,.26);
-  --cardA: #112038;
-  --cardB: #0d192b;
-  --topbg: rgba(14,26,44,.9);
-  --chip: rgba(255,255,255,.06);
-  --chiptext: #cfe2ff;
-  --ghost: rgba(255,255,255,.04);
-  --shadow: 0 14px 34px rgba(0,0,0,.28);
-  --inset: rgba(255,255,255,.04);
-  --glow: rgba(26,115,255,.22);
+  --red-soft: rgba(255,107,122,.09);
+  --red-line: rgba(255,107,122,.3);
+  --topbg: rgba(14,26,44,.92);
+  --ghost: rgba(255,255,255,.05);
+  --shadow: 0 10px 28px rgba(0,0,0,.28);
   --sheet: #0e1a2c;
   --dash: #2f4468;
   color-scheme: dark;
@@ -236,223 +223,183 @@ const CSS = `
 .dp-top {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
-  height: 60px; padding: 0 12px;
+  height: 58px; padding: 0 10px;
   background: var(--topbg); backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--line);
 }
-.dp-top h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .3px; color: var(--text); }
+.dp-top h1 { margin: 0; font-size: 17px; font-weight: 600; color: var(--text); }
 .dp-ibtn {
   width: 42px; height: 42px; border: 0; background: transparent; color: var(--text);
   cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 12px;
 }
 .dp-ibtn:active { background: var(--ghost); }
-.dp-ibtn svg { width: 26px; height: 26px; }
+.dp-ibtn svg { width: 24px; height: 24px; }
 .cx[dir=rtl] .dp-ibtn.back { transform: scaleX(-1); }
 
-.dp-wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 0; }
+.dp-wrap { max-width: 520px; margin: 0 auto; padding: 18px 16px 0; }
 
-/* stepper */
-.dp-steps { display: flex; align-items: center; margin: 2px 6px 22px; }
-.dp-st { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; font-weight: 600; }
-.dp-st i {
-  width: 28px; height: 28px; border-radius: 50%; font-style: normal; font-size: 13px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center;
-  background: var(--panel); border: 1.5px solid var(--line2); color: var(--muted);
-}
-.dp-st.on { color: var(--text); }
-.dp-st.on i { background: linear-gradient(135deg, #3b8bff, #1457e8); border-color: transparent; color: #fff; box-shadow: 0 4px 14px rgba(26,115,255,.45); }
-.dp-st.done i { background: rgba(46,204,143,.14); border-color: var(--green); color: var(--green); }
-.dp-line { flex: 1; height: 2px; margin: 0 12px; background: var(--line); border-radius: 2px; }
-.dp-line.on { background: linear-gradient(90deg, var(--green), var(--blue)); }
+/* progress (3 segments, no labels) */
+.dp-prog { display: flex; gap: 6px; margin: 0 0 18px; }
+.dp-prog i { flex: 1; height: 4px; border-radius: 4px; background: var(--line2); transition: background .2s; }
+.dp-prog i.on { background: var(--blue); }
 
-/* cards */
+/* card */
 .dp-card {
-  position: relative;
-  background: linear-gradient(180deg, var(--cardA) 0%, var(--cardB) 100%);
+  background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 22px; padding: 20px 18px 22px; margin-bottom: 16px;
-  box-shadow: var(--shadow), inset 0 1px 0 var(--inset);
+  border-radius: 20px; padding: 20px 18px; margin-bottom: 16px;
+  box-shadow: var(--shadow);
 }
-.dp-h { margin: 0 0 4px; font-size: 17px; font-weight: 700; letter-spacing: .2px; color: var(--text); }
-.dp-sub { margin: 0 0 16px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+.dp-h { margin: 0 0 14px; font-size: 15px; font-weight: 700; color: var(--text); }
+.dp-h.sp { margin-top: 22px; }
 
 /* coin grid */
 .dp-coins { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
 .dp-coin {
   position: relative; display: flex; align-items: center; gap: 12px; text-align: start;
-  background: var(--panel2); border: 1.5px solid var(--line); border-radius: 16px;
-  padding: 14px 12px; cursor: pointer; color: var(--text);
-  transition: border-color .15s, background .15s, transform .12s;
+  background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px;
+  padding: 12px; cursor: pointer; color: var(--text);
+  transition: border-color .15s, background .15s;
 }
-.dp-coin:active { transform: scale(.98); }
-.dp-coin.on { border-color: #2f7fff; background: linear-gradient(135deg, rgba(26,115,255,.16), rgba(26,115,255,.05)); }
-.dp-coin b { display: block; font-size: 16px; font-weight: 700; }
+.dp-coin:active { background: var(--ghost); }
+.dp-coin.on { border-color: var(--blue); background: var(--blue-soft); }
+.dp-coin b { display: block; font-size: 15px; font-weight: 700; }
 .dp-coin small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
-.dp-tick {
-  position: absolute; top: 8px; inset-inline-end: 8px; width: 18px; height: 18px; border-radius: 50%;
-  background: linear-gradient(135deg, #3b8bff, #1457e8); display: flex; align-items: center; justify-content: center;
-}
-.dp-tick svg { width: 11px; height: 11px; color: #fff; stroke-width: 3.2; }
 
 /* amount field */
 .dp-amount {
   display: flex; align-items: center; gap: 10px;
-  background: var(--panel2); border: 1.5px solid var(--line); border-radius: 16px;
-  padding: 0 16px; height: 68px; transition: border-color .15s;
+  background: var(--panel2); border: 1.5px solid var(--line); border-radius: 14px;
+  padding: 0 14px; height: 62px; transition: border-color .15s;
 }
-.dp-amount:focus-within { border-color: var(--blue2); }
+.dp-amount:focus-within { border-color: var(--blue); }
 .dp-amount input {
   flex: 1; min-width: 0; background: transparent; border: 0; border-radius: 0; padding: 0;
-  color: var(--text); font-size: 26px; font-weight: 700; font-family: inherit;
+  color: var(--text); font-size: 24px; font-weight: 700; font-family: inherit;
 }
-.dp-amount input::placeholder { color: var(--ph); font-weight: 400; font-size: 16px; }
-.dp-amount em {
-  font-style: normal; font-size: 13px; font-weight: 700; letter-spacing: .4px; color: var(--chiptext);
-  background: var(--chip); border: 1px solid var(--line2);
-  padding: 6px 12px; border-radius: 999px; flex-shrink: 0;
-}
+.dp-amount input::placeholder { color: var(--ph); font-weight: 400; font-size: 15px; }
+.dp-amount em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+.dp-limit { margin: 10px 2px 0; font-size: 13px; color: var(--muted); }
+.dp-limit b { color: var(--text); font-weight: 700; }
 
-/* minimum deposit */
-.dp-min {
-  margin-top: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
-  padding: 11px 14px; border-radius: 14px; text-align: start;
-  background: rgba(46,204,143,.1); border: 1px solid rgba(46,204,143,.3);
-}
-.dp-min span { font-size: 13px; color: var(--muted); font-weight: 600; }
-.dp-min div { display: flex; gap: 6px 14px; flex-wrap: wrap; }
-.dp-min b { font-size: 14.5px; font-weight: 700; color: var(--green); }
-
-/* premium buttons */
+/* buttons */
 .dp-primary {
-  position: relative; overflow: hidden; isolation: isolate;
-  width: 100%; height: 60px; border: 0; border-radius: 18px; cursor: pointer;
+  width: 100%; height: 56px; border: 0; border-radius: 16px; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 10px;
-  background: linear-gradient(135deg, #3d90ff 0%, #1a6bff 45%, #1347d6 100%);
-  color: #fff; font-size: 17px; font-weight: 700; letter-spacing: .4px;
-  box-shadow:
-    0 14px 30px rgba(26,107,255,.42),
-    0 2px 0 rgba(255,255,255,.22) inset,
-    0 -3px 0 rgba(0,0,0,.18) inset;
-  transition: transform .12s, box-shadow .15s, filter .15s;
+  background: var(--blue); color: #fff; font-size: 16px; font-weight: 700;
+  transition: transform .12s, opacity .15s;
 }
-.dp-primary svg { width: 22px; height: 22px; transition: transform .15s; }
+.cx.dark .dp-primary { color: #06101f; }
+.dp-primary svg { width: 20px; height: 20px; }
 .cx[dir=rtl] .dp-primary svg { transform: scaleX(-1); }
-.dp-primary:hover svg { transform: translateX(3px); }
-.cx[dir=rtl] .dp-primary:hover svg { transform: scaleX(-1) translateX(3px); }
-.dp-primary:active { transform: translateY(1px) scale(.992); box-shadow: 0 8px 18px rgba(26,107,255,.4), 0 2px 0 rgba(255,255,255,.2) inset; }
-.dp-primary::before {
-  content: ""; position: absolute; inset: 0 0 50% 0; z-index: -1;
-  background: linear-gradient(180deg, rgba(255,255,255,.2), rgba(255,255,255,0));
-}
-.dp-primary::after {
-  content: ""; position: absolute; top: 0; bottom: 0; width: 60px; left: -90px; z-index: -1;
-  background: linear-gradient(100deg, transparent, rgba(255,255,255,.32), transparent);
-  transform: skewX(-18deg); animation: dpSheen 3.6s ease-in-out infinite;
-}
-@keyframes dpSheen { 0%, 55% { left: -90px; } 100% { left: 120%; } }
-.dp-primary:disabled { filter: grayscale(.55) brightness(.85); cursor: not-allowed; box-shadow: none; }
-.dp-primary:disabled::after { animation: none; }
-@media (prefers-reduced-motion: reduce) { .dp-primary::after { animation: none; } }
+.dp-primary:active { transform: scale(.985); }
+.dp-primary:disabled { opacity: .45; cursor: not-allowed; }
 
-/* summary strip */
-.dp-sum {
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  background: linear-gradient(180deg, var(--cardA), var(--cardB)); border: 1px solid var(--line); border-radius: 18px;
-  padding: 12px 14px; margin-bottom: 16px; box-shadow: var(--shadow);
-}
-.dp-sum-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.dp-sum b { display: block; font-size: 17px; }
+/* summary */
+.dp-sum { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--line); }
+.dp-sum b { display: block; font-size: 18px; }
 .dp-sum small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
-.dp-link {
-  border: 1px solid var(--line2); background: var(--ghost); color: var(--blue2);
-  font-size: 13px; font-weight: 700; cursor: pointer; padding: 8px 14px; border-radius: 999px;
-}
 
-/* network */
-.dp-nets { display: flex; gap: 6px; padding: 5px; background: var(--panel2); border: 1px solid var(--line); border-radius: 16px; }
+/* network tabs */
+.dp-nets { display: flex; gap: 6px; padding: 4px; background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 18px; }
 .dp-net {
-  flex: 1; height: 46px; border-radius: 12px; cursor: pointer; border: 0;
-  background: transparent; color: var(--muted); font-size: 15px; font-weight: 700; transition: all .15s; text-align: center;
+  flex: 1; height: 42px; border-radius: 10px; cursor: pointer; border: 0;
+  background: transparent; color: var(--muted); font-size: 14px; font-weight: 700; text-align: center;
+  transition: background .15s, color .15s;
 }
-.dp-net.on { background: linear-gradient(135deg, #3b8bff, #1457e8); color: #fff; box-shadow: 0 6px 16px rgba(26,115,255,.38); }
+.dp-net.on { background: var(--blue); color: #fff; }
+.cx.dark .dp-net.on { color: #06101f; }
 
 /* pay details */
-.dp-pay { text-align: center; }
 .dp-qr {
-  width: 100%; max-width: 232px; aspect-ratio: 1 / 1; margin: 4px auto 0;
-  background: #fff; border-radius: 20px; padding: 10px; overflow: hidden;
+  width: 100%; max-width: 220px; aspect-ratio: 1 / 1; margin: 0 auto;
+  background: #fff; border-radius: 16px; padding: 10px; overflow: hidden;
   border: 1px solid var(--line);
-  box-shadow: 0 14px 34px rgba(0,0,0,.18), 0 0 0 6px var(--ghost);
 }
 .dp-qr img { width: 100%; height: 100%; object-fit: contain; display: block; }
-.dp-lbl { margin-top: 20px; font-size: 13px; color: var(--muted); font-weight: 600; text-align: start; }
+.dp-kv { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.dp-kv:first-of-type { margin-top: 18px; border-top: 1px solid var(--line); }
+.dp-kv span { color: var(--muted); }
+.dp-kv b { font-weight: 700; }
+.dp-lbl { margin-top: 16px; font-size: 13px; color: var(--muted); font-weight: 600; }
 .dp-addr {
-  margin-top: 8px; display: flex; align-items: center; gap: 10px; text-align: start;
-  background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 10px 10px 10px 14px;
+  margin-top: 8px; display: flex; align-items: center; gap: 10px;
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 10px 10px 10px 14px;
 }
 .cx[dir=rtl] .dp-addr { padding: 10px 14px 10px 10px; }
 .dp-addr span {
   flex: 1; min-width: 0; word-break: break-all; direction: ltr; text-align: start;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; line-height: 1.5;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5;
 }
 .dp-copy {
-  flex-shrink: 0; border: 0; cursor: pointer; padding: 10px 16px; border-radius: 11px;
-  background: linear-gradient(135deg, #3b8bff, #1457e8); color: #fff; font-size: 13px; font-weight: 700;
-  box-shadow: 0 6px 14px rgba(26,115,255,.3); text-align: center;
+  flex-shrink: 0; border: 0; cursor: pointer; padding: 9px 14px; border-radius: 9px;
+  background: var(--blue); color: #fff; font-size: 13px; font-weight: 700; text-align: center;
 }
-.dp-copy.done { background: linear-gradient(135deg, #3fe0a2, #1fb67a); color: #052a1d; box-shadow: none; }
+.cx.dark .dp-copy { color: #06101f; }
+.dp-copy.done { background: var(--green); color: #052a1d; }
 .dp-warn {
-  margin-top: 14px; padding: 12px 14px; border-radius: 12px; text-align: start;
-  background: var(--warnbg); border: 1px solid var(--warnline);
-  color: var(--amber); font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
+  margin-top: 16px; padding: 12px 14px; border-radius: 12px;
+  display: flex; gap: 10px; align-items: flex-start;
+  background: var(--red-soft); border: 1px solid var(--red-line);
+  color: var(--red); font-size: 13px; line-height: 1.55; font-weight: 600;
 }
+.dp-warn svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; }
+.dp-note { margin-top: 12px; font-size: 12.5px; line-height: 1.55; color: var(--muted); white-space: pre-wrap; }
 
 /* submit form */
-.dp-field { margin-top: 18px; }
-.dp-field:first-of-type { margin-top: 0; }
+.dp-field + .dp-field { margin-top: 18px; }
 .dp-flbl { font-size: 13px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
 .dp-drop {
   position: relative; cursor: pointer; width: 100%; min-height: 150px;
-  background: var(--panel2); border: 1.5px dashed var(--dash); border-radius: 16px; overflow: hidden;
+  background: var(--panel2); border: 1.5px dashed var(--dash); border-radius: 14px; overflow: hidden;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   color: var(--muted); font-size: 13px; transition: border-color .15s;
 }
-.dp-drop:hover { border-color: var(--blue2); }
-.dp-drop svg { width: 34px; height: 34px; }
+.dp-drop:hover { border-color: var(--blue); }
+.dp-drop svg { width: 32px; height: 32px; }
 .dp-drop img { width: 100%; max-height: 280px; object-fit: contain; display: block; background: #000; }
 .dp-rm {
   position: absolute; top: 8px; inset-inline-end: 8px; width: 30px; height: 30px; border: 0;
   border-radius: 50%; background: rgba(0,0,0,.7); color: #fff; font-size: 13px; cursor: pointer; text-align: center;
 }
 .dp-in {
-  display: block; width: 100%; height: 54px; background: var(--panel2);
-  border: 1.5px solid var(--line); border-radius: 14px;
+  display: block; width: 100%; height: 52px; background: var(--panel2);
+  border: 1.5px solid var(--line); border-radius: 12px;
   color: var(--text); font-size: 15px; padding: 0 14px; font-family: inherit;
   transition: border-color .15s;
 }
 .dp-in::placeholder { color: var(--ph); }
-.dp-in:focus { border-color: var(--blue2); }
+.dp-in:focus { border-color: var(--blue); }
 
-.dp-msg { margin: 16px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
-.dp-msg.ok { background: rgba(46,204,143,.12); color: var(--green); border: 1px solid rgba(46,204,143,.3); }
-.dp-msg.bad { background: rgba(255,107,122,.1); color: var(--red); border: 1px solid rgba(255,107,122,.3); }
+.dp-msg { margin: 14px 0 0; padding: 12px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.5; }
+.dp-msg.bad { background: var(--red-soft); color: var(--red); border: 1px solid var(--red-line); }
 
 .dp-center { text-align: center; color: var(--muted); padding: 60px 10px; font-size: 15px; }
+
+/* success */
+.dp-done { text-align: center; padding: 56px 20px 40px; }
+.dp-done-ic {
+  width: 76px; height: 76px; margin: 0 auto 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(18,168,112,.12); color: var(--green);
+}
+.dp-done-ic svg { width: 38px; height: 38px; stroke-width: 2.6; }
+.dp-done h2 { margin: 0; font-size: 20px; font-weight: 700; line-height: 1.4; }
 
 /* support sheet */
 .dp-ov { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; }
 .dp-sheet {
   width: 100%; max-width: 640px; background: var(--sheet); color: var(--text);
-  border-radius: 26px 26px 0 0; padding: 18px 20px 28px; animation: dpUp .2s ease-out;
+  border-radius: 24px 24px 0 0; padding: 18px 20px 28px; animation: dpUp .2s ease-out;
 }
 @keyframes dpUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .dp-sheet { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .dp-sheet { animation: none; } .dp-primary, .dp-prog i { transition: none; } }
 .dp-sh-head { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
-.dp-sh-head h3 { margin: 0; font-size: 20px; font-weight: 700; flex: 1; text-align: center; }
+.dp-sh-head h3 { margin: 0; font-size: 19px; font-weight: 700; flex: 1; text-align: center; }
 .dp-svc {
   width: 100%; display: flex; align-items: center; justify-content: space-between;
   border: 0; border-top: 1px solid var(--line); background: transparent; color: var(--text);
-  font-size: 18px; padding: 20px 2px; cursor: pointer; text-align: start; text-decoration: none;
+  font-size: 17px; padding: 18px 2px; cursor: pointer; text-align: start; text-decoration: none;
 }
 .dp-svc:last-child { border-bottom: 1px solid var(--line); }
 .dp-svc svg { width: 22px; height: 22px; color: var(--muted); }
@@ -467,8 +414,9 @@ const IcBack = () => <Svg><polyline points="15 5 8 12 15 19" /></Svg>;
 const IcRight = () => <Svg><polyline points="9 5 16 12 9 19" /></Svg>;
 const IcCheck = () => <Svg><polyline points="5 12.5 10 17.5 19 7.5" /></Svg>;
 const IcArrow = () => <Svg><line x1="5" y1="12" x2="19" y2="12" /><polyline points="13 6 19 12 13 18" /></Svg>;
-const IcLock = () => <Svg><rect x="5" y="11" width="14" height="9" rx="2.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></Svg>;
+const IcShield = () => <Svg><path d="M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6l7-3z" /><polyline points="9 12 11.200 14.200 15.200 10" /></Svg>;
 const IcClose = () => <Svg><line x1="5" y1="5" x2="19" y2="19" /><line x1="19" y1="5" x2="5" y2="19" /></Svg>;
+const IcAlert = () => <Svg><path d="M12 3.500 2.500 20h19L12 3.500z" /><line x1="12" y1="10" x2="12" y2="14" /><line x1="12" y1="17" x2="12" y2="17.010" /></Svg>;
 const IcHeadset = () => (
   <svg viewBox="0 0 24 24" fill="#2bb4ff">
     <path d="M12 2a8 8 0 0 0-8 8v4a3 3 0 0 0 3 3h1v-7H6.1A6 6 0 0 1 17.9 10H16v7h-4v2h4a3 3 0 0 0 3-3v-1a3 3 0 0 0 1-2.2V10a8 8 0 0 0-8-8z" />
@@ -482,6 +430,13 @@ const IcCamera = () => (
   </svg>
 );
 
+/*
+  Steps
+  1 = select coin + enter amount
+  2 = coin / QR / network / address / warning  -> "Confirm payment"
+  3 = TxID + deposit slip screenshot           -> submit
+  4 = success message
+*/
 export default function Deposit({ W, go }) {
   const t = useT();
   // সব অনুবাদ i18n.jsx থেকে আসে। কী না পাওয়া গেলে ইংরেজি fb দেখায়।
@@ -493,7 +448,7 @@ export default function Deposit({ W, go }) {
   const [methods, setMethods] = useState([]);
   const [loadingM, setLoadingM] = useState(true);
 
-  const [step, setStep] = useState(1);          // 1 = coin + amount, 2 = network/address/submit
+  const [step, setStep] = useState(1);
   const [coin, setCoin] = useState("");
   const [amt, setAmt] = useState("");
   const [methodId, setMethodId] = useState(null);
@@ -502,13 +457,13 @@ export default function Deposit({ W, go }) {
   const [proof, setProof] = useState("");
 
   const [busy, setBusy] = useState(false);
-  const [msg, setMsg] = useState({ text: "", ok: false });
+  const [msg, setMsg] = useState("");
   const [copied, setCopied] = useState(false);
   const [support, setSupport] = useState(false);
   const fileRef = useRef(null);
 
-  const say = (text, ok = false) => setMsg({ text, ok });
-  const clearMsg = () => setMsg({ text: "", ok: false });
+  const say = (text) => setMsg(text);
+  const clearMsg = () => setMsg("");
   const errText = (e) => {
     const m = e?.message;
     if (!m) return t("dpGeneric");
@@ -539,11 +494,28 @@ export default function Deposit({ W, go }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // নতুন স্টেপে গেলে উপরে স্ক্রল
+  useEffect(() => {
+    try { window.scrollTo(0, 0); } catch { /* ignore */ }
+  }, [step]);
+
   /* ---------- derived ---------- */
   const coins = useMemo(() => [...new Set(methods.map((m) => m.coin))], [methods]);
   const ofCoin = methods.filter((m) => m.coin === coin);
-  const method = ofCoin.find((m) => m.id === methodId) || null;
   const a = parseFloat(amt);
+
+  // যে নেটওয়ার্কগুলোর রেঞ্জে amount মেলে (step 2-তে শুধু সেগুলোই দেখাবে)
+  const fit = a > 0 ? ofCoin.filter((m) => inRange(m, a)) : ofCoin;
+  const method = ofCoin.find((m) => m.id === methodId) || null;
+
+  // সিলেক্ট করা কয়েনের লিমিট (যেমন 50 – 1000)
+  const limit = ofCoin.length
+    ? {
+        min: Math.min(...ofCoin.map((m) => num(m.min_amount))),
+        max: Math.max(...ofCoin.map((m) => num(m.max_amount))),
+        cur: ofCoin[0].currency || ofCoin[0].coin,
+      }
+    : null;
 
   const logoUrl = (c) => {
     const m = methods.find((x) => x.coin === c && (x.logo_url || x.icon_url));
@@ -568,8 +540,7 @@ export default function Deposit({ W, go }) {
     setCoin(c);
     clearMsg();
     setCopied(false);
-    const list = methods.filter((m) => m.coin === c);
-    const pm = preferNet(list);                           // USDT -> TRC20 অটো
+    const pm = preferNet(methods.filter((m) => m.coin === c));   // USDT -> TRC20 অটো
     setMethodId(pm ? pm.id : null);
   };
 
@@ -579,24 +550,30 @@ export default function Deposit({ W, go }) {
     setCopied(false);
   };
 
-  const next = () => {
+  // Step 1 -> 2
+  const toPay = () => {
     if (!coin) return;
     if (!(a > 0)) return say(t("dpBadAmt"));
-    // অন্তত একটি নেটওয়ার্কের রেঞ্জে amount মিলতে হবে
-    if (!ofCoin.some((m) => a >= num(m.min_amount) && a <= num(m.max_amount))) {
-      return say(rangeMsg(ofCoin[0]));
-    }
+    const ok = ofCoin.filter((m) => inRange(m, a));
+    if (!ok.length) return say(rangeMsg(ofCoin[0]));
+    const pm = preferNet(ok);
+    setMethodId(pm ? pm.id : null);
     clearMsg();
     setStep(2);
   };
 
+  // Step 2 -> 3
+  const toProof = () => {
+    if (!method) return;
+    clearMsg();
+    setStep(3);
+  };
+
   const backBtn = () => {
-    if (step === 2) {
-      clearMsg();
-      setStep(1);
-    } else {
-      go("home");
-    }
+    clearMsg();
+    if (step === 3) setStep(2);
+    else if (step === 2) setStep(1);
+    else go("home");
   };
 
   const copy = async () => {
@@ -615,17 +592,19 @@ export default function Deposit({ W, go }) {
     if (!f) return;
     try {
       setProof(await compressImage(f));
+      clearMsg();
     } catch {
       say(t("dpImgFail"));
     }
   };
 
+  // Step 3 -> 4
   const submit = async () => {
     if (busy || !method) return;
     if (W.guest) return W.needLogin();
 
     if (!(a > 0)) return say(t("dpBadAmt"));
-    if (a < num(method.min_amount) || a > num(method.max_amount)) return say(rangeMsg(method));
+    if (!inRange(method, a)) return say(rangeMsg(method));
     if (!proof) return say(t("dpProof"));
     if (txid.trim().length < 3) return say(t("dpBadTxid"));
 
@@ -647,8 +626,7 @@ export default function Deposit({ W, go }) {
       setProof("");
       setCoin("");
       setMethodId(null);
-      setStep(1);
-      say(t("dpOk"), true);
+      setStep(4);
     } catch (e) {
       say(errText(e));
     }
@@ -661,7 +639,7 @@ export default function Deposit({ W, go }) {
       <style>{CSS}</style>
 
       <div className="dp-top">
-        <button className="dp-ibtn back" onClick={backBtn} aria-label="Back"><IcBack /></button>
+        <button className="dp-ibtn back" onClick={step === 4 ? () => go("home") : backBtn} aria-label="Back"><IcBack /></button>
         <h1>{t("dpTitle")}</h1>
         <button className="dp-ibtn" onClick={() => setSupport(true)} aria-label="Customer service"><IcHeadset /></button>
       </div>
@@ -672,120 +650,96 @@ export default function Deposit({ W, go }) {
         {!loadingM && !methods.length && (
           <div className="dp-center">
             {t("dpNone")}
-            {msg.text && <div className="dp-msg bad">{msg.text}</div>}
+            {msg && <div className="dp-msg bad">{msg}</div>}
           </div>
         )}
 
         {!loadingM && methods.length > 0 && (
           <>
-            {/* stepper */}
-            <div className="dp-steps">
-              <div className={"dp-st " + (step === 1 ? "on" : "done")}>
-                <i>{step === 1 ? "1" : "✓"}</i><span>{L("dpStepA", "Coin & amount")}</span>
+            {step < 4 && (
+              <div className="dp-prog" aria-hidden="true">
+                <i className={step >= 1 ? "on" : ""} />
+                <i className={step >= 2 ? "on" : ""} />
+                <i className={step >= 3 ? "on" : ""} />
               </div>
-              <div className={"dp-line" + (step === 2 ? " on" : "")} />
-              <div className={"dp-st" + (step === 2 ? " on" : "")}>
-                <i>2</i><span>{L("dpStepB", "Payment")}</span>
-              </div>
-            </div>
+            )}
 
-            {/* ============ STEP 1 — Coin + Amount ============ */}
+            {/* ============ STEP 1 — select coin + amount ============ */}
             {step === 1 && (
               <>
-                {msg.ok && <div className="dp-msg ok" style={{ marginTop: 0, marginBottom: 16 }}>{msg.text}</div>}
-
                 <div className="dp-card">
-                  <h2 className="dp-h">{L("dpCurrency", "Current currency")}</h2>
-                  <p className="dp-sub">{L("dpPickCoin", "Choose the coin you will send.")}</p>
-
+                  <h2 className="dp-h">{L("dpSelCoin", "Select coin")}</h2>
                   <div className="dp-coins">
                     {coins.map((c) => (
                       <button key={c} className={"dp-coin" + (c === coin ? " on" : "")} onClick={() => pickCoin(c)}>
-                        <CoinLogo coin={c} url={logoUrl(c)} size={40} />
+                        <CoinLogo coin={c} url={logoUrl(c)} size={38} />
                         <span>
                           <b>{c}</b>
                           <small>{methods.filter((m) => m.coin === c).map((m) => m.network).filter(Boolean).join(" · ")}</small>
                         </span>
-                        {c === coin && <span className="dp-tick"><IcCheck /></span>}
                       </button>
                     ))}
                   </div>
-                </div>
 
-                <div className="dp-card">
-                  <h2 className="dp-h">{L("dpEnterAmt", "Deposit amount")}</h2>
-                  <p className="dp-sub">{L("dpEnterAmtSub", "Enter the amount you want to deposit.")}</p>
-
-                  <div className="dp-amount">
-                    <input
-                      value={amt}
-                      onChange={(e) => { setAmt(e.target.value); clearMsg(); }}
-                      placeholder={L("dpQtyPh", "Please enter the quantity")}
-                      inputMode="decimal"
-                      onKeyDown={(e) => e.key === "Enter" && next()}
-                    />
-                    {coin && <em>{coin}</em>}
-                  </div>
-
-                  {coin && ofCoin.length > 0 && (
-                    <div className="dp-min">
-                      <span>{L("dpMinDeposit", "Minimum deposit")}</span>
-                      <div>
-                        {ofCoin.map((m) => (
-                          <b key={m.id}>
-                            {ofCoin.length > 1 && m.network ? m.network + ": " : ""}{fmt(m.min_amount)} {m.currency || m.coin}
-                          </b>
-                        ))}
+                  {coin && (
+                    <>
+                      <h2 className="dp-h sp">{L("dpEnterAmt", "Deposit amount")}</h2>
+                      <div className="dp-amount">
+                        <input
+                          value={amt}
+                          onChange={(e) => { setAmt(e.target.value); clearMsg(); }}
+                          placeholder={L("dpQtyPh", "Please enter the quantity")}
+                          inputMode="decimal"
+                          onKeyDown={(e) => e.key === "Enter" && toPay()}
+                        />
+                        <em>{coin}</em>
                       </div>
-                    </div>
+
+                      {limit && (
+                        <div className="dp-limit">
+                          {L("dpLimit", "Limit")}: <b>{fmt(limit.min)} - {fmt(limit.max)} {limit.cur}</b>
+                        </div>
+                      )}
+                    </>
                   )}
 
-                  {msg.text && !msg.ok && <div className="dp-msg bad">{msg.text}</div>}
+                  {msg && <div className="dp-msg bad">{msg}</div>}
                 </div>
 
-                <button className="dp-primary" onClick={next} disabled={!coin || !(a > 0)}>
+                <button className="dp-primary" onClick={toPay} disabled={!coin || !(a > 0)}>
                   <span>{L("dpNext", "Next")}</span><IcArrow />
                 </button>
               </>
             )}
 
-            {/* ============ STEP 2 — Network -> Address -> Submit ============ */}
+            {/* ============ STEP 2 — QR + network + address + warning ============ */}
             {step === 2 && (
               <>
-                <div className="dp-sum">
-                  <div className="dp-sum-l">
-                    <CoinLogo coin={coin} url={logoUrl(coin)} size={36} />
+                <div className="dp-card">
+                  <div className="dp-sum">
+                    <CoinLogo coin={coin} url={logoUrl(coin)} size={38} />
                     <div>
                       <b>{fmt(a)} {coin}</b>
                       <small>{L("dpEnterAmt", "Deposit amount")}</small>
                     </div>
                   </div>
-                  <button className="dp-link" onClick={backBtn}>{L("dpEdit", "Edit")}</button>
-                </div>
 
-                {ofCoin.length > 1 && (
-                  <div className="dp-card">
-                    <h2 className="dp-h">{L("dpNetwork", "Network")}</h2>
-                    <p className="dp-sub">{L("dpPickNet", "Select the network you will send on.")}</p>
+                  {fit.length > 1 && (
                     <div className="dp-nets">
-                      {ofCoin.map((m) => (
+                      {fit.map((m) => (
                         <button key={m.id} className={"dp-net" + (m.id === methodId ? " on" : "")} onClick={() => pickNet(m.id)}>
                           {m.network || m.name}
                         </button>
                       ))}
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {method && (
-                  <>
-                    <div className="dp-card dp-pay">
-                      <div className="dp-min" style={{ marginTop: 0, marginBottom: 16 }}>
-                        <span>{L("dpMinDeposit", "Minimum deposit")}</span>
-                        <div><b>{fmt(method.min_amount)} {method.currency || method.coin}</b></div>
-                      </div>
-
+                  {method ? (
+                    <>
                       {qrSrc && <div className="dp-qr"><img src={qrSrc} alt="QR code" /></div>}
+
+                      <div className="dp-kv"><span>{L("dpCoin", "Coin")}</span><b>{method.coin}</b></div>
+                      <div className="dp-kv"><span>{L("dpNetwork", "Network")}</span><b>{method.network || method.name}</b></div>
 
                       {method.address && (
                         <>
@@ -799,52 +753,80 @@ export default function Deposit({ W, go }) {
                         </>
                       )}
 
-                      <div className="dp-warn">
-                        ⚠ {t("dpWarn").replace("{coin}", method.coin).replace("{net}", method.network || "")}
-                      </div>
-                      {method.instructions && <div className="dp-warn">{method.instructions}</div>}
-                    </div>
-
-                    <div className="dp-card">
-                      <div className="dp-field">
-                        <div className="dp-flbl">{L("dpVoucher", "Payment voucher")}</div>
-                        <div className="dp-drop" onClick={() => fileRef.current && fileRef.current.click()}>
-                          {proof ? (
-                            <>
-                              <img src={proof} alt="voucher" />
-                              <button className="dp-rm" aria-label="Remove" onClick={(e) => { e.stopPropagation(); setProof(""); }}>✕</button>
-                            </>
-                          ) : (
-                            <>
-                              <IcCamera />
-                              <span>{L("dpUpload", "Upload screenshot")}</span>
-                            </>
-                          )}
-                        </div>
-                        <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+                      <div className="dp-warn" role="alert">
+                        <IcAlert />
+                        <span>
+                          {L(
+                            "dpWarn",
+                            "Send only {coin} on the {net} network to this address. Sending a different coin or using a different network or wallet will result in permanent loss of your funds."
+                          )
+                            .replace("{coin}", method.coin)
+                            .replace("{net}", method.network || "")}
+                        </span>
                       </div>
 
-                      <div className="dp-field">
-                        <div className="dp-flbl">{L("dpTxid", "TxID")}</div>
-                        <input
-                          className="dp-in"
-                          value={txid}
-                          onChange={(e) => setTxid(e.target.value)}
-                          placeholder={L("dpTxidPh", "Enter the transaction ID")}
-                          autoComplete="off"
-                          spellCheck={false}
-                        />
-                      </div>
+                      {method.instructions && <div className="dp-note">{method.instructions}</div>}
+                    </>
+                  ) : (
+                    <div className="dp-msg bad">{t("dpUnavail")}</div>
+                  )}
+                </div>
 
-                      {msg.text && !msg.ok && <div className="dp-msg bad">{msg.text}</div>}
-
-                      <button className="dp-primary" style={{ marginTop: 20 }} onClick={submit} disabled={busy}>
-                        {busy ? <span>{t("dpSubmitting")}</span> : <><IcLock /><span>{t("dpSubmit")}</span></>}
-                      </button>
-                    </div>
-                  </>
-                )}
+                <button className="dp-primary" onClick={toProof} disabled={!method}>
+                  <IcShield /><span>{L("dpConfirmPay", "Confirm payment")}</span>
+                </button>
               </>
+            )}
+
+            {/* ============ STEP 3 — TxID + deposit slip ============ */}
+            {step === 3 && (
+              <>
+                <div className="dp-card">
+                  <div className="dp-field">
+                    <div className="dp-flbl">{L("dpTxid", "Transaction ID (TxID)")}</div>
+                    <input
+                      className="dp-in"
+                      value={txid}
+                      onChange={(e) => { setTxid(e.target.value); clearMsg(); }}
+                      placeholder={L("dpTxidPh", "Enter the transaction ID")}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </div>
+
+                  <div className="dp-field">
+                    <div className="dp-flbl">{L("dpVoucher", "Deposit slip screenshot")}</div>
+                    <div className="dp-drop" onClick={() => fileRef.current && fileRef.current.click()}>
+                      {proof ? (
+                        <>
+                          <img src={proof} alt="Deposit slip" />
+                          <button className="dp-rm" aria-label="Remove" onClick={(e) => { e.stopPropagation(); setProof(""); }}>✕</button>
+                        </>
+                      ) : (
+                        <>
+                          <IcCamera />
+                          <span>{L("dpUpload", "Upload screenshot")}</span>
+                        </>
+                      )}
+                    </div>
+                    <input ref={fileRef} type="file" accept="image/*" hidden onChange={onFile} />
+                  </div>
+
+                  {msg && <div className="dp-msg bad">{msg}</div>}
+                </div>
+
+                <button className="dp-primary" onClick={submit} disabled={busy}>
+                  <span>{busy ? t("dpSubmitting") : t("dpSubmit")}</span>
+                </button>
+              </>
+            )}
+
+            {/* ============ STEP 4 — success ============ */}
+            {step === 4 && (
+              <div className="dp-done" role="status">
+                <div className="dp-done-ic"><IcCheck /></div>
+                <h2>{L("dpReqOk", "Payment request submitted successfully")}</h2>
+              </div>
             )}
           </>
         )}
