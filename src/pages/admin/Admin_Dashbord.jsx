@@ -10,7 +10,7 @@ import {
 
 /* =========================================================
    src/pages/admin/Admin_Dashbord.jsx
-   Admin Dashboard
+   Admin Dashboard  (light theme, mobile + desktop responsive)
    API: GET /admin/deposits
    Navigation targets (App.jsx go()):
      admin, adminDeposits, adminWithdrawals,
@@ -19,181 +19,396 @@ import {
    ========================================================= */
 
 const CSS = `
+.ad-wrap, .ad-wrap * { box-sizing: border-box; }
+
 .ad-wrap {
-  min-height:100vh;
-  background:#0b0e11;
-  color:#eaecef;
-  padding:22px;
-  font-family:Inter,Arial,sans-serif;
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --line: #e5e9f0;
+  --line-soft: #eef1f6;
+  --text: #0f1b30;
+  --text-2: #4a5568;
+  --muted: #7a8699;
+  --primary: #1f7acb;
+  --primary-dark: #1768ad;
+  --primary-soft: #eaf3fc;
+  --ok: #0e9f6e;
+  --ok-soft: #e3f6ee;
+  --warn: #c98a0a;
+  --warn-soft: #fdf3dc;
+  --bad: #e0415f;
+  --bad-soft: #fdebee;
+  --shadow: 0 1px 2px rgba(16,30,54,.04), 0 6px 20px rgba(16,30,54,.05);
+  --shadow-hover: 0 2px 4px rgba(16,30,54,.05), 0 12px 28px rgba(16,30,54,.09);
+
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
 }
-.ad-container {max-width:1450px;margin:auto}
-.ad-top {
-  display:flex;align-items:center;justify-content:space-between;
-  gap:15px;margin-bottom:18px;flex-wrap:wrap;
+
+.ad-wrap button { font-family: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; }
+
+/* ---------- sticky header ---------- */
+.ad-head {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(255,255,255,.92);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+  padding-top: env(safe-area-inset-top, 0px);
 }
-.ad-brand {display:flex;align-items:center;gap:12px}
+.ad-head-in {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.ad-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .ad-brand-icon {
-  width:44px;height:44px;border-radius:13px;
-  background:linear-gradient(135deg,#1f7acb,#19c5c8);
-  display:grid;place-items:center;color:white;
-  font-size:22px;font-weight:900;
+  width: 42px; height: 42px; flex: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 20px; font-weight: 800;
+  box-shadow: 0 6px 16px rgba(40,125,225,.30);
 }
-.ad-brand h2 {margin:0;font-size:19px;font-weight:800}
-.ad-brand p {margin:4px 0 0;color:#848e9c;font-size:12px}
-.ad-top-actions {display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+.ad-brand h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -.2px; }
+.ad-brand p { margin: 2px 0 0; font-size: 12px; color: var(--muted); }
+
+.ad-actions { display: flex; align-items: center; gap: 10px; }
+
 .ad-btn {
-  border:1px solid #30363d;background:#181c24;color:#eaecef;
-  padding:10px 14px;border-radius:9px;cursor:pointer;
-  font-size:13px;font-weight:650;display:inline-flex;
-  align-items:center;justify-content:center;gap:8px;transition:.2s;
+  min-height: 42px;
+  padding: 0 16px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px; font-weight: 650;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, transform .1s;
 }
-.ad-btn:hover {border-color:#1f7acb;background:#202b38}
-.ad-btn:disabled {opacity:.55;cursor:not-allowed}
-.ad-btn.primary {background:#1f7acb;border-color:#1f7acb;color:#fff}
-.ad-btn.primary:hover {background:#1768ad}
-.ad-btn.danger {color:#f6465d;border-color:#63313a}
+.ad-btn:hover { border-color: #c7d3e4; background: #f8fafd; }
+.ad-btn:active { transform: scale(.97); }
+.ad-btn:disabled { opacity: .55; cursor: not-allowed; }
+.ad-btn.ghost-danger { color: var(--bad); }
+.ad-btn.ghost-danger:hover { background: var(--bad-soft); border-color: #f4c5cd; }
+.ad-btn.sm { min-height: 36px; padding: 0 12px; font-size: 12px; }
 
-/* ---------- Top navigation (all admin pages) ---------- */
-.ad-nav {
-  display:flex;gap:8px;margin-bottom:26px;padding:8px;
-  background:#151a22;border:1px solid #252b35;border-radius:13px;
-  overflow-x:auto;scrollbar-width:none;
-}
-.ad-nav::-webkit-scrollbar {display:none}
-.ad-nav-btn {
-  flex:1 0 auto;min-width:140px;
-  display:inline-flex;align-items:center;justify-content:center;gap:8px;
-  padding:12px 16px;border-radius:9px;border:1px solid transparent;
-  background:transparent;color:#aeb7c2;cursor:pointer;
-  font-size:13px;font-weight:700;white-space:nowrap;transition:.2s;
-}
-.ad-nav-btn:hover {background:#1d2531;color:#fff}
-.ad-nav-btn.on {
-  background:linear-gradient(135deg,#1f7acb,#1768ad);
-  color:#fff;border-color:#1f7acb;
-}
-
-.ad-heading {margin-bottom:23px}
-.ad-heading h1 {font-size:25px;margin:0 0 7px;font-weight:800}
-.ad-heading p {color:#848e9c;font-size:13px;margin:0}
-.ad-grid {
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:15px;margin-bottom:24px;
-}
-.ad-card {
-  background:#151a22;border:1px solid #252b35;
-  border-radius:14px;padding:19px;min-width:0;
-}
-.ad-card.click {cursor:pointer;transition:.2s}
-.ad-card.click:hover {border-color:#1f7acb;background:#18202b}
-.ad-card-head {
-  display:flex;justify-content:space-between;
-  align-items:center;gap:10px;
-}
-.ad-card-label {color:#848e9c;font-size:12px;font-weight:600}
-.ad-card-icon {
-  width:38px;height:38px;border-radius:10px;
-  display:grid;place-items:center;background:#1d2b3b;color:#3b9bea;
-}
-.ad-card-value {margin-top:18px;font-size:28px;font-weight:800;color:#fff}
-.ad-card-foot {margin-top:8px;color:#848e9c;font-size:11px}
-.ad-main-grid {
-  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(280px,1fr);
-  gap:16px;
-}
-.ad-panel {
-  background:#151a22;border:1px solid #252b35;
-  border-radius:14px;overflow:hidden;min-width:0;
-}
-.ad-panel-head {
-  padding:18px 19px;border-bottom:1px solid #252b35;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-}
-.ad-panel-head h3 {margin:0;font-size:15px;font-weight:750}
-.ad-panel-body {padding:18px}
-.ad-quick-list {display:grid;gap:11px}
-.ad-quick {
-  display:flex;align-items:center;gap:13px;padding:14px;
-  background:#1b222c;border:1px solid #2b3440;border-radius:11px;
-  cursor:pointer;text-align:left;color:#eaecef;width:100%;transition:.2s;
-}
-.ad-quick:hover {border-color:#1f7acb;background:#202c3a}
-.ad-quick-icon {
-  width:40px;height:40px;border-radius:10px;
-  display:grid;place-items:center;background:#23364a;
-  color:#49a8ef;flex-shrink:0;
-}
-.ad-quick-text {flex:1;min-width:0}
-.ad-quick-text b {display:block;font-size:13px}
-.ad-quick-text small {
-  display:block;margin-top:5px;color:#848e9c;font-size:11px;
-}
-.ad-arrow {color:#848e9c;font-size:21px}
-.ad-status-list {display:grid;gap:17px}
-.ad-status-row {
-  display:flex;align-items:center;justify-content:space-between;
-  gap:10px;font-size:13px;
-}
-.ad-status-left {display:flex;align-items:center;gap:9px;color:#aeb7c2}
-.ad-dot {width:8px;height:8px;border-radius:50%}
-.ad-status-value {font-weight:800;color:#fff}
-.ad-badge {
-  display:inline-block;padding:5px 9px;border-radius:20px;
-  font-size:10px;font-weight:800;white-space:nowrap;
-}
-.ad-badge.ok {background:#123d31;color:#00c087}
-.ad-badge.warn {background:#493817;color:#f0b90b}
-.ad-badge.bad {background:#4a2028;color:#f6465d}
-.ad-table-wrap {overflow-x:auto}
-.ad-table {width:100%;border-collapse:collapse;min-width:650px}
-.ad-table th {
-  padding:13px 18px;color:#848e9c;font-size:11px;
-  font-weight:700;text-align:left;border-bottom:1px solid #252b35;
-}
-.ad-table td {
-  padding:14px 18px;font-size:12px;
-  border-bottom:1px solid #222831;
-}
-.ad-table tr:last-child td {border-bottom:0}
-.ad-empty {padding:30px 15px;text-align:center;color:#848e9c;font-size:13px}
-.ad-error {
-  background:#421e25;border:1px solid #73323d;color:#ff8794;
-  padding:12px 14px;border-radius:9px;font-size:12px;margin-bottom:18px;
-}
-.ad-loading {padding:30px;text-align:center;color:#848e9c;font-size:13px}
 .ad-profile {
-  display:flex;align-items:center;gap:10px;padding:7px 10px;
-  background:#181e27;border:1px solid #2b3440;border-radius:10px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 14px 5px 5px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  min-width: 0;
 }
 .ad-avatar {
-  width:34px;height:34px;display:grid;place-items:center;
-  background:#1f7acb;border-radius:50%;font-weight:800;
+  width: 34px; height: 34px; flex: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff;
+  display: grid; place-items: center;
+  font-size: 14px; font-weight: 800;
 }
-.ad-profile-info b {display:block;font-size:12px}
-.ad-profile-info small {
-  display:block;color:#848e9c;margin-top:3px;font-size:10px;
+.ad-pinfo { min-width: 0; line-height: 1.25; }
+.ad-pinfo b { display: block; font-size: 12.5px; font-weight: 700; max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-pinfo small { display: block; font-size: 11px; color: var(--muted); max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- nav tabs ---------- */
+.ad-nav-wrap { border-top: 1px solid var(--line-soft); background: var(--surface); }
+.ad-nav {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex; gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
-.ad-spin {animation:adspin 1s linear infinite}
-@keyframes adspin {to{transform:rotate(360deg)}}
-.ad-footer {
-  text-align:center;color:#626d7a;font-size:11px;padding:25px 0 5px;
+.ad-nav::-webkit-scrollbar { display: none; }
+.ad-tab {
+  flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 13.5px; font-weight: 650;
+  white-space: nowrap;
+  transition: color .15s, border-color .15s, background .15s;
 }
-@media(max-width:950px) {
-  .ad-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
-  .ad-main-grid {grid-template-columns:1fr}
+.ad-tab:hover { color: var(--text); background: #f6f8fc; }
+.ad-tab.on { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ---------- page ---------- */
+.ad-page {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 26px 24px calc(34px + env(safe-area-inset-bottom, 0px));
 }
-@media(max-width:550px) {
-  .ad-wrap {padding:13px}
-  .ad-top {align-items:flex-start}
-  .ad-top-actions {width:100%}
-  .ad-top-actions .ad-btn {flex:1}
-  .ad-profile {width:100%}
-  .ad-heading h1 {font-size:22px}
-  .ad-grid {gap:9px}
-  .ad-card {padding:14px}
-  .ad-card-value {font-size:23px}
-  .ad-card-icon {width:32px;height:32px}
-  .ad-nav-btn {min-width:120px;padding:11px 12px}
+.ad-title { margin-bottom: 22px; }
+.ad-title h1 { margin: 0 0 6px; font-size: 26px; line-height: 1.2; font-weight: 800; letter-spacing: -.5px; }
+.ad-title p { margin: 0; font-size: 14px; color: var(--muted); }
+
+.ad-error {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 13px 16px;
+  border: 1px solid #f4c5cd;
+  border-radius: 12px;
+  background: var(--bad-soft);
+  color: #b3243f;
+  font-size: 13px;
+}
+
+/* ---------- stat cards ---------- */
+.ad-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.ad-stat {
+  position: relative;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  text-align: left;
+  color: inherit;
+  min-width: 0;
+  transition: box-shadow .18s, transform .18s, border-color .18s;
+}
+.ad-stat:hover { box-shadow: var(--shadow-hover); border-color: #d3dcea; transform: translateY(-1px); }
+.ad-stat:active { transform: scale(.98); }
+.ad-stat-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ad-stat-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+.ad-stat-ic {
+  width: 40px; height: 40px; flex: none;
+  border-radius: 12px;
+  display: grid; place-items: center;
+}
+.ad-stat-val { margin-top: 16px; font-size: 32px; line-height: 1; font-weight: 800; letter-spacing: -1px; }
+.ad-stat-foot { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+/* ---------- panels ---------- */
+.ad-grid2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.ad-panel {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  min-width: 0;
+}
+.ad-ph {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ad-ph h3 { margin: 0; font-size: 15.5px; font-weight: 750; letter-spacing: -.1px; }
+.ad-pb { padding: 16px; }
+
+.ad-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
+  white-space: nowrap;
+}
+.ad-pill.ok   { background: var(--ok-soft);   color: var(--ok); }
+.ad-pill.warn { background: var(--warn-soft); color: var(--warn); }
+.ad-pill.bad  { background: var(--bad-soft);  color: var(--bad); }
+.ad-pill.blue { background: var(--primary-soft); color: var(--primary); }
+
+/* quick actions */
+.ad-quick-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ad-quick {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%;
+  min-height: 68px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #fbfcfe;
+  color: var(--text);
+  text-align: left;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.ad-quick:hover { border-color: #b9d3ee; background: var(--primary-soft); }
+.ad-quick:active { transform: scale(.98); }
+.ad-quick-ic {
+  width: 40px; height: 40px; flex: none;
+  border-radius: 11px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  display: grid; place-items: center;
+}
+.ad-quick-tx { flex: 1; min-width: 0; }
+.ad-quick-tx b { display: block; font-size: 13.5px; font-weight: 700; }
+.ad-quick-tx small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 3px;
+  font-size: 11.5px; line-height: 1.4;
+  color: var(--muted);
+}
+.ad-chev { flex: none; color: #a3adbd; font-size: 22px; line-height: 1; }
+.ad-quick.danger .ad-quick-ic { background: var(--bad-soft); color: var(--bad); }
+.ad-quick.danger:hover { background: var(--bad-soft); border-color: #f4c5cd; }
+
+/* summary */
+.ad-sum { display: grid; gap: 4px; }
+.ad-sum-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 13px 4px;
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 13.5px;
+}
+.ad-sum-l { display: flex; align-items: center; gap: 10px; color: var(--text-2); }
+.ad-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.ad-sum-row b { font-weight: 800; font-size: 14.5px; }
+.ad-total {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: 13px;
+  background: linear-gradient(135deg, #eaf6fb, #e8f0fc);
+}
+.ad-total span { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.ad-total b { display: block; margin-top: 6px; font-size: 26px; font-weight: 800; letter-spacing: -.6px; }
+.ad-total small { display: block; margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+
+/* recent deposits */
+.ad-recent { margin-top: 16px; }
+.ad-table-wrap { overflow-x: auto; }
+.ad-table { width: 100%; border-collapse: collapse; }
+.ad-table th {
+  padding: 12px 20px;
+  text-align: left;
+  font-size: 11px; font-weight: 700; letter-spacing: .4px;
+  color: var(--muted);
+  background: #f8fafd;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+.ad-table td {
+  padding: 14px 20px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.ad-table tbody tr:last-child td { border-bottom: 0; }
+.ad-table tbody tr:hover td { background: #fafbfe; }
+.ad-mono { font-variant-numeric: tabular-nums; }
+.ad-user { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* mobile list version of recent deposits */
+.ad-cards { display: none; }
+.ad-dep {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.ad-dep:last-child { border-bottom: 0; }
+.ad-dep-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ad-dep-id { font-size: 13px; font-weight: 750; }
+.ad-dep-user { margin-top: 6px; font-size: 12.5px; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ad-dep-bot { margin-top: 10px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.ad-dep-amt { font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
+.ad-dep-amt small { margin-left: 6px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.ad-dep-date { font-size: 11.5px; color: var(--muted); text-align: right; }
+
+.ad-empty { padding: 36px 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+
+.ad-foot { padding: 28px 0 0; text-align: center; font-size: 12px; color: #9aa5b8; }
+
+.ad-spin { animation: adspin 1s linear infinite; }
+@keyframes adspin { to { transform: rotate(360deg); } }
+
+/* skeleton */
+.ad-sk {
+  display: inline-block; width: 46px; height: 28px; border-radius: 8px;
+  background: linear-gradient(90deg, #eef1f6, #f6f8fb, #eef1f6);
+  background-size: 200% 100%;
+  animation: adsk 1.2s ease-in-out infinite;
+}
+@keyframes adsk { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ---------- tablet ---------- */
+@media (max-width: 1050px) {
+  .ad-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ad-grid2 { grid-template-columns: 1fr; }
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 680px) {
+  .ad-head-in { padding: 10px 14px; gap: 10px; }
+  .ad-brand-icon { width: 38px; height: 38px; font-size: 18px; border-radius: 11px; }
+  .ad-brand h2 { font-size: 15.5px; }
+  .ad-brand p { display: none; }
+
+  .ad-actions { gap: 8px; }
+  .ad-btn.refresh span.t { display: none; }
+  .ad-btn.refresh { width: 42px; padding: 0; }
+  .ad-btn.logout span.t { display: none; }
+  .ad-btn.logout { width: 42px; padding: 0; }
+  .ad-pinfo { display: none; }
+  .ad-profile { padding: 4px; }
+
+  .ad-nav { padding: 0 8px; gap: 2px; }
+  .ad-tab { padding: 0 13px; min-height: 46px; font-size: 13px; }
+
+  .ad-page { padding: 18px 14px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .ad-title { margin-bottom: 16px; }
+  .ad-title h1 { font-size: 22px; }
+  .ad-title p { font-size: 13px; }
+
+  .ad-stats { gap: 10px; margin-bottom: 14px; }
+  .ad-stat { padding: 14px; border-radius: 14px; }
+  .ad-stat-label { font-size: 12px; }
+  .ad-stat-ic { width: 34px; height: 34px; border-radius: 10px; }
+  .ad-stat-val { margin-top: 12px; font-size: 26px; }
+  .ad-stat-foot { font-size: 11px; }
+
+  .ad-grid2 { gap: 12px; }
+  .ad-ph { padding: 14px 16px; }
+  .ad-ph h3 { font-size: 15px; }
+  .ad-pb { padding: 12px; }
+  .ad-quick-list { grid-template-columns: 1fr; }
+
+  .ad-recent { margin-top: 12px; }
+  .ad-table-wrap { display: none; }
+  .ad-cards { display: block; }
+}
+
+@media (max-width: 360px) {
+  .ad-stat-val { font-size: 23px; }
+  .ad-stat-foot { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ad-wrap * { animation: none !important; transition: none !important; }
 }
 `;
 
@@ -211,14 +426,14 @@ const ADMIN_LINKS = [
     label: "Users",
     icon: ICON.eye,
     title: "User List",
-    desc: "Search users, edit, disable, change password, login as user",
+    desc: "Search, edit, disable users and change passwords",
   },
   {
     key: "adminKyc",
     label: "KYC",
     icon: ICON.lock,
     title: "KYC Requests",
-    desc: "Review, approve and reject user identity documents",
+    desc: "Review, approve and reject identity documents",
   },
   {
     key: "adminDeposits",
@@ -294,6 +509,9 @@ const getErrorMessage = (err) => {
   }
   return err?.message || "Could not load dashboard data. Please check the API.";
 };
+
+const badgeOf = (status) =>
+  status === "approved" ? "ok" : status === "rejected" ? "bad" : "warn";
 
 export default function Admin_Dashbord({ me, go, logout }) {
   const [deposits, setDeposits] = useState([]);
@@ -381,14 +599,50 @@ export default function Admin_Dashbord({ me, go, logout }) {
 
   const quickLinks = ADMIN_LINKS.filter((l) => l.key !== CURRENT_PAGE);
 
+  const val = (n) => (loading ? <i className="ad-sk" /> : n);
+
+  const cards = [
+    {
+      label: "Total Requests",
+      value: stats.total,
+      foot: "All deposit submissions",
+      icon: ICON.doc,
+      color: BLUE,
+      bg: "#eaf3fc",
+    },
+    {
+      label: "Pending",
+      value: stats.pending,
+      foot: "Waiting for review",
+      icon: ICON.bell,
+      color: "#c98a0a",
+      bg: "#fdf3dc",
+    },
+    {
+      label: "Approved",
+      value: stats.approved,
+      foot: "Successfully approved",
+      icon: ICON.eye,
+      color: GREEN,
+      bg: "#e3f6ee",
+    },
+    {
+      label: "Rejected",
+      value: stats.rejected,
+      foot: "Rejected submissions",
+      icon: ICON.lock,
+      color: RED,
+      bg: "#fdebee",
+    },
+  ];
+
   return (
     <div className="ad-wrap">
       <style>{CSS}</style>
 
-      <div className="ad-container">
-
-        {/* Header */}
-        <header className="ad-top">
+      {/* Sticky header + navigation */}
+      <header className="ad-head">
+        <div className="ad-head-in">
           <div className="ad-brand">
             <div className="ad-brand-icon">C</div>
             <div>
@@ -397,20 +651,23 @@ export default function Admin_Dashbord({ me, go, logout }) {
             </div>
           </div>
 
-          <div className="ad-top-actions">
+          <div className="ad-actions">
             <button
               type="button"
-              className="ad-btn"
+              className="ad-btn refresh"
               onClick={() => loadDashboard(true)}
               disabled={refreshing}
+              aria-label="Refresh"
             >
               <Ic d={ICON.trade} s={16} />
-              {refreshing ? "Refreshing..." : "Refresh"}
+              <span className="t">
+                {refreshing ? "Refreshing..." : "Refresh"}
+              </span>
             </button>
 
             <div className="ad-profile">
               <div className="ad-avatar">{initials}</div>
-              <div className="ad-profile-info">
+              <div className="ad-pinfo">
                 <b>{adminName}</b>
                 <small>{adminEmail}</small>
               </div>
@@ -418,47 +675,47 @@ export default function Admin_Dashbord({ me, go, logout }) {
 
             <button
               type="button"
-              className="ad-btn danger"
+              className="ad-btn ghost-danger logout"
               onClick={() => logout?.()}
+              aria-label="Logout"
             >
               <Ic d={ICON.lock} s={15} />
-              Logout
+              <span className="t">Logout</span>
             </button>
           </div>
-        </header>
+        </div>
 
-        {/* Navigation: all admin pages */}
-        <nav className="ad-nav">
-          {ADMIN_LINKS.map((link) => (
-            <button
-              key={link.key}
-              type="button"
-              className={
-                "ad-nav-btn" + (link.key === CURRENT_PAGE ? " on" : "")
-              }
-              onClick={() => open(link.key)}
-            >
-              <Ic d={link.icon} s={16} />
-              {link.label}
-            </button>
-          ))}
-        </nav>
+        <div className="ad-nav-wrap">
+          <nav className="ad-nav">
+            {ADMIN_LINKS.map((link) => (
+              <button
+                key={link.key}
+                type="button"
+                className={"ad-tab" + (link.key === CURRENT_PAGE ? " on" : "")}
+                onClick={() => open(link.key)}
+              >
+                <Ic d={link.icon} s={16} />
+                {link.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </header>
+
+      <main className="ad-page">
 
         {/* Page title */}
-        <section className="ad-heading">
+        <section className="ad-title">
           <h1>Dashboard Overview</h1>
-          <p>
-            Welcome back, {adminName}. Here's your platform overview.
-          </p>
+          <p>Welcome back, {adminName}. Here's your platform overview.</p>
         </section>
 
         {error && (
           <div className="ad-error">
-            {error}
+            <span>{error}</span>
             <button
               type="button"
-              className="ad-btn"
-              style={{ marginLeft: 12 }}
+              className="ad-btn sm"
               onClick={() => loadDashboard(true)}
             >
               Try Again
@@ -467,92 +724,40 @@ export default function Admin_Dashbord({ me, go, logout }) {
         )}
 
         {/* Statistics */}
-        <section className="ad-grid">
-
-          <div className="ad-card click" onClick={goDeposits}>
-            <div className="ad-card-head">
-              <span className="ad-card-label">
-                Total Deposit Requests
-              </span>
-              <span className="ad-card-icon">
-                <Ic d={ICON.doc} s={20} />
-              </span>
-            </div>
-            <div className="ad-card-value">
-              {loading ? "—" : stats.total}
-            </div>
-            <div className="ad-card-foot">
-              All deposit submissions
-            </div>
-          </div>
-
-          <div className="ad-card click" onClick={goDeposits}>
-            <div className="ad-card-head">
-              <span className="ad-card-label">Pending Requests</span>
-              <span
-                className="ad-card-icon"
-                style={{ color: "#f0b90b", background: "#493817" }}
-              >
-                <Ic d={ICON.bell} s={20} />
-              </span>
-            </div>
-            <div className="ad-card-value">
-              {loading ? "—" : stats.pending}
-            </div>
-            <div className="ad-card-foot">
-              Waiting for admin review
-            </div>
-          </div>
-
-          <div className="ad-card click" onClick={goDeposits}>
-            <div className="ad-card-head">
-              <span className="ad-card-label">Approved Requests</span>
-              <span
-                className="ad-card-icon"
-                style={{ color: GREEN, background: "#123d31" }}
-              >
-                <Ic d={ICON.eye} s={20} />
-              </span>
-            </div>
-            <div className="ad-card-value">
-              {loading ? "—" : stats.approved}
-            </div>
-            <div className="ad-card-foot">
-              Successfully approved deposits
-            </div>
-          </div>
-
-          <div className="ad-card click" onClick={goDeposits}>
-            <div className="ad-card-head">
-              <span className="ad-card-label">Rejected Requests</span>
-              <span
-                className="ad-card-icon"
-                style={{ color: RED, background: "#4a2028" }}
-              >
-                <Ic d={ICON.lock} s={20} />
-              </span>
-            </div>
-            <div className="ad-card-value">
-              {loading ? "—" : stats.rejected}
-            </div>
-            <div className="ad-card-foot">
-              Rejected deposit submissions
-            </div>
-          </div>
-
+        <section className="ad-stats">
+          {cards.map((c) => (
+            <button
+              key={c.label}
+              type="button"
+              className="ad-stat"
+              onClick={goDeposits}
+            >
+              <div className="ad-stat-top">
+                <span className="ad-stat-label">{c.label}</span>
+                <span
+                  className="ad-stat-ic"
+                  style={{ color: c.color, background: c.bg }}
+                >
+                  <Ic d={c.icon} s={19} />
+                </span>
+              </div>
+              <div className="ad-stat-val">{val(c.value)}</div>
+              <div className="ad-stat-foot">{c.foot}</div>
+            </button>
+          ))}
         </section>
 
         {/* Main panels */}
-        <section className="ad-main-grid">
+        <section className="ad-grid2">
 
           {/* Quick actions */}
           <div className="ad-panel">
-            <div className="ad-panel-head">
+            <div className="ad-ph">
               <h3>Admin Management</h3>
-              <span className="ad-badge ok">ADMIN</span>
+              <span className="ad-pill ok">ADMIN</span>
             </div>
 
-            <div className="ad-panel-body">
+            <div className="ad-pb">
               <div className="ad-quick-list">
 
                 {quickLinks.map((link) => (
@@ -562,14 +767,14 @@ export default function Admin_Dashbord({ me, go, logout }) {
                     className="ad-quick"
                     onClick={() => open(link.key)}
                   >
-                    <span className="ad-quick-icon">
-                      <Ic d={link.icon} s={21} />
+                    <span className="ad-quick-ic">
+                      <Ic d={link.icon} s={20} />
                     </span>
-                    <span className="ad-quick-text">
+                    <span className="ad-quick-tx">
                       <b>{link.title}</b>
                       <small>{link.desc}</small>
                     </span>
-                    <span className="ad-arrow">›</span>
+                    <span className="ad-chev">›</span>
                   </button>
                 ))}
 
@@ -578,34 +783,29 @@ export default function Admin_Dashbord({ me, go, logout }) {
                   className="ad-quick"
                   onClick={() => loadDashboard(true)}
                 >
-                  <span className="ad-quick-icon">
-                    <Ic d={ICON.trade} s={21} />
+                  <span className="ad-quick-ic">
+                    <Ic d={ICON.trade} s={20} />
                   </span>
-                  <span className="ad-quick-text">
+                  <span className="ad-quick-tx">
                     <b>Refresh Statistics</b>
-                    <small>
-                      Load the latest deposit request information
-                    </small>
+                    <small>Load the latest deposit request data</small>
                   </span>
-                  <span className="ad-arrow">›</span>
+                  <span className="ad-chev">›</span>
                 </button>
 
                 <button
                   type="button"
-                  className="ad-quick"
+                  className="ad-quick danger"
                   onClick={() => logout?.()}
                 >
-                  <span
-                    className="ad-quick-icon"
-                    style={{ background: "#4a2028", color: "#f6465d" }}
-                  >
-                    <Ic d={ICON.lock} s={21} />
+                  <span className="ad-quick-ic">
+                    <Ic d={ICON.lock} s={20} />
                   </span>
-                  <span className="ad-quick-text">
+                  <span className="ad-quick-tx">
                     <b>Logout</b>
                     <small>Sign out from the admin panel</small>
                   </span>
-                  <span className="ad-arrow">›</span>
+                  <span className="ad-chev">›</span>
                 </button>
 
               </div>
@@ -614,78 +814,54 @@ export default function Admin_Dashbord({ me, go, logout }) {
 
           {/* Summary */}
           <div className="ad-panel">
-            <div className="ad-panel-head">
+            <div className="ad-ph">
               <h3>Deposit Summary</h3>
-              <span className="ad-badge ok">API DATA</span>
+              <span className="ad-pill blue">LIVE DATA</span>
             </div>
 
-            <div className="ad-panel-body">
-              <div className="ad-status-list">
+            <div className="ad-pb">
+              <div className="ad-sum">
 
-                <div className="ad-status-row">
-                  <span className="ad-status-left">
-                    <i className="ad-dot" style={{ background: "#f0b90b" }} />
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l">
+                    <i className="ad-dot" style={{ background: "#e0a416" }} />
                     Pending
                   </span>
-                  <b className="ad-status-value">
-                    {loading ? "—" : stats.pending}
-                  </b>
+                  <b>{val(stats.pending)}</b>
                 </div>
 
-                <div className="ad-status-row">
-                  <span className="ad-status-left">
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l">
                     <i className="ad-dot" style={{ background: GREEN }} />
                     Approved
                   </span>
-                  <b className="ad-status-value">
-                    {loading ? "—" : stats.approved}
-                  </b>
+                  <b>{val(stats.approved)}</b>
                 </div>
 
-                <div className="ad-status-row">
-                  <span className="ad-status-left">
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l">
                     <i className="ad-dot" style={{ background: RED }} />
                     Rejected
                   </span>
-                  <b className="ad-status-value">
-                    {loading ? "—" : stats.rejected}
-                  </b>
+                  <b>{val(stats.rejected)}</b>
                 </div>
 
-                <div className="ad-status-row">
-                  <span className="ad-status-left">
+                <div className="ad-sum-row" style={{ borderBottom: 0 }}>
+                  <span className="ad-sum-l">
                     <i className="ad-dot" style={{ background: BLUE }} />
                     Total Requests
                   </span>
-                  <b className="ad-status-value">
-                    {loading ? "—" : stats.total}
-                  </b>
+                  <b>{val(stats.total)}</b>
                 </div>
 
-                <div
-                  style={{
-                    borderTop: "1px solid #252b35",
-                    paddingTop: 16,
-                    marginTop: 3,
-                  }}
-                >
-                  <div className="ad-card-label">
-                    Total Requested Amount
-                  </div>
-                  <div
-                    style={{
-                      fontSize: 23,
-                      fontWeight: 800,
-                      marginTop: 9,
-                    }}
-                  >
-                    {loading ? "—" : money(stats.totalAmount)}
-                  </div>
-                  <div className="ad-card-foot">
-                    Sum of request amounts returned by the API
-                  </div>
-                </div>
+              </div>
 
+              <div className="ad-total">
+                <span>Total Requested Amount</span>
+                <b className="ad-mono">
+                  {loading ? "—" : money(stats.totalAmount)}
+                </b>
+                <small>Sum of request amounts returned by the API</small>
               </div>
             </div>
           </div>
@@ -693,15 +869,12 @@ export default function Admin_Dashbord({ me, go, logout }) {
         </section>
 
         {/* Recent deposits */}
-        <section
-          className="ad-panel"
-          style={{ marginTop: 17 }}
-        >
-          <div className="ad-panel-head">
+        <section className="ad-panel ad-recent">
+          <div className="ad-ph">
             <h3>Recent Deposit Requests</h3>
             <button
               type="button"
-              className="ad-btn"
+              className="ad-btn sm"
               onClick={goDeposits}
             >
               View All <span>›</span>
@@ -709,79 +882,107 @@ export default function Admin_Dashbord({ me, go, logout }) {
           </div>
 
           {loading ? (
-            <div className="ad-loading">
-              Loading deposit requests...
-            </div>
+            <div className="ad-empty">Loading deposit requests...</div>
           ) : recent.length === 0 ? (
-            <div className="ad-empty">
-              No deposit requests found.
-            </div>
+            <div className="ad-empty">No deposit requests found.</div>
           ) : (
-            <div className="ad-table-wrap">
-              <table className="ad-table">
-                <thead>
-                  <tr>
-                    <th>REQUEST ID</th>
-                    <th>USER</th>
-                    <th>AMOUNT</th>
-                    <th>COIN</th>
-                    <th>DATE</th>
-                    <th>STATUS</th>
-                  </tr>
-                </thead>
+            <>
+              {/* Desktop / tablet: table */}
+              <div className="ad-table-wrap">
+                <table className="ad-table">
+                  <thead>
+                    <tr>
+                      <th>REQUEST ID</th>
+                      <th>USER</th>
+                      <th>AMOUNT</th>
+                      <th>COIN</th>
+                      <th>DATE</th>
+                      <th>STATUS</th>
+                    </tr>
+                  </thead>
 
-                <tbody>
-                  {recent.map((item, index) => {
-                    const status = statusOf(item);
+                  <tbody>
+                    {recent.map((item, index) => {
+                      const status = statusOf(item);
 
-                    const badge =
-                      status === "approved"
-                        ? "ok"
-                        : status === "rejected"
-                          ? "bad"
-                          : "warn";
+                      return (
+                        <tr key={item.id ?? index}>
+                          <td className="ad-mono">#{item.id ?? "—"}</td>
 
-                    return (
-                      <tr key={item.id ?? index}>
-                        <td>#{item.id ?? "—"}</td>
+                          <td>
+                            <div className="ad-user">
+                              {item.user_email ||
+                                item.email ||
+                                item.username ||
+                                item.user_id ||
+                                "—"}
+                            </div>
+                          </td>
 
-                        <td>
-                          {item.user_email ||
-                            item.email ||
-                            item.username ||
-                            item.user_id ||
-                            "—"}
-                        </td>
+                          <td className="ad-mono">
+                            <b>{money(amountOf(item))}</b>
+                          </td>
 
-                        <td>{money(amountOf(item))}</td>
+                          <td>{item.coin || item.currency || "—"}</td>
 
-                        <td>
-                          {item.coin || item.currency || "—"}
-                        </td>
+                          <td>{dateOf(item.created_at || item.createdAt)}</td>
 
-                        <td>
+                          <td>
+                            <span className={`ad-pill ${badgeOf(status)}`}>
+                              {status.toUpperCase()}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile: card list */}
+              <div className="ad-cards">
+                {recent.map((item, index) => {
+                  const status = statusOf(item);
+
+                  return (
+                    <div className="ad-dep" key={item.id ?? index}>
+                      <div className="ad-dep-top">
+                        <span className="ad-dep-id">#{item.id ?? "—"}</span>
+                        <span className={`ad-pill ${badgeOf(status)}`}>
+                          {status.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div className="ad-dep-user">
+                        {item.user_email ||
+                          item.email ||
+                          item.username ||
+                          item.user_id ||
+                          "—"}
+                      </div>
+
+                      <div className="ad-dep-bot">
+                        <span className="ad-dep-amt ad-mono">
+                          {money(amountOf(item))}
+                          <small>{item.coin || item.currency || ""}</small>
+                        </span>
+                        <span className="ad-dep-date">
                           {dateOf(item.created_at || item.createdAt)}
-                        </td>
-
-                        <td>
-                          <span className={`ad-badge ${badge}`}>
-                            {status.toUpperCase()}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </section>
 
-        <div className="ad-footer">
+        <div className="ad-foot">
           Trading Admin Panel · Secure Management
         </div>
 
-      </div>
+      </main>
     </div>
   );
 }
