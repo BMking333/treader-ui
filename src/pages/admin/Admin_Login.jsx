@@ -3,17 +3,18 @@ import { useT, api, store } from "../Home";
 import { LANGS } from "../../lib/i18n";
 
 
-const mailOk = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+/* Username or email: no email format required (e.g. "User.897") */
+const idOk = (s) => /^[^\s]{3,}$/.test(s);
 const pwOk = (p) => p.length >= 6;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const FB = {
-  email: "Email",
-  acc: "Enter admin email",
+  email: "Username or Email",
+  acc: "Enter admin username",
   pwLbl: "Password",
   pw: "Enter your password",
   rem: "Remember me",
-  bEmail: "Enter a valid email address",
+  bUser: "Enter a valid username (min 3 characters, no spaces)",
   pwRule: "Password must be at least 6 characters",
   wait2: "Please wait…",
   err: "Something went wrong. Please try again.",
@@ -69,10 +70,10 @@ function useTx() {
 
 /* ---------- icons ---------- */
 const PATHS = {
-  mail: (
+  user: (
     <>
-      <rect x="3" y="5" width="18" height="14" rx="3.5" />
-      <path d="m4.5 8.5 7.5 5 7.5-5" />
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20c0-4 3.4-6.5 7.5-6.5s7.5 2.5 7.5 6.5" />
     </>
   ),
   lock: (
@@ -295,16 +296,17 @@ export default function Admin_Login({ onLogin, lang, setLang, go, flash = "" }) 
   const [tried, setTried] = useState(false);
   const [msg, setMsg] = useState(flash ? { k: flash, kind: "info" } : NONE);
 
+  // login id (username or email), trimmed + lowercased (matches backend norm())
   const mail = email.trim().toLowerCase();
   const closeToast = useCallback(() => setMsg(NONE), []);
 
-  const eMail = tried && !mailOk(mail) ? tx("bEmail") : "";
+  const eMail = tried && !idOk(mail) ? tx("bUser") : "";
   const ePw = tried && !pwOk(pw) ? tx("pwRule") : "";
 
   const login = async () => {
     if (busy) return;
     setTried(true);
-    if (!mailOk(mail) || !pwOk(pw)) return;
+    if (!idOk(mail) || !pwOk(pw)) return;
 
     setBusy(true);
     setMsg({ k: "wait2", kind: "load" });
@@ -377,9 +379,9 @@ export default function Admin_Login({ onLogin, lang, setLang, go, flash = "" }) 
           <Field
             id="al-email"
             label={tx("email")}
-            icon="mail"
-            type="email"
-            inputMode="email"
+            icon="user"
+            type="text"
+            inputMode="text"
             autoComplete="username"
             placeholder={tx("acc")}
             value={email}
