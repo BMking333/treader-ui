@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../Home";
 
+/* =========================================================
+   src/pages/admin/Admin_PaymentMethod.jsx
+   Crypto Payment Methods  (light theme, mobile + desktop)
+   ========================================================= */
+
 const COINS = ["USDT", "BTC", "USDC", "ETH", "DOGE", "XRP", "SOL", "PYUSD"];
 
 const NETWORKS = {
@@ -108,7 +113,331 @@ function getErrorMessage(err) {
   return ERROR_MESSAGES[message] || message || "Something went wrong.";
 }
 
-export default function Admin_PaymentMethod() {
+const CSS = `
+.apm, .apm * { box-sizing: border-box; }
+
+.apm {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --line: #e5e9f0;
+  --line-soft: #eef1f6;
+  --text: #0f1b30;
+  --text-2: #4a5568;
+  --muted: #7a8699;
+  --primary: #1f7acb;
+  --primary-soft: #eaf3fc;
+  --ok: #0e9f6e;
+  --ok-soft: #e3f6ee;
+  --bad: #e0415f;
+  --bad-soft: #fdebee;
+  --shadow: 0 1px 2px rgba(16,30,54,.04), 0 6px 20px rgba(16,30,54,.05);
+
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+.apm button, .apm input, .apm select, .apm textarea { font-family: inherit; }
+.apm button { cursor: pointer; -webkit-appearance: none; appearance: none; }
+
+.apm-in {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 22px 24px calc(34px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---------- header ---------- */
+.apm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.apm-brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.apm-mark {
+  width: 46px; height: 46px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff; font-size: 22px; font-weight: 800;
+  box-shadow: 0 6px 16px rgba(40,125,225,.30);
+}
+.apm-title { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 800; letter-spacing: -.5px; }
+.apm-sub { margin-top: 5px; font-size: 13px; color: var(--muted); }
+.apm-hbtns { display: flex; gap: 10px; }
+
+/* ---------- buttons ---------- */
+.apm-btn {
+  min-height: 42px;
+  padding: 0 18px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px; font-weight: 650;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, transform .1s, opacity .15s;
+}
+.apm-btn:hover { border-color: #c7d3e4; background: #f8fafd; }
+.apm-btn:active { transform: scale(.97); }
+.apm-btn:disabled { opacity: .55; cursor: not-allowed; }
+.apm-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.apm-btn.primary:hover { background: #1768ad; border-color: #1768ad; }
+.apm-btn.sm { min-height: 36px; padding: 0 14px; font-size: 12px; }
+.apm-btn.edit { background: var(--primary-soft); border-color: #b9d3ee; color: var(--primary); }
+.apm-btn.edit:hover { background: #dcebfa; }
+.apm-btn.disable { background: var(--bad-soft); border-color: #f4c5cd; color: var(--bad); }
+.apm-btn.disable:hover { background: #fadde2; }
+.apm-btn.enable { background: var(--ok-soft); border-color: #bfe8d6; color: var(--ok); }
+.apm-btn.enable:hover { background: #d3f0e4; }
+
+/* ---------- alerts ---------- */
+.apm-alert {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.apm-alert.error   { background: var(--bad-soft); border-color: #f4c5cd; color: #b3243f; }
+.apm-alert.success { background: var(--ok-soft);  border-color: #bfe8d6; color: #087a54; }
+
+/* ---------- stats ---------- */
+.apm-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.apm-stat {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.apm-stat-top { display: flex; align-items: center; gap: 8px; }
+.apm-dot { width: 9px; height: 9px; border-radius: 50%; }
+.apm-stat-label { font-size: 12px; font-weight: 700; letter-spacing: .3px; color: var(--text-2); }
+.apm-stat-val { margin-top: 12px; font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -1px; }
+
+/* ---------- cards ---------- */
+.apm-card {
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.apm-ch {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.apm-ct { margin: 0; font-size: 15.5px; font-weight: 750; }
+.apm-cs { margin-top: 3px; font-size: 12px; color: var(--muted); }
+.apm-cb { padding: 20px; }
+
+.apm-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
+  white-space: nowrap;
+}
+.apm-pill.on   { background: var(--ok-soft);   color: var(--ok); }
+.apm-pill.off  { background: var(--bad-soft);  color: var(--bad); }
+.apm-pill.blue { background: var(--primary-soft); color: var(--primary); }
+
+/* ---------- form ---------- */
+.apm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.apm-field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.apm-field.full { grid-column: 1 / -1; }
+.apm-field > label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+
+.apm-input, .apm-select, .apm-textarea {
+  width: 100%; min-width: 0;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f8fafd;
+  color: var(--text);
+  font-size: 15px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.apm-input, .apm-select { height: 48px; }
+.apm-select {
+  -webkit-appearance: none; appearance: none;
+  padding-right: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237a8699' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.apm-textarea { min-height: 96px; padding: 12px 14px; resize: vertical; }
+.apm-input::placeholder, .apm-textarea::placeholder { color: #9aa7bd; }
+.apm-input:focus, .apm-select:focus, .apm-textarea:focus {
+  border-color: #8dbbe8; background: #fff; box-shadow: 0 0 0 3px rgba(31,122,203,.12);
+}
+.apm-hint { font-size: 12px; line-height: 1.5; color: var(--muted); }
+
+/* coin picker */
+.apm-coins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.apm-coin-opt {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: #fbfcfe;
+  color: var(--text-2);
+  text-align: left;
+  min-width: 0;
+  transition: border-color .15s, background .15s, transform .1s;
+}
+.apm-coin-opt:hover { border-color: #b9d3ee; }
+.apm-coin-opt:active { transform: scale(.97); }
+.apm-coin-opt.on { border-color: var(--primary); background: var(--primary-soft); color: var(--text); }
+.apm-coin-name { font-size: 13px; font-weight: 750; }
+
+.apm-logo {
+  width: 32px; height: 32px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: #fff; font-size: 14px; font-weight: 800;
+}
+.apm-logo.usdt { background: #26a17b; } .apm-logo.btc { background: #f7931a; }
+.apm-logo.usdc { background: #2775ca; } .apm-logo.eth { background: #627eea; }
+.apm-logo.doge { background: #c2a633; } .apm-logo.xrp { background: #303b4a; }
+.apm-logo.sol { background: #6546c8; }  .apm-logo.pyusd { background: #2775ca; }
+.apm-logo.default { background: #6b86a8; }
+
+/* toggle switch */
+.apm-switch {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafd;
+  cursor: pointer;
+}
+.apm-switch b { display: block; font-size: 14px; font-weight: 650; }
+.apm-switch small { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
+.apm-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.apm-sw {
+  width: 48px; height: 28px; flex: none;
+  position: relative;
+  border-radius: 14px;
+  background: #cfd7e3;
+  transition: background .2s;
+}
+.apm-sw::after {
+  content: "";
+  position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  transition: transform .2s;
+}
+.apm-switch input:checked + .apm-sw { background: var(--ok); }
+.apm-switch input:checked + .apm-sw::after { transform: translateX(20px); }
+.apm-switch input:focus-visible + .apm-sw { box-shadow: 0 0 0 3px rgba(31,122,203,.25); }
+
+.apm-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
+.apm-actions .apm-btn { min-height: 46px; padding: 0 22px; font-size: 14px; }
+
+/* ---------- list ---------- */
+.apm-search-row { padding: 14px 20px 0; }
+.apm-table-wrap { overflow-x: auto; margin-top: 14px; }
+.apm-table { width: 100%; min-width: 860px; border-collapse: collapse; }
+.apm-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px; font-weight: 700; letter-spacing: .4px;
+  color: var(--muted);
+  background: #f8fafd;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+.apm-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.apm-table tbody tr:last-child td { border-bottom: 0; }
+.apm-table tbody tr:hover td { background: #fafbfe; }
+.apm-method { display: flex; align-items: center; gap: 11px; min-width: 150px; }
+.apm-mn { font-weight: 700; }
+.apm-muted { margin-top: 3px; font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.apm-addr { max-width: 230px; font-size: 12px; overflow-wrap: anywhere; }
+.apm-acts { display: flex; gap: 6px; }
+
+/* mobile cards */
+.apm-list { display: none; }
+.apm-item { padding: 16px; border-bottom: 1px solid var(--line-soft); }
+.apm-item:last-child { border-bottom: 0; }
+.apm-item-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.apm-item-top .apm-method { min-width: 0; }
+.apm-kv { margin-top: 14px; display: grid; gap: 9px; }
+.apm-kv div { display: flex; justify-content: space-between; gap: 14px; font-size: 13px; }
+.apm-kv span { color: var(--muted); flex: none; }
+.apm-kv b { font-weight: 650; text-align: right; overflow-wrap: anywhere; min-width: 0; }
+.apm-item-acts { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.apm-item-acts .apm-btn { min-height: 46px; font-size: 14px; }
+
+.apm-empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+
+/* ---------- tablet ---------- */
+@media (max-width: 900px) {
+  .apm-in { padding: 18px 16px calc(30px + env(safe-area-inset-bottom, 0px)); }
+  .apm-coins { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 760px) {
+  .apm-table-wrap { display: none; }
+  .apm-list { display: block; margin-top: 14px; border-top: 1px solid var(--line-soft); }
+
+  .apm-title { font-size: 21px; }
+  .apm-sub { font-size: 12px; }
+  .apm-hbtns { width: 100%; }
+  .apm-hbtns .apm-btn { flex: 1; }
+
+  .apm-stats { gap: 8px; }
+  .apm-stat { padding: 13px 12px; border-radius: 14px; }
+  .apm-stat-label { font-size: 10.5px; }
+  .apm-stat-val { margin-top: 9px; font-size: 24px; }
+
+  .apm-ch { padding: 14px; }
+  .apm-cb { padding: 14px; }
+  .apm-search-row { padding: 12px 14px 0; }
+}
+
+@media (max-width: 560px) {
+  .apm-in { padding: 14px 12px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .apm-grid { grid-template-columns: 1fr; gap: 14px; }
+  .apm-field.full { grid-column: auto; }
+  .apm-actions { flex-direction: column-reverse; }
+  .apm-actions .apm-btn { width: 100%; }
+  .apm-input, .apm-select { font-size: 16px; } /* prevents iOS zoom on focus */
+  .apm-textarea { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apm * { transition: none !important; }
+}
+`;
+
+export default function Admin_PaymentMethod({ go } = {}) {
   const [methods, setMethods] = useState([]);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [editingId, setEditingId] = useState(null);
@@ -317,376 +646,449 @@ export default function Admin_PaymentMethod() {
 
   return (
     <div className="apm">
-      <style>{`
-        .apm {
-          --bg:#080e19;--panel:#101a2a;--panel2:#0b1524;
-          --line:rgba(148,163,184,.15);--text:#edf4ff;--muted:#91a3bc;
-          min-height:100%;padding:clamp(14px,2.4vw,30px);color:var(--text);
-          background:
-            radial-gradient(ellipse at 8% 0%,rgba(37,99,235,.14),transparent 34%),
-            radial-gradient(ellipse at 100% 12%,rgba(14,165,233,.07),transparent 28%),
-            var(--bg);
-          font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-        }
-        .apm *{box-sizing:border-box}
-        .apm-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:24px}
-        .apm-brand{display:flex;align-items:center;gap:14px}
-        .apm-brand-icon{width:50px;height:50px;display:grid;place-items:center;border-radius:16px;
-          color:#c5dcff;font-size:25px;font-weight:900;background:linear-gradient(145deg,#24528c,#142b4c);
-          border:1px solid rgba(125,175,255,.3);box-shadow:0 10px 30px rgba(0,0,0,.22)}
-        .apm-title{font-size:clamp(21px,2.3vw,28px);font-weight:850;letter-spacing:-.7px;margin:0}
-        .apm-sub{font-size:12px;color:var(--muted);margin-top:6px}
-        .apm-secure{display:flex;align-items:center;gap:7px;margin-top:9px;color:#68dfb0;font-size:10px;font-weight:850;letter-spacing:.8px;text-transform:uppercase}
-        .apm-dot{width:7px;height:7px;border-radius:50%;background:#43d6a0;box-shadow:0 0 12px #43d6a0}
-        .apm-card,.apm-stat{background:linear-gradient(145deg,rgba(17,29,47,.97),rgba(11,21,36,.98));
-          border:1px solid var(--line);border-radius:17px;box-shadow:0 14px 36px rgba(0,0,0,.16)}
-        .apm-card{padding:clamp(14px,2vw,21px);margin-bottom:17px}
-        .apm-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-        .apm-card-title{font-size:15px;font-weight:800;margin:0}
-        .apm-card-sub{font-size:11px;color:var(--muted);margin-top:5px}
-        .apm-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:17px}
-        .apm-stat{padding:16px 18px;position:relative;overflow:hidden}
-        .apm-stat:after{content:"";position:absolute;width:85px;height:85px;right:-30px;top:-35px;border-radius:50%;background:rgba(96,165,250,.07)}
-        .apm-stat-label{font-size:10px;color:var(--muted);font-weight:850;letter-spacing:.9px}
-        .apm-stat-value{font-size:26px;font-weight:850;letter-spacing:-.7px;margin-top:8px}
-        .apm-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
-        .apm-field{display:flex;flex-direction:column;gap:7px;min-width:0}
-        .apm-field.full{grid-column:1/-1}
-        .apm-field label{font-size:11px;color:#a8b7cc;font-weight:750}
-        .apm-input,.apm-select,.apm-textarea{width:100%;min-width:0;background:#091321;color:var(--text);
-          border:1px solid var(--line);border-radius:10px;padding:12px 13px;outline:none;font-size:12px;transition:.18s}
-        .apm-input:focus,.apm-select:focus,.apm-textarea:focus{border-color:#528fe5;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
-        .apm-textarea{min-height:92px;resize:vertical}
-        .apm-hint{font-size:10px;color:var(--muted);line-height:1.5}
-        .apm-coin-select{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
-        .apm-coin-option{display:flex;align-items:center;gap:8px;padding:10px 9px;border-radius:11px;
-          border:1px solid var(--line);background:#0a1422;color:#c5d2e5;cursor:pointer;min-width:0;transition:.18s}
-        .apm-coin-option:hover{border-color:rgba(114,167,255,.45)}
-        .apm-coin-option.active{background:rgba(37,99,235,.16);border-color:#4b8be5;color:#eff6ff;box-shadow:0 5px 15px rgba(37,99,235,.1)}
-        .apm-coin-logo{width:27px;height:27px;flex:0 0 27px;display:grid;place-items:center;border-radius:50%;font-size:13px;font-weight:900;color:#fff}
-        .apm-coin-logo.usdt{background:#26a17b}.apm-coin-logo.btc{background:#f7931a}.apm-coin-logo.usdc{background:#2775ca}
-        .apm-coin-logo.eth{background:#627eea}.apm-coin-logo.doge{background:#c2a633}.apm-coin-logo.xrp{background:#303b4a}
-        .apm-coin-logo.sol{background:#6546c8}.apm-coin-logo.pyusd{background:#2775ca}.apm-coin-logo.default{background:#42648c}
-        .apm-coin-name{font-size:11px;font-weight:850;overflow:hidden;text-overflow:ellipsis}
-        .apm-check{display:flex;align-items:center;gap:9px;font-size:12px;color:#c8d5e8}
-        .apm-check input{accent-color:#4388ed;width:15px;height:15px}
-        .apm-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:19px}
-        .apm-btn{border:1px solid transparent;border-radius:10px;padding:10px 15px;cursor:pointer;font-size:11px;font-weight:850;transition:.18s}
-        .apm-btn:disabled{opacity:.5;cursor:not-allowed}
-        .apm-primary{background:linear-gradient(135deg,#347ff0,#2057b4);color:#fff;border-color:rgba(125,175,255,.25);box-shadow:0 7px 18px rgba(37,99,235,.17)}
-        .apm-primary:hover{filter:brightness(1.1);transform:translateY(-1px)}
-        .apm-secondary{background:#26364e;color:#e3edfc;border-color:var(--line)}
-        .apm-alert{padding:12px 14px;border-radius:10px;font-size:12px;margin-bottom:14px;border:1px solid transparent}
-        .apm-error{color:#ffabb4;background:rgba(244,63,94,.1);border-color:rgba(244,63,94,.2)}
-        .apm-success{color:#7be8ba;background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.2)}
-        .apm-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:15px}
-        .apm-search{max-width:320px}
-        .apm-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
-        .apm-table{width:100%;min-width:790px;border-collapse:collapse;background:rgba(7,14,25,.3)}
-        .apm-table th{text-align:left;color:var(--muted);font-size:9px;letter-spacing:.8px;font-weight:850;padding:13px 12px;background:#0b1524;border-bottom:1px solid var(--line);white-space:nowrap}
-        .apm-table td{padding:13px 12px;font-size:11px;border-bottom:1px solid rgba(148,163,184,.09);vertical-align:middle}
-        .apm-table tbody tr:hover{background:rgba(59,130,246,.05)}
-        .apm-table tbody tr:last-child td{border-bottom:0}
-        .apm-method{display:flex;align-items:center;gap:9px;min-width:145px}
-        .apm-method-name{font-size:11px;font-weight:850;color:#e7f0ff}
-        .apm-muted{color:var(--muted);font-size:10px;margin-top:4px;overflow-wrap:anywhere}
-        .apm-pill{display:inline-flex;align-items:center;border-radius:30px;padding:6px 9px;font-size:9px;font-weight:850;letter-spacing:.4px}
-        .apm-pill.on{color:#6ee5b4;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.2)}
-        .apm-pill.off{color:#ff9eaa;background:rgba(244,63,94,.12);border:1px solid rgba(244,63,94,.2)}
-        .apm-row-actions{display:flex;gap:6px;flex-wrap:wrap}
-        .apm-edit,.apm-toggle{border:1px solid transparent;border-radius:8px;padding:8px 10px;font-size:10px;font-weight:850;cursor:pointer}
-        .apm-edit{background:rgba(59,130,246,.15);color:#b8d2ff;border-color:rgba(59,130,246,.2)}
-        .apm-toggle.disable{background:rgba(244,63,94,.12);color:#ff9ba8;border-color:rgba(244,63,94,.2)}
-        .apm-toggle.enable{background:rgba(16,185,129,.12);color:#69e5ae;border-color:rgba(16,185,129,.2)}
-        .apm-toggle:disabled{opacity:.5;cursor:not-allowed}
-        .apm-empty{text-align:center;padding:38px 18px;color:var(--muted);font-size:12px}
-        @media(max-width:700px){.apm{padding:13px}.apm-stats{gap:8px}.apm-stat{padding:12px}.apm-stat-value{font-size:21px}.apm-coin-select{grid-template-columns:repeat(2,minmax(0,1fr))}}
-        @media(max-width:520px){.apm-grid{grid-template-columns:1fr}.apm-field.full{grid-column:auto}.apm-card{padding:14px}.apm-brand-icon{width:43px;height:43px;border-radius:13px}}
-      `}</style>
+      <style>{CSS}</style>
 
-      <header className="apm-head">
-        <div className="apm-brand">
-          <div className="apm-brand-icon">₿</div>
-          <div>
-            <h1 className="apm-title">Crypto Payment Methods</h1>
-            <div className="apm-sub">Configure wallet addresses, blockchain networks and deposit limits.</div>
-            <div className="apm-secure"><span className="apm-dot" /> Cryptocurrency payments only</div>
-          </div>
-        </div>
-        <button
-          type="button"
-          className="apm-btn apm-secondary"
-          onClick={loadMethods}
-          disabled={loading}
-        >
-          ↻ &nbsp;{loading ? "Loading..." : "Refresh"}
-        </button>
-      </header>
+      <div className="apm-in">
 
-      <div className="apm-stats">
-        <div className="apm-stat">
-          <div className="apm-stat-label">TOTAL CRYPTO METHODS</div>
-          <div className="apm-stat-value">{stats.total}</div>
-        </div>
-        <div className="apm-stat">
-          <div className="apm-stat-label">ACTIVE</div>
-          <div className="apm-stat-value">{stats.active}</div>
-        </div>
-        <div className="apm-stat">
-          <div className="apm-stat-label">DISABLED</div>
-          <div className="apm-stat-value">{stats.disabled}</div>
-        </div>
-      </div>
-
-      <section className="apm-card">
-        <div className="apm-card-head">
-          <div>
-            <h2 className="apm-card-title">
-              {editingId !== null ? `Edit Crypto Method #${editingId}` : "Add Crypto Payment Method"}
-            </h2>
-            <div className="apm-card-sub">Set the receiving wallet and supported blockchain network.</div>
-          </div>
-          {editingId !== null && <span className="apm-pill on">EDITING</span>}
-        </div>
-
-        {error && <div className="apm-alert apm-error">{error}</div>}
-        {success && <div className="apm-alert apm-success">{success}</div>}
-
-        <form onSubmit={submit}>
-          <div className="apm-grid">
-            <div className="apm-field full">
-              <label>Select Cryptocurrency</label>
-              <div className="apm-coin-select">
-                {COINS.map((coin) => {
-                  const meta = coinMeta(coin);
-                  return (
-                    <button
-                      type="button"
-                      key={coin}
-                      className={`apm-coin-option ${form.coin === coin ? "active" : ""}`}
-                      onClick={() => selectCoin(coin)}
-                    >
-                      <span className={`apm-coin-logo ${meta.className}`}>{meta.symbol}</span>
-                      <span className="apm-coin-name">{coin}</span>
-                    </button>
-                  );
-                })}
+        {/* Header */}
+        <header className="apm-head">
+          <div className="apm-brand">
+            <div className="apm-mark">₿</div>
+            <div>
+              <h1 className="apm-title">Crypto Payment Methods</h1>
+              <div className="apm-sub">
+                Configure wallet addresses, blockchain networks and deposit limits.
               </div>
             </div>
-
-            <div className="apm-field">
-              <label>Display Name</label>
-              <input
-                className="apm-input"
-                value={form.name}
-                onChange={(e) => update("name", e.target.value)}
-                placeholder="Example: USDT TRC20"
-                required
-              />
-            </div>
-
-            <div className="apm-field">
-              <label>Blockchain Network</label>
-              <select
-                className="apm-select"
-                value={form.network}
-                onChange={(e) => update("network", e.target.value)}
-                required
-              >
-                {(NETWORKS[form.coin] || []).map((network) => (
-                  <option key={network} value={network}>{network}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="apm-field full">
-              <label>Receiving Wallet Address</label>
-              <input
-                className="apm-input"
-                value={form.address}
-                onChange={(e) => update("address", e.target.value)}
-                placeholder={`Enter your ${form.coin} ${form.network} wallet address`}
-                required
-              />
-              <small className="apm-hint">Make sure the selected network matches the wallet address. Sending through a different network may result in permanent loss of funds.</small>
-            </div>
-
-            <div className="apm-field">
-              <label>Minimum Deposit ({form.coin})</label>
-              <input
-                className="apm-input"
-                type="number"
-                min="0.00000001"
-                step="any"
-                value={form.min_amount}
-                onChange={(e) => update("min_amount", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="apm-field">
-              <label>Maximum Deposit ({form.coin})</label>
-              <input
-                className="apm-input"
-                type="number"
-                min="0.00000001"
-                step="any"
-                value={form.max_amount}
-                onChange={(e) => update("max_amount", e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="apm-field">
-              <label>Exchange Rate (BDT per 1 {form.coin})</label>
-              <input
-                className="apm-input"
-                type="number"
-                min="0.00000001"
-                step="any"
-                value={form.rate_bdt_per_coin}
-                onChange={(e) => update("rate_bdt_per_coin", e.target.value)}
-                required
-              />
-              <small className="apm-hint">Enter the BDT value of one unit of {form.coin}.</small>
-            </div>
-
-            <div className="apm-field">
-              <label>QR Image URL (Optional)</label>
-              <input
-                className="apm-input"
-                value={form.qr_image_url}
-                onChange={(e) => update("qr_image_url", e.target.value)}
-                placeholder="https://your-domain.com/crypto-qr.png"
-              />
-            </div>
-
-            <div className="apm-field full">
-              <label>Deposit Instructions (Optional)</label>
-              <textarea
-                className="apm-textarea"
-                value={form.instructions}
-                onChange={(e) => update("instructions", e.target.value)}
-                placeholder={`Enter instructions for ${form.coin} deposits on ${form.network}...`}
-              />
-            </div>
-
-            <div className="apm-field full">
-              <label className="apm-check">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => update("is_active", e.target.checked)}
-                />
-                Enable this crypto payment method
-              </label>
-            </div>
           </div>
 
-          <div className="apm-actions">
-            <button className="apm-btn apm-primary" type="submit" disabled={saving}>
-              {saving ? "Saving..." : editingId !== null ? "Update Crypto Method" : "Create Crypto Method"}
-            </button>
-            {editingId !== null && (
-              <button className="apm-btn apm-secondary" type="button" onClick={resetForm} disabled={saving}>
-                Cancel Edit
+          <div className="apm-hbtns">
+            {go && (
+              <button
+                type="button"
+                className="apm-btn"
+                onClick={() => go("admin")}
+              >
+                ‹ Dashboard
               </button>
             )}
+            <button
+              type="button"
+              className="apm-btn primary"
+              onClick={loadMethods}
+              disabled={loading}
+            >
+              ↻ {loading ? "Loading..." : "Refresh"}
+            </button>
           </div>
-        </form>
-      </section>
+        </header>
 
-      <section className="apm-card">
-        <div className="apm-toolbar">
-          <div>
-            <h2 className="apm-card-title">Configured Crypto Wallets ({filtered.length})</h2>
-            <div className="apm-card-sub">Only supported cryptocurrency payment methods are listed.</div>
+        {/* Stats */}
+        <div className="apm-stats">
+          <div className="apm-stat">
+            <div className="apm-stat-top">
+              <i className="apm-dot" style={{ background: "#1f7acb" }} />
+              <span className="apm-stat-label">TOTAL</span>
+            </div>
+            <div className="apm-stat-val">{stats.total}</div>
           </div>
-          <input
-            className="apm-input apm-search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search coin, network or address..."
-          />
+          <div className="apm-stat">
+            <div className="apm-stat-top">
+              <i className="apm-dot" style={{ background: "#0e9f6e" }} />
+              <span className="apm-stat-label">ACTIVE</span>
+            </div>
+            <div className="apm-stat-val">{stats.active}</div>
+          </div>
+          <div className="apm-stat">
+            <div className="apm-stat-top">
+              <i className="apm-dot" style={{ background: "#e0415f" }} />
+              <span className="apm-stat-label">DISABLED</span>
+            </div>
+            <div className="apm-stat-val">{stats.disabled}</div>
+          </div>
         </div>
 
-        {loading ? (
-          <div className="apm-empty">Loading crypto payment methods...</div>
-        ) : (
-          <div className="apm-table-wrap">
-            <table className="apm-table">
-              <thead>
-                <tr>
-                  <th>CRYPTO ASSET</th>
-                  <th>NETWORK</th>
-                  <th>WALLET ADDRESS</th>
-                  <th>DEPOSIT LIMIT</th>
-                  <th>RATE</th>
-                  <th>STATUS</th>
-                  <th>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
+        {/* Form */}
+        <section className="apm-card">
+          <div className="apm-ch">
+            <div>
+              <h2 className="apm-ct">
+                {editingId !== null
+                  ? `Edit Crypto Method #${editingId}`
+                  : "Add Crypto Payment Method"}
+              </h2>
+              <div className="apm-cs">
+                Set the receiving wallet and supported blockchain network.
+              </div>
+            </div>
+            {editingId !== null && <span className="apm-pill blue">EDITING</span>}
+          </div>
+
+          <div className="apm-cb">
+            {error && <div className="apm-alert error">{error}</div>}
+            {success && <div className="apm-alert success">{success}</div>}
+
+            <form onSubmit={submit}>
+              <div className="apm-grid">
+                <div className="apm-field full">
+                  <label>Select Cryptocurrency</label>
+                  <div className="apm-coins">
+                    {COINS.map((coin) => {
+                      const meta = coinMeta(coin);
+                      return (
+                        <button
+                          type="button"
+                          key={coin}
+                          className={"apm-coin-opt" + (form.coin === coin ? " on" : "")}
+                          onClick={() => selectCoin(coin)}
+                        >
+                          <span className={`apm-logo ${meta.className}`}>
+                            {meta.symbol}
+                          </span>
+                          <span className="apm-coin-name">{coin}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="apm-field">
+                  <label htmlFor="apm-name">Display Name</label>
+                  <input
+                    id="apm-name"
+                    className="apm-input"
+                    value={form.name}
+                    onChange={(e) => update("name", e.target.value)}
+                    placeholder="Example: USDT TRC20"
+                    required
+                  />
+                </div>
+
+                <div className="apm-field">
+                  <label htmlFor="apm-net">Blockchain Network</label>
+                  <select
+                    id="apm-net"
+                    className="apm-select"
+                    value={form.network}
+                    onChange={(e) => update("network", e.target.value)}
+                    required
+                  >
+                    {(NETWORKS[form.coin] || []).map((network) => (
+                      <option key={network} value={network}>{network}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="apm-field full">
+                  <label htmlFor="apm-addr">Receiving Wallet Address</label>
+                  <input
+                    id="apm-addr"
+                    className="apm-input"
+                    value={form.address}
+                    onChange={(e) => update("address", e.target.value)}
+                    placeholder={`Enter your ${form.coin} ${form.network} wallet address`}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    required
+                  />
+                  <small className="apm-hint">
+                    Make sure the selected network matches the wallet address.
+                    Sending through a different network may result in permanent loss of funds.
+                  </small>
+                </div>
+
+                <div className="apm-field">
+                  <label htmlFor="apm-min">Minimum Deposit ({form.coin})</label>
+                  <input
+                    id="apm-min"
+                    className="apm-input"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.00000001"
+                    step="any"
+                    value={form.min_amount}
+                    onChange={(e) => update("min_amount", e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="apm-field">
+                  <label htmlFor="apm-max">Maximum Deposit ({form.coin})</label>
+                  <input
+                    id="apm-max"
+                    className="apm-input"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.00000001"
+                    step="any"
+                    value={form.max_amount}
+                    onChange={(e) => update("max_amount", e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="apm-field">
+                  <label htmlFor="apm-rate">Exchange Rate (BDT per 1 {form.coin})</label>
+                  <input
+                    id="apm-rate"
+                    className="apm-input"
+                    type="number"
+                    inputMode="decimal"
+                    min="0.00000001"
+                    step="any"
+                    value={form.rate_bdt_per_coin}
+                    onChange={(e) => update("rate_bdt_per_coin", e.target.value)}
+                    required
+                  />
+                  <small className="apm-hint">
+                    Enter the BDT value of one unit of {form.coin}.
+                  </small>
+                </div>
+
+                <div className="apm-field">
+                  <label htmlFor="apm-qr">QR Image URL (Optional)</label>
+                  <input
+                    id="apm-qr"
+                    className="apm-input"
+                    value={form.qr_image_url}
+                    onChange={(e) => update("qr_image_url", e.target.value)}
+                    placeholder="https://your-domain.com/crypto-qr.png"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                  />
+                </div>
+
+                <div className="apm-field full">
+                  <label htmlFor="apm-ins">Deposit Instructions (Optional)</label>
+                  <textarea
+                    id="apm-ins"
+                    className="apm-textarea"
+                    value={form.instructions}
+                    onChange={(e) => update("instructions", e.target.value)}
+                    placeholder={`Enter instructions for ${form.coin} deposits on ${form.network}...`}
+                  />
+                </div>
+
+                <div className="apm-field full">
+                  <label className="apm-switch">
+                    <span>
+                      <b>Enable this crypto payment method</b>
+                      <small>Users can deposit using this method when enabled.</small>
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={form.is_active}
+                      onChange={(e) => update("is_active", e.target.checked)}
+                    />
+                    <span className="apm-sw" />
+                  </label>
+                </div>
+              </div>
+
+              <div className="apm-actions">
+                <button className="apm-btn primary" type="submit" disabled={saving}>
+                  {saving
+                    ? "Saving..."
+                    : editingId !== null
+                      ? "Update Crypto Method"
+                      : "Create Crypto Method"}
+                </button>
+                {editingId !== null && (
+                  <button
+                    className="apm-btn"
+                    type="button"
+                    onClick={resetForm}
+                    disabled={saving}
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </section>
+
+        {/* List */}
+        <section className="apm-card">
+          <div className="apm-ch">
+            <div>
+              <h2 className="apm-ct">Configured Crypto Wallets ({filtered.length})</h2>
+              <div className="apm-cs">
+                Only supported cryptocurrency payment methods are listed.
+              </div>
+            </div>
+          </div>
+
+          <div className="apm-search-row">
+            <input
+              className="apm-input"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search coin, network or address..."
+            />
+          </div>
+
+          {loading ? (
+            <div className="apm-empty">Loading crypto payment methods...</div>
+          ) : !filtered.length ? (
+            <div className="apm-empty">No crypto payment methods found.</div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="apm-table-wrap">
+                <table className="apm-table">
+                  <thead>
+                    <tr>
+                      <th>CRYPTO ASSET</th>
+                      <th>NETWORK</th>
+                      <th>WALLET ADDRESS</th>
+                      <th>DEPOSIT LIMIT</th>
+                      <th>RATE</th>
+                      <th>STATUS</th>
+                      <th>ACTION</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((item) => {
+                      const meta = coinMeta(item.coin);
+                      return (
+                        <tr key={item.id}>
+                          <td>
+                            <div className="apm-method">
+                              <span className={`apm-logo ${meta.className}`}>
+                                {meta.symbol}
+                              </span>
+                              <div>
+                                <div className="apm-mn">{item.name}</div>
+                                <div className="apm-muted">{item.coin}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="apm-pill blue">{item.network || "—"}</span>
+                          </td>
+                          <td>
+                            <div className="apm-addr">{item.address || "—"}</div>
+                          </td>
+                          <td>
+                            {money(item.min_amount)} – {money(item.max_amount)}
+                            <div className="apm-muted">{item.coin}</div>
+                          </td>
+                          <td>
+                            ৳{money(item.rate_bdt_per_coin)}
+                            <div className="apm-muted">per {item.coin}</div>
+                          </td>
+                          <td>
+                            <span className={`apm-pill ${item.is_active ? "on" : "off"}`}>
+                              {item.is_active ? "ACTIVE" : "DISABLED"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="apm-acts">
+                              <button
+                                type="button"
+                                className="apm-btn sm edit"
+                                onClick={() => editMethod(item)}
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                className={
+                                  "apm-btn sm " + (item.is_active ? "disable" : "enable")
+                                }
+                                onClick={() => toggleActive(item)}
+                                disabled={togglingId !== null}
+                              >
+                                {togglingId === item.id
+                                  ? "..."
+                                  : item.is_active
+                                    ? "Disable"
+                                    : "Enable"}
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="apm-list">
                 {filtered.map((item) => {
                   const meta = coinMeta(item.coin);
                   return (
-                    <tr key={item.id}>
-                      <td>
+                    <div className="apm-item" key={item.id}>
+                      <div className="apm-item-top">
                         <div className="apm-method">
-                          <span className={`apm-coin-logo ${meta.className}`}>{meta.symbol}</span>
+                          <span className={`apm-logo ${meta.className}`}>
+                            {meta.symbol}
+                          </span>
                           <div>
-                            <div className="apm-method-name">{item.name}</div>
+                            <div className="apm-mn">{item.name}</div>
                             <div className="apm-muted">{item.coin}</div>
                           </div>
                         </div>
-                      </td>
-                      <td><span className="apm-pill on">{item.network || "—"}</span></td>
-                      <td>
-                        <div style={{ maxWidth: 190, overflowWrap: "anywhere" }}>
-                          {item.address || "—"}
-                        </div>
-                      </td>
-                      <td>
-                        {money(item.min_amount)} – {money(item.max_amount)}
-                        <div className="apm-muted">{item.coin}</div>
-                      </td>
-                      <td>
-                        ৳{money(item.rate_bdt_per_coin)}
-                        <div className="apm-muted">per {item.coin}</div>
-                      </td>
-                      <td>
                         <span className={`apm-pill ${item.is_active ? "on" : "off"}`}>
                           {item.is_active ? "ACTIVE" : "DISABLED"}
                         </span>
-                      </td>
-                      <td>
-                        <div className="apm-row-actions">
-                          <button type="button" className="apm-edit" onClick={() => editMethod(item)}>
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className={`apm-toggle ${item.is_active ? "disable" : "enable"}`}
-                            onClick={() => toggleActive(item)}
-                            disabled={togglingId !== null}
-                          >
-                            {togglingId === item.id ? "..." : item.is_active ? "Disable" : "Enable"}
-                          </button>
+                      </div>
+
+                      <div className="apm-kv">
+                        <div>
+                          <span>Network</span>
+                          <b>{item.network || "—"}</b>
                         </div>
-                      </td>
-                    </tr>
+                        <div>
+                          <span>Wallet</span>
+                          <b>{item.address || "—"}</b>
+                        </div>
+                        <div>
+                          <span>Limit</span>
+                          <b>
+                            {money(item.min_amount)} – {money(item.max_amount)} {item.coin}
+                          </b>
+                        </div>
+                        <div>
+                          <span>Rate</span>
+                          <b>৳{money(item.rate_bdt_per_coin)} / {item.coin}</b>
+                        </div>
+                      </div>
+
+                      <div className="apm-item-acts">
+                        <button
+                          type="button"
+                          className="apm-btn edit"
+                          onClick={() => editMethod(item)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className={"apm-btn " + (item.is_active ? "disable" : "enable")}
+                          onClick={() => toggleActive(item)}
+                          disabled={togglingId !== null}
+                        >
+                          {togglingId === item.id
+                            ? "..."
+                            : item.is_active
+                              ? "Disable"
+                              : "Enable"}
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
-                {!filtered.length && (
-                  <tr>
-                    <td colSpan="7" className="apm-empty">No crypto payment methods found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+              </div>
+            </>
+          )}
+        </section>
+
+      </div>
     </div>
   );
 }
