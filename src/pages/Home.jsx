@@ -57,7 +57,7 @@ export const T3 = T;
 
 /* ====================== CONFIG ====================== */
 
-export const API = "https://api.cexcn.com";
+export const API = "https://treadapi.onlieshop.online";
 
 export const BLUE = "#1f7acb";
 export const GREEN = "#00c087";
