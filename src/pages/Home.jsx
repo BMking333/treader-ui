@@ -487,7 +487,7 @@ export function Coin({ s, size = 42 }) {
 /* ====================== CUSTOMER SERVICE ====================== */
 
 // Telegram username (@ chara). Dorkar hole 2nd agent-er alada username dao.
-export const CS_USERS = ["cexcn_service", "cexcn_service"];
+export const CS_USERS = ["cexvo_service", "cexvo_service"];
 
 // Click korle chat-e age theke likha message (chaile "" rakhte paro)
 export const CS_MSG = "Hello, I need help.";
