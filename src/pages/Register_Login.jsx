@@ -2,18 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useT, api, store, CSheet } from "./Home";
 import { LANGS } from "../lib/i18n";
 
-/* =========================================================
-   Register_Login.jsx  (Premium UI)
-   - Light + Dark theme (default: LIGHT), toggle in top bar
-   - Language picker uses ALL languages from ../lib/i18n (theme-aware)
-   - Customer service sheet follows light / dark theme
-   - Theme choice is remembered (store key: cx_theme)
-   - No blue focus border on inputs
-   - Login / Register buttons always visible (page scrolls itself)
-   - Custom SVG icons
-   - Password: minimum 6 / maximum 12 characters
-   ========================================================= */
-
 const mailOk = (s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const pwOk = (p) => p.length >= 6 && p.length <= 12;
 
@@ -37,6 +25,7 @@ const FB = {
   pw: "Enter your password",
   pw2Lbl: "Confirm password",
   pw2: "Re-enter your password",
+  newPwLbl: "New password",
   rem: "Remember me",
   forgot: "Forgot password?",
   bEmail: "Enter a valid email address",
@@ -52,12 +41,34 @@ const FB = {
   createSub: "It only takes a minute to get started.",
   haveAcc: "Already have an account?",
   noAcc: "New here?",
-  or: "or",
   guest: "Continue as guest",
   csHelp: "Need help? Contact support",
   strWeak: "Weak",
   strMid: "Medium",
   strStrong: "Strong",
+  /* email system */
+  checkMail: "Check your email",
+  checkMailReset: "Check your email",
+  emailNotVerified: "Please confirm your email first.",
+  emailVerified: "Email confirmed. You can log in now.",
+  badToken: "This link is invalid or has expired.",
+  tooMany: "Too many attempts. Try again in 15 minutes.",
+  resendOk: "Email sent",
+  resetOk: "Password changed. Please log in.",
+  forgotTitle: "Forgot password?",
+  forgotSub: "Enter your email and we will send you a reset link.",
+  sendLink: "Send reset link",
+  sentTitle: "Check your email",
+  sentVerify: "We sent a confirmation link to",
+  sentReset: "If this email is registered, a reset link was sent to",
+  sentHint: "Check your spam folder too. You can log in after confirming.",
+  sentHintReset: "The link works for 1 hour. Check your spam folder too.",
+  resend: "Resend email",
+  resendIn: "Resend in",
+  backLogin: "Back to login",
+  resetTitle: "Set new password",
+  resetSub: "Choose a new password for your account.",
+  resetBtn: "Change password",
 };
 
 const NONE = { k: "", kind: "" };
@@ -92,6 +103,42 @@ function useTheme() {
   }, []);
 
   return [theme, toggle];
+}
+
+/* ================= RESEND COOLDOWN ================= */
+
+function useCooldown(sec = 60) {
+  const [left, setLeft] = useState(0);
+
+  useEffect(() => {
+    if (left <= 0) return;
+    const id = setTimeout(() => setLeft((n) => n - 1), 1000);
+    return () => clearTimeout(id);
+  }, [left]);
+
+  const start = useCallback(() => setLeft(sec), [sec]);
+  return [left, start];
+}
+
+/* ================= URL PARAMS (?verified=1 / ?reset=TOKEN) ================= */
+
+function takeAuthParams() {
+  const out = { verified: null, reset: "" };
+  try {
+    const u = new URL(window.location.href);
+    const v = u.searchParams.get("verified");
+    const r = u.searchParams.get("reset");
+    if (v !== null) out.verified = v === "1";
+    if (r) out.reset = r;
+    if (v !== null || r) {
+      u.searchParams.delete("verified");
+      u.searchParams.delete("reset");
+      window.history.replaceState(null, "", u.pathname + u.search + u.hash);
+    }
+  } catch (_) {
+    /* ignore */
+  }
+  return out;
 }
 
 /* ================= LANGUAGE PICKER (theme-aware) ================= */
@@ -453,7 +500,6 @@ const CSS = `
 
 /* ---------- customer service sheet (follows theme) ---------- */
 .ax-csw { position: fixed; inset: 0; z-index: 900; }
-/* the sheet itself is dark by design: in LIGHT mode flip it to a light look */
 .ax[data-theme="light"] .ax-csw { filter: invert(1) hue-rotate(180deg); }
 
 /* ---------- brand ---------- */
@@ -508,7 +554,6 @@ const CSS = `
   background: var(--field);
   transition: border-color .18s, background .18s;
 }
-/* focus: only a soft border change, NO blue ring / glow */
 .ax-fw:focus-within { border-color: var(--line-focus); background: var(--field-focus); }
 .ax-fw.err { border-color: var(--danger); }
 
@@ -549,7 +594,6 @@ const CSS = `
   -webkit-text-fill-color: var(--placeholder);
   opacity: 1;
 }
-/* autofill: no coloured box behind saved email / password */
 .ax .ax-in:-webkit-autofill,
 .ax .ax-in:-webkit-autofill:hover,
 .ax .ax-in:-webkit-autofill:focus {
@@ -685,6 +729,7 @@ const CSS = `
   transition: transform .15s, background .15s;
 }
 .ax .ax-btn2:active { transform: scale(.98); background: var(--btn2-bg-active) !important; }
+.ax .ax-btn2:disabled { opacity: .55; cursor: not-allowed; }
 
 .ax .ax-ghost {
   display: block;
@@ -709,6 +754,26 @@ const CSS = `
   color: var(--accent);
   outline: none;
 }
+
+/* ---------- "check your email" panel ---------- */
+.ax-sent { text-align: center; }
+.ax-sent-ic {
+  width: 72px; height: 72px;
+  margin: 2px auto 16px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.ax-sent p { margin: 0 0 6px; font-size: 14px; color: var(--muted); line-height: 1.5; }
+.ax-sent b {
+  display: block;
+  margin: 4px 0 12px;
+  font-size: 15px;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.ax-sent small { display: block; margin: 0 0 20px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 
 /* ---------- strength ---------- */
 .ax-str {
@@ -810,14 +875,14 @@ function Logo() {
   );
 }
 
-function TopBar({ go, lang, setLang, theme, onTheme }) {
+function TopBar({ onBack, lang, setLang, theme, onTheme }) {
   const dark = theme === "dark";
   return (
     <div className="ax-top">
       <button
         type="button"
         className="ax-back"
-        onClick={() => go("app")}
+        onClick={onBack}
         aria-label="Back"
       >
         <Icon n="back" s={22} w={2.2} />
@@ -933,7 +998,57 @@ function EyeBtn({ show, onToggle }) {
   );
 }
 
-/* ================= LOGIN ================= */
+function Strength({ pw, tx }) {
+  const sc = strength(pw);
+  if (!pw) return null;
+  return (
+    <div className="ax-str">
+      <div>
+        {[1, 2, 3].map((n) => (
+          <i key={n} className={"s" + sc + (n <= sc ? " on" : "")} />
+        ))}
+      </div>
+      <span className={"s" + sc}>
+        {sc === 1 ? tx("strWeak") : sc === 2 ? tx("strMid") : tx("strStrong")}
+      </span>
+    </div>
+  );
+}
+
+/* "Check your email" card: used after register, after forgot, and when login says emailNotVerified */
+function MailSent({ kind, email, tx, onResend, onBack, left, busy }) {
+  const isReset = kind === "reset";
+  return (
+    <div className="ax-card ax-sent">
+      <div className="ax-sent-ic">
+        <Icon n="mail" s={34} w={1.8} />
+      </div>
+      <p>{isReset ? tx("sentReset") : tx("sentVerify")}</p>
+      <b>{email}</b>
+      <small>{isReset ? tx("sentHintReset") : tx("sentHint")}</small>
+
+      <button
+        type="button"
+        className="ax-btn"
+        onClick={onResend}
+        disabled={busy || left > 0}
+      >
+        {left > 0 ? `${tx("resendIn")} ${left}s` : tx("resend")}
+      </button>
+
+      <button
+        type="button"
+        className="ax-btn2"
+        onClick={onBack}
+        style={{ marginTop: 12 }}
+      >
+        {tx("backLogin")}
+      </button>
+    </div>
+  );
+}
+
+/* ================= LOGIN (+ forgot / reset / mail-sent views) ================= */
 
 export function Login({ onLogin, lang, setLang, go, flash = "" }) {
   const tx = useTx();
@@ -941,21 +1056,50 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
   const rem0 = store.get("cx_rem", "");
 
+  // view: login | forgot | sent | reset
+  const [view, setView] = useState("login");
+  const [sentKind, setSentKind] = useState("verify"); // verify | reset
+  const [resetToken, setResetToken] = useState("");
+
   const [email, setEmail] = useState(rem0);
   const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
   const [show, setShow] = useState(false);
   const [rem, setRem] = useState(!!rem0);
   const [busy, setBusy] = useState(false);
   const [tried, setTried] = useState(false);
   const [cs, setCs] = useState(false);
   const [msg, setMsg] = useState(flash ? { k: flash, kind: "info" } : NONE);
+  const [left, startCooldown] = useCooldown(60);
 
   const mail = email.trim().toLowerCase();
   const closeToast = useCallback(() => setMsg(NONE), []);
 
+  // Links from the mail:  /?verified=1|0   and   /?reset=TOKEN
+  useEffect(() => {
+    const p = takeAuthParams();
+    if (p.reset) {
+      setResetToken(p.reset);
+      setView("reset");
+    } else if (p.verified === true) {
+      setMsg({ k: "emailVerified", kind: "ok" });
+    } else if (p.verified === false) {
+      setMsg({ k: "badToken", kind: "bad" });
+    }
+  }, []);
+
   const eMail = tried && !mailOk(mail) ? tx("bEmail") : "";
   const ePw = tried && !pwOk(pw) ? tx("pwRule") : "";
+  const ePw2 = tried && pw2 !== pw ? tx("bMatch") : "";
 
+  const toLogin = () => {
+    setView("login");
+    setTried(false);
+    setPw("");
+    setPw2("");
+  };
+
+  /* ----- login ----- */
   const login = async () => {
     if (busy) return;
     setTried(true);
@@ -978,15 +1122,99 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
       await onLogin(r);
     } catch (e) {
+      const k = (e && e.message) || "err";
+      if (k === "emailNotVerified") {
+        // password was right but mail not confirmed -> show the "check email" card
+        setMsg(NONE);
+        setSentKind("verify");
+        setView("sent");
+      } else {
+        setMsg({ k, kind: "bad" });
+      }
+    }
+
+    setBusy(false);
+  };
+
+  /* ----- forgot: send reset link ----- */
+  const sendReset = async () => {
+    if (busy) return;
+    setTried(true);
+    if (!mailOk(mail)) return;
+
+    setBusy(true);
+    setMsg({ k: "wait2", kind: "load" });
+
+    try {
+      await api("/auth/forgot", { method: "POST", body: { email: mail } });
+      setMsg(NONE);
+      setSentKind("reset");
+      setView("sent");
+      startCooldown();
+    } catch (e) {
       setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
 
     setBusy(false);
   };
 
-  const enter = (e) => {
-    if (e.key === "Enter") login();
+  /* ----- resend (confirm mail or reset mail) ----- */
+  const resend = async () => {
+    if (busy || left > 0) return;
+    setBusy(true);
+    try {
+      await api(
+        sentKind === "reset" ? "/auth/forgot" : "/auth/resend-confirm",
+        { method: "POST", body: { email: mail } }
+      );
+      setMsg({ k: "resendOk", kind: "ok" });
+      startCooldown();
+    } catch (e) {
+      setMsg({ k: (e && e.message) || "err", kind: "bad" });
+    }
+    setBusy(false);
   };
+
+  /* ----- reset: set new password from mail link ----- */
+  const doReset = async () => {
+    if (busy) return;
+    setTried(true);
+    if (!pwOk(pw) || pw !== pw2) return;
+
+    setBusy(true);
+    setMsg({ k: "wait2", kind: "load" });
+
+    try {
+      await api("/auth/reset", {
+        method: "POST",
+        body: { token: resetToken, password: pw, password2: pw2 },
+      });
+      setResetToken("");
+      toLogin();
+      setMsg({ k: "resetOk", kind: "ok" });
+    } catch (e) {
+      setMsg({ k: (e && e.message) || "err", kind: "bad" });
+    }
+
+    setBusy(false);
+  };
+
+  const enter = (fn) => (e) => {
+    if (e.key === "Enter") fn();
+  };
+
+  const eye = <EyeBtn show={show} onToggle={() => setShow((v) => !v)} />;
+
+  const onBack = view === "login" ? () => go("app") : toLogin;
+
+  const head =
+    view === "forgot"
+      ? ["forgotTitle", "forgotSub"]
+      : view === "sent"
+      ? ["sentTitle", ""]
+      : view === "reset"
+      ? ["resetTitle", "resetSub"]
+      : ["loginTitle", "loginSub"];
 
   return (
     <div className="ax" data-theme={theme}>
@@ -994,7 +1222,7 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
 
       <div className="ax-box">
         <TopBar
-          go={go}
+          onBack={onBack}
           lang={lang}
           setLang={setLang}
           theme={theme}
@@ -1003,73 +1231,193 @@ export function Login({ onLogin, lang, setLang, go, flash = "" }) {
         <Logo />
 
         <div className="ax-head">
-          <h1>{tx("loginTitle")}</h1>
-          <p>{tx("loginSub")}</p>
+          <h1>{tx(head[0])}</h1>
+          {head[1] && <p>{tx(head[1])}</p>}
         </div>
 
-        <div className="ax-card">
-          <Field
-            id="ax-email"
-            label={tx("email")}
-            icon="mail"
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            placeholder={tx("acc")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={enter}
-            error={eMail}
-          />
-
-          <Field
-            id="ax-pw"
-            label={tx("pwLbl")}
-            icon="lock"
-            type={show ? "text" : "password"}
-            autoComplete="current-password"
-            placeholder={tx("pw")}
-            value={pw}
-            onChange={(e) => setPw(e.target.value.slice(0, 12))}
-            onKeyDown={enter}
-            maxLength={12}
-            error={ePw}
-            right={<EyeBtn show={show} onToggle={() => setShow((v) => !v)} />}
-          />
-
-          <div className="ax-row">
-            <label className="ax-rm">
-              <input
-                type="checkbox"
-                checked={rem}
-                onChange={(e) => setRem(e.target.checked)}
+        {/* ===== LOGIN ===== */}
+        {view === "login" && (
+          <>
+            <div className="ax-card">
+              <Field
+                id="ax-email"
+                label={tx("email")}
+                icon="mail"
+                type="email"
+                inputMode="email"
+                autoComplete="username"
+                placeholder={tx("acc")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={enter(login)}
+                error={eMail}
               />
-              <span className="ax-ck">
-                <Icon n="check" s={14} w={3} />
-              </span>
-              {tx("rem")}
-            </label>
 
-            <button type="button" className="ax-link" onClick={() => setCs(true)}>
-              {tx("forgot")}
+              <Field
+                id="ax-pw"
+                label={tx("pwLbl")}
+                icon="lock"
+                type={show ? "text" : "password"}
+                autoComplete="current-password"
+                placeholder={tx("pw")}
+                value={pw}
+                onChange={(e) => setPw(e.target.value.slice(0, 12))}
+                onKeyDown={enter(login)}
+                maxLength={12}
+                error={ePw}
+                right={eye}
+              />
+
+              <div className="ax-row">
+                <label className="ax-rm">
+                  <input
+                    type="checkbox"
+                    checked={rem}
+                    onChange={(e) => setRem(e.target.checked)}
+                  />
+                  <span className="ax-ck">
+                    <Icon n="check" s={14} w={3} />
+                  </span>
+                  {tx("rem")}
+                </label>
+
+                <button
+                  type="button"
+                  className="ax-link"
+                  onClick={() => {
+                    setTried(false);
+                    setView("forgot");
+                  }}
+                >
+                  {tx("forgot")}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className="ax-btn"
+                onClick={login}
+                disabled={busy}
+              >
+                {busy ? tx("wait2") : tx("login")}
+              </button>
+            </div>
+
+            <div className="ax-or">{tx("noAcc")}</div>
+
+            <button
+              type="button"
+              className="ax-btn2"
+              onClick={() => go("register")}
+            >
+              {tx("register")}
             </button>
-          </div>
+          </>
+        )}
 
-          <button
-            type="button"
-            className="ax-btn"
-            onClick={login}
-            disabled={busy}
-          >
-            {busy ? tx("wait2") : tx("login")}
-          </button>
-        </div>
+        {/* ===== FORGOT ===== */}
+        {view === "forgot" && (
+          <>
+            <div className="ax-card">
+              <Field
+                id="ax-f-email"
+                label={tx("email")}
+                icon="mail"
+                type="email"
+                inputMode="email"
+                autoComplete="username"
+                placeholder={tx("acc")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={enter(sendReset)}
+                error={eMail}
+              />
 
-        <div className="ax-or">{tx("noAcc")}</div>
+              <button
+                type="button"
+                className="ax-btn"
+                onClick={sendReset}
+                disabled={busy}
+              >
+                {busy ? tx("wait2") : tx("sendLink")}
+              </button>
+            </div>
 
-        <button type="button" className="ax-btn2" onClick={() => go("register")}>
-          {tx("register")}
-        </button>
+            <button type="button" className="ax-ghost" onClick={toLogin}>
+              {tx("backLogin")}
+            </button>
+
+            <button type="button" className="ax-help" onClick={() => setCs(true)}>
+              <Icon n="chat" s={18} />
+              {tx("csHelp")}
+            </button>
+          </>
+        )}
+
+        {/* ===== MAIL SENT ===== */}
+        {view === "sent" && (
+          <MailSent
+            kind={sentKind}
+            email={mail}
+            tx={tx}
+            onResend={resend}
+            onBack={toLogin}
+            left={left}
+            busy={busy}
+          />
+        )}
+
+        {/* ===== RESET (from mail link) ===== */}
+        {view === "reset" && (
+          <>
+            <div className="ax-card">
+              <Field
+                id="ax-n-pw"
+                label={tx("newPwLbl")}
+                icon="lock"
+                type={show ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder={tx("pw")}
+                value={pw}
+                onChange={(e) => setPw(e.target.value.slice(0, 12))}
+                maxLength={12}
+                error={ePw}
+                right={eye}
+              />
+
+              <Strength pw={pw} tx={tx} />
+
+              <Field
+                id="ax-n-pw2"
+                label={tx("pw2Lbl")}
+                icon="lock"
+                type={show ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder={tx("pw2")}
+                value={pw2}
+                onChange={(e) => setPw2(e.target.value.slice(0, 12))}
+                onKeyDown={enter(doReset)}
+                maxLength={12}
+                error={ePw2}
+                right={eye}
+              />
+
+              <button
+                type="button"
+                className="ax-btn"
+                onClick={doReset}
+                disabled={busy}
+                style={{ marginTop: 8 }}
+              >
+                {busy ? tx("wait2") : tx("resetBtn")}
+              </button>
+            </div>
+
+            <button type="button" className="ax-ghost" onClick={toLogin}>
+              {tx("backLogin")}
+            </button>
+          </>
+        )}
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
         {cs && (
@@ -1096,9 +1444,10 @@ export function Register({ onLogin, go, lang, setLang }) {
   const [msg, setMsg] = useState(NONE);
   const [tried, setTried] = useState(false);
   const [cs, setCs] = useState(false);
+  const [sent, setSent] = useState(false); // true after successful register
+  const [left, startCooldown] = useCooldown(60);
 
   const mail = email.trim().toLowerCase();
-  const sc = strength(pw);
   const closeToast = useCallback(() => setMsg(NONE), []);
 
   const eMail = tried && !mailOk(mail) ? tx("bEmail") : "";
@@ -1114,20 +1463,35 @@ export function Register({ onLogin, go, lang, setLang }) {
     setMsg({ k: "wait2", kind: "load" });
 
     try {
-      const r = await api("/auth/register", {
+      // No token comes back any more: user must confirm the mail first
+      await api("/auth/register", {
         method: "POST",
         body: { email: mail, password: pw, password2: pw2 },
       });
 
-      setMsg({ k: "regOk", kind: "ok" });
-      await sleep(900);
       setMsg(NONE);
-
-      await onLogin(r);
+      setSent(true);
+      startCooldown();
     } catch (e) {
       setMsg({ k: (e && e.message) || "err", kind: "bad" });
     }
 
+    setBusy(false);
+  };
+
+  const resend = async () => {
+    if (busy || left > 0) return;
+    setBusy(true);
+    try {
+      await api("/auth/resend-confirm", {
+        method: "POST",
+        body: { email: mail },
+      });
+      setMsg({ k: "resendOk", kind: "ok" });
+      startCooldown();
+    } catch (e) {
+      setMsg({ k: (e && e.message) || "err", kind: "bad" });
+    }
     setBusy(false);
   };
 
@@ -1143,7 +1507,7 @@ export function Register({ onLogin, go, lang, setLang }) {
 
       <div className="ax-box">
         <TopBar
-          go={go}
+          onBack={() => (sent ? setSent(false) : go("app"))}
           lang={lang}
           setLang={setLang}
           theme={theme}
@@ -1151,96 +1515,100 @@ export function Register({ onLogin, go, lang, setLang }) {
         />
         <Logo />
 
-        <div className="ax-head">
-          <h1>{tx("createAcc")}</h1>
-          <p>{tx("createSub")}</p>
-        </div>
-
-        <div className="ax-card">
-          <Field
-            id="ax-r-email"
-            label={tx("email")}
-            icon="mail"
-            type="email"
-            inputMode="email"
-            autoComplete="username"
-            placeholder={tx("acc")}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            error={eMail}
-          />
-
-          <Field
-            id="ax-r-pw"
-            label={tx("pwLbl")}
-            icon="lock"
-            type={show ? "text" : "password"}
-            autoComplete="new-password"
-            placeholder={tx("pw")}
-            value={pw}
-            onChange={(e) => setPw(e.target.value.slice(0, 12))}
-            maxLength={12}
-            error={ePw}
-            right={eye}
-          />
-
-          {pw && (
-            <div className="ax-str">
-              <div>
-                {[1, 2, 3].map((n) => (
-                  <i key={n} className={"s" + sc + (n <= sc ? " on" : "")} />
-                ))}
-              </div>
-              <span className={"s" + sc}>
-                {sc === 1
-                  ? tx("strWeak")
-                  : sc === 2
-                  ? tx("strMid")
-                  : tx("strStrong")}
-              </span>
+        {sent ? (
+          <>
+            <div className="ax-head">
+              <h1>{tx("sentTitle")}</h1>
             </div>
-          )}
+            <MailSent
+              kind="verify"
+              email={mail}
+              tx={tx}
+              onResend={resend}
+              onBack={() => go("login")}
+              left={left}
+              busy={busy}
+            />
+          </>
+        ) : (
+          <>
+            <div className="ax-head">
+              <h1>{tx("createAcc")}</h1>
+              <p>{tx("createSub")}</p>
+            </div>
 
-          <Field
-            id="ax-r-pw2"
-            label={tx("pw2Lbl")}
-            icon="lock"
-            type={show ? "text" : "password"}
-            autoComplete="new-password"
-            placeholder={tx("pw2")}
-            value={pw2}
-            onChange={(e) => setPw2(e.target.value.slice(0, 12))}
-            onKeyDown={enter}
-            maxLength={12}
-            error={ePw2}
-            right={eye}
-          />
+            <div className="ax-card">
+              <Field
+                id="ax-r-email"
+                label={tx("email")}
+                icon="mail"
+                type="email"
+                inputMode="email"
+                autoComplete="username"
+                placeholder={tx("acc")}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={eMail}
+              />
 
-          <button
-            type="button"
-            className="ax-btn"
-            onClick={submit}
-            disabled={busy}
-            style={{ marginTop: 8 }}
-          >
-            {busy ? tx("wait2") : tx("register")}
-          </button>
-        </div>
+              <Field
+                id="ax-r-pw"
+                label={tx("pwLbl")}
+                icon="lock"
+                type={show ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder={tx("pw")}
+                value={pw}
+                onChange={(e) => setPw(e.target.value.slice(0, 12))}
+                maxLength={12}
+                error={ePw}
+                right={eye}
+              />
 
-        <div className="ax-or">{tx("haveAcc")}</div>
+              <Strength pw={pw} tx={tx} />
 
-        <button type="button" className="ax-btn2" onClick={() => go("login")}>
-          {tx("login")}
-        </button>
+              <Field
+                id="ax-r-pw2"
+                label={tx("pw2Lbl")}
+                icon="lock"
+                type={show ? "text" : "password"}
+                autoComplete="new-password"
+                placeholder={tx("pw2")}
+                value={pw2}
+                onChange={(e) => setPw2(e.target.value.slice(0, 12))}
+                onKeyDown={enter}
+                maxLength={12}
+                error={ePw2}
+                right={eye}
+              />
 
-        <button type="button" className="ax-ghost" onClick={() => go("app")}>
-          {tx("guest")}
-        </button>
+              <button
+                type="button"
+                className="ax-btn"
+                onClick={submit}
+                disabled={busy}
+                style={{ marginTop: 8 }}
+              >
+                {busy ? tx("wait2") : tx("register")}
+              </button>
+            </div>
 
-        <button type="button" className="ax-help" onClick={() => setCs(true)}>
-          <Icon n="chat" s={18} />
-          {tx("csHelp")}
-        </button>
+            <div className="ax-or">{tx("haveAcc")}</div>
+
+            <button type="button" className="ax-btn2" onClick={() => go("login")}>
+              {tx("login")}
+            </button>
+
+            <button type="button" className="ax-ghost" onClick={() => go("app")}>
+              {tx("guest")}
+            </button>
+
+            <button type="button" className="ax-help" onClick={() => setCs(true)}>
+              <Icon n="chat" s={18} />
+              {tx("csHelp")}
+            </button>
+          </>
+        )}
 
         <Toast msg={msg} onClose={closeToast} tx={tx} />
         {cs && (
