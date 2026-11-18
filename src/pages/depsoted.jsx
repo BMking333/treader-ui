@@ -6,8 +6,8 @@ export const NETS = { USDT: ["TRC20", "ERC20"], USDC: ["ERC20"], ETH: ["ERC20"],
 
 // Customer service (Telegram)
 const SUPPORT = [
-  { name: "Customer service-1", url: "https://t.me/Michaelgwebb" },
-  { name: "Customer service-2", url: "https://t.me/Michaelgwebb1" },
+  { name: "Customer service-1", url: "https://t.me/cexvo_service" },
+  { name: "Customer service-2", url: "https://t.me/cexvo_service" },
 ];
 
 // Backend error code -> i18n key
