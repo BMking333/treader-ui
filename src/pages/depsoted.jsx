@@ -238,11 +238,6 @@ const CSS = `
 
 .dp-wrap { max-width: 520px; margin: 0 auto; padding: 18px 16px 0; }
 
-/* progress (3 segments, no labels) */
-.dp-prog { display: flex; gap: 6px; margin: 0 0 18px; }
-.dp-prog i { flex: 1; height: 4px; border-radius: 4px; background: var(--line2); transition: background .2s; }
-.dp-prog i.on { background: var(--blue); }
-
 /* card */
 .dp-card {
   background: var(--panel);
@@ -393,7 +388,7 @@ const CSS = `
   border-radius: 24px 24px 0 0; padding: 18px 20px 28px; animation: dpUp .2s ease-out;
 }
 @keyframes dpUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
-@media (prefers-reduced-motion: reduce) { .dp-sheet { animation: none; } .dp-primary, .dp-prog i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .dp-sheet { animation: none; } .dp-primary { transition: none; } }
 .dp-sh-head { display: flex; align-items: center; justify-content: space-between; min-height: 40px; }
 .dp-sh-head h3 { margin: 0; font-size: 19px; font-weight: 700; flex: 1; text-align: center; }
 .dp-svc {
@@ -404,6 +399,78 @@ const CSS = `
 .dp-svc:last-child { border-bottom: 1px solid var(--line); }
 .dp-svc svg { width: 22px; height: 22px; color: var(--muted); }
 .cx[dir=rtl] .dp-svc svg { transform: scaleX(-1); }
+
+/* =====================================================================
+   BUTTON FIX + PREMIUM LOOK
+   The app has a global reset  ".cx:where(:not(.adm)) button { background:none; border:0; color:inherit }"
+   which beats single-class selectors, so buttons looked invisible in light and dark mode.
+   Every button below uses ".dp button.xxx" + !important to win over that reset.
+   ===================================================================== */
+.dp button.dp-ibtn {
+  background: transparent !important; color: var(--text) !important; border: 0 !important; text-align: center;
+}
+.dp button.dp-ibtn:active { background: var(--ghost) !important; }
+
+/* coin tiles */
+.dp button.dp-coin {
+  background: var(--panel) !important; color: var(--text) !important;
+  border: 1.5px solid var(--line2) !important; text-align: start;
+  box-shadow: 0 1px 2px rgba(15,27,46,.04);
+}
+.dp button.dp-coin.on {
+  background: var(--blue-soft) !important; border-color: var(--blue) !important;
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+.dp .dp-coin small { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.dp .dp-tick {
+  position: absolute; top: 8px; inset-inline-end: 8px; width: 20px; height: 20px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #3b86ff, #1448c8); color: #fff;
+}
+.dp .dp-tick svg { width: 12px; height: 12px; stroke-width: 3.2; }
+
+/* network tabs */
+.dp button.dp-net {
+  background: transparent !important; color: var(--muted) !important; border: 0 !important; text-align: center;
+}
+.dp button.dp-net.on {
+  background: linear-gradient(135deg, #3b86ff 0%, #1a5df0 60%, #1448c8 100%) !important;
+  color: #fff !important; box-shadow: 0 6px 14px rgba(26,93,240,.35);
+}
+
+/* copy button */
+.dp button.dp-copy {
+  background: linear-gradient(135deg, #3b86ff 0%, #1a5df0 60%, #1448c8 100%) !important;
+  color: #fff !important; border: 0 !important; text-align: center;
+  box-shadow: 0 6px 14px rgba(26,93,240,.3);
+}
+.dp button.dp-copy.done { background: var(--green) !important; color: #fff !important; box-shadow: none; }
+
+/* remove screenshot button */
+.dp button.dp-rm { background: rgba(0,0,0,.72) !important; color: #fff !important; border: 0 !important; }
+
+/* main (premium) button — always visible in light + dark */
+.dp button.dp-primary {
+  position: relative; overflow: hidden;
+  display: flex !important; align-items: center; justify-content: center; gap: 10px;
+  width: 100% !important; height: 58px;
+  background: linear-gradient(135deg, #3b86ff 0%, #1a5df0 55%, #1448c8 100%) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255,255,255,.2) !important;
+  border-radius: 16px; font-size: 16px; font-weight: 700; letter-spacing: .3px; text-align: center;
+  box-shadow: 0 12px 26px rgba(26,93,240,.38), inset 0 1px 0 rgba(255,255,255,.3), inset 0 -2px 0 rgba(0,0,0,.14) !important;
+}
+.dp button.dp-primary::before {
+  content: ""; position: absolute; inset: 0 0 52% 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0));
+}
+.dp button.dp-primary > * { position: relative; }
+.dp button.dp-primary:active { transform: translateY(1px) scale(.99); }
+.dp button.dp-primary:disabled { opacity: .5; box-shadow: none !important; cursor: not-allowed; }
+
+/* summary + limit text (beats the global "small" rule) */
+.dp .dp-sum small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.dp .dp-sum.flat { margin-bottom: 18px; }
 `;
 
 /* ---------- icons ---------- */
@@ -656,14 +723,6 @@ export default function Deposit({ W, go }) {
 
         {!loadingM && methods.length > 0 && (
           <>
-            {step < 4 && (
-              <div className="dp-prog" aria-hidden="true">
-                <i className={step >= 1 ? "on" : ""} />
-                <i className={step >= 2 ? "on" : ""} />
-                <i className={step >= 3 ? "on" : ""} />
-              </div>
-            )}
-
             {/* ============ STEP 1 — select coin + amount ============ */}
             {step === 1 && (
               <>
@@ -677,6 +736,7 @@ export default function Deposit({ W, go }) {
                           <b>{c}</b>
                           <small>{methods.filter((m) => m.coin === c).map((m) => m.network).filter(Boolean).join(" · ")}</small>
                         </span>
+                        {c === coin && <span className="dp-tick"><IcCheck /></span>}
                       </button>
                     ))}
                   </div>
@@ -782,6 +842,16 @@ export default function Deposit({ W, go }) {
             {step === 3 && (
               <>
                 <div className="dp-card">
+                  {method && (
+                    <div className="dp-sum">
+                      <CoinLogo coin={coin} url={logoUrl(coin)} size={38} />
+                      <div>
+                        <b>{fmt(a)} {coin}</b>
+                        <small>{method.network || method.name}</small>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="dp-field">
                     <div className="dp-flbl">{L("dpTxid", "Transaction ID (TxID)")}</div>
                     <input
