@@ -1,6 +1,11 @@
-
 import React, { useCallback, useEffect, useState } from "react";
 import { api } from "../Home";
+
+/* =========================================================
+   src/pages/admin/Admin_Deposit.jsx
+   Crypto Deposit Center  (light theme, mobile + desktop)
+   - Payment proof is shown as a screenshot (thumbnail + full-screen viewer)
+   ========================================================= */
 
 function unwrap(res) {
   if (res?.data !== undefined) return res.data;
@@ -77,7 +82,470 @@ function paymentLabel(item) {
   );
 }
 
-export default function Admin_Deposit() {
+/* ---------- screenshot thumbnail ---------- */
+function ProofThumb({ url, onOpen, size = "sm" }) {
+  const [failed, setFailed] = useState(false);
+
+  if (!url) {
+    return <span className="adp-noproof">No proof</span>;
+  }
+
+  if (failed) {
+    return <span className="adp-noproof">Screenshot unavailable</span>;
+  }
+
+  return (
+    <button
+      type="button"
+      className={"adp-thumb " + size}
+      onClick={() => onOpen(url)}
+      aria-label="View payment screenshot"
+    >
+      <img
+        src={url}
+        alt="Payment screenshot"
+        loading="lazy"
+        onError={() => setFailed(true)}
+        draggable={false}
+      />
+      <span className="adp-thumb-tag">View</span>
+    </button>
+  );
+}
+
+/* ---------- full-screen screenshot viewer ---------- */
+function Lightbox({ url, onClose }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <div className="adp-lb" onClick={onClose} role="dialog" aria-modal="true">
+      <button
+        type="button"
+        className="adp-lb-x"
+        onClick={onClose}
+        aria-label="Close"
+      >
+        ✕
+      </button>
+
+      <div className="adp-lb-body" onClick={(e) => e.stopPropagation()}>
+        {failed ? (
+          <div className="adp-lb-fail">Screenshot could not be loaded.</div>
+        ) : (
+          <img
+            src={url}
+            alt="Payment screenshot"
+            onError={() => setFailed(true)}
+            draggable={false}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+const CSS = `
+.adp, .adp * { box-sizing: border-box; }
+
+.adp {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --line: #e5e9f0;
+  --line-soft: #eef1f6;
+  --text: #0f1b30;
+  --text-2: #4a5568;
+  --muted: #7a8699;
+  --primary: #1f7acb;
+  --primary-soft: #eaf3fc;
+  --ok: #0e9f6e;
+  --ok-soft: #e3f6ee;
+  --warn: #c98a0a;
+  --warn-soft: #fdf3dc;
+  --bad: #e0415f;
+  --bad-soft: #fdebee;
+  --shadow: 0 1px 2px rgba(16,30,54,.04), 0 6px 20px rgba(16,30,54,.05);
+
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+.adp button, .adp input, .adp textarea { font-family: inherit; }
+.adp button { cursor: pointer; -webkit-appearance: none; appearance: none; }
+
+.adp-in {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 22px 24px calc(34px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---------- header ---------- */
+.adp-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.adp-heading { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.adp-mark {
+  width: 46px; height: 46px; flex: none;
+  display: grid; place-items: center;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1fbad0, #2a7de1);
+  color: #fff; font-size: 22px; font-weight: 800;
+  box-shadow: 0 6px 16px rgba(40,125,225,.30);
+}
+.adp-title { margin: 0; font-size: 24px; line-height: 1.2; font-weight: 800; letter-spacing: -.5px; }
+.adp-sub { margin-top: 5px; font-size: 13px; color: var(--muted); }
+.adp-hbtns { display: flex; gap: 10px; }
+
+.adp-btn {
+  min-height: 42px;
+  padding: 0 16px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px; font-weight: 650;
+  white-space: nowrap;
+  transition: border-color .15s, background .15s, transform .1s, opacity .15s;
+}
+.adp-btn:hover { border-color: #c7d3e4; background: #f8fafd; }
+.adp-btn:active { transform: scale(.97); }
+.adp-btn:disabled { opacity: .55; cursor: not-allowed; }
+.adp-btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+.adp-btn.primary:hover { background: #1768ad; border-color: #1768ad; }
+.adp-btn.approve { background: var(--ok-soft); border-color: #bfe8d6; color: var(--ok); }
+.adp-btn.approve:hover { background: #d3f0e4; }
+.adp-btn.reject { background: var(--bad-soft); border-color: #f4c5cd; color: var(--bad); }
+.adp-btn.reject:hover { background: #fadde2; }
+.adp-btn.sm { min-height: 36px; padding: 0 13px; font-size: 12px; }
+
+/* ---------- alerts ---------- */
+.adp-alert {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-size: 13px;
+}
+.adp-alert.error   { background: var(--bad-soft); border-color: #f4c5cd; color: #b3243f; }
+.adp-alert.success { background: var(--ok-soft);  border-color: #bfe8d6; color: #087a54; }
+
+/* ---------- stats ---------- */
+.adp-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.adp-stat {
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.adp-stat-top { display: flex; align-items: center; gap: 8px; }
+.adp-stat-dot { width: 9px; height: 9px; border-radius: 50%; }
+.adp-stat-label { font-size: 12px; font-weight: 700; letter-spacing: .3px; color: var(--text-2); }
+.adp-stat-val { margin-top: 12px; font-size: 30px; line-height: 1; font-weight: 800; letter-spacing: -1px; }
+
+/* ---------- card / toolbar ---------- */
+.adp-card {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.adp-toolbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; flex-wrap: wrap;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.adp-tb-title { font-size: 15.5px; font-weight: 750; }
+.adp-tb-sub { margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+.adp-tabs {
+  display: flex; gap: 6px;
+  overflow-x: auto; scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.adp-tabs::-webkit-scrollbar { display: none; }
+.adp-tab {
+  flex: none;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-size: 12.5px; font-weight: 650;
+  white-space: nowrap;
+  transition: .15s;
+}
+.adp-tab:hover { border-color: #c7d3e4; color: var(--text); }
+.adp-tab.on { background: var(--primary-soft); border-color: #b9d3ee; color: var(--primary); }
+
+.adp-search-row { padding: 14px 20px 0; }
+.adp-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f8fafd;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.adp-input::placeholder { color: #9aa7bd; }
+.adp-input:focus { border-color: #8dbbe8; background: #fff; box-shadow: 0 0 0 3px rgba(31,122,203,.12); }
+
+/* ---------- pills ---------- */
+.adp-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.adp-pill.pending  { background: var(--warn-soft); color: var(--warn); }
+.adp-pill.approved { background: var(--ok-soft);   color: var(--ok); }
+.adp-pill.rejected { background: var(--bad-soft);  color: var(--bad); }
+
+/* ---------- table (desktop) ---------- */
+.adp-table-wrap { overflow-x: auto; margin-top: 14px; }
+.adp-table { width: 100%; min-width: 1020px; border-collapse: collapse; }
+.adp-table th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px; font-weight: 700; letter-spacing: .4px;
+  color: var(--muted);
+  background: #f8fafd;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+.adp-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: middle;
+}
+.adp-table tbody tr:last-child td { border-bottom: 0; }
+.adp-table tbody tr:hover td { background: #fafbfe; }
+.adp-main { font-weight: 700; color: var(--text); }
+.adp-muted { margin-top: 4px; font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.adp-tx { max-width: 150px; overflow-wrap: anywhere; font-size: 12px; font-weight: 600; }
+.adp-coin { display: flex; align-items: center; gap: 10px; }
+.adp-coin-ic {
+  width: 32px; height: 32px; flex: none;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  background: var(--primary-soft); color: var(--primary);
+  font-size: 12px; font-weight: 800;
+}
+.adp-acts { display: flex; gap: 6px; }
+
+/* ---------- screenshot thumbnail ---------- */
+.adp-thumb {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f1f4f9;
+  overflow: hidden;
+  transition: border-color .15s, transform .1s;
+}
+.adp-thumb:hover { border-color: #8dbbe8; }
+.adp-thumb:active { transform: scale(.97); }
+.adp-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.adp-thumb.sm { width: 64px; height: 64px; }
+.adp-thumb.md { width: 88px; height: 88px; }
+.adp-thumb.lg { width: 100%; height: auto; max-height: 260px; border-radius: 12px; }
+.adp-thumb.lg img { height: auto; max-height: 260px; object-fit: contain; background: #f1f4f9; }
+.adp-thumb-tag {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 3px 0;
+  background: rgba(15,27,48,.62);
+  color: #fff;
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  text-align: center;
+}
+.adp-noproof { font-size: 12px; color: var(--muted); }
+
+/* ---------- mobile cards ---------- */
+.adp-list { display: none; }
+.adp-item { padding: 16px; border-bottom: 1px solid var(--line-soft); }
+.adp-item:last-child { border-bottom: 0; }
+.adp-item-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.adp-item-id { font-size: 14px; font-weight: 800; }
+.adp-item-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.adp-item-amt { font-size: 18px; font-weight: 800; letter-spacing: -.3px; }
+.adp-item-sub { margin-top: 3px; font-size: 12px; color: var(--muted); }
+
+.adp-kv { margin-top: 12px; display: grid; gap: 8px; }
+.adp-kv div { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; }
+.adp-kv span { color: var(--muted); flex: none; }
+.adp-kv b { font-weight: 650; text-align: right; overflow-wrap: anywhere; min-width: 0; }
+
+.adp-proof-row { margin-top: 14px; display: flex; align-items: center; gap: 12px; }
+.adp-proof-row small { font-size: 12px; color: var(--muted); }
+
+.adp-item-acts { margin-top: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.adp-item-acts .adp-btn { min-height: 46px; font-size: 14px; }
+.adp-note { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #f8fafd; font-size: 12.5px; color: var(--text-2); }
+
+.adp-empty { padding: 40px 16px; text-align: center; color: var(--muted); font-size: 13.5px; }
+
+/* ---------- review modal ---------- */
+.adp-mbg {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(15,27,48,.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.adp-modal {
+  width: 100%; max-width: 560px;
+  max-height: 92vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 22px;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15,27,48,.28);
+}
+.adp-modal h3 { margin: 0 0 16px; font-size: 19px; letter-spacing: -.3px; }
+.adp-details { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.adp-detail {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: #f8fafd;
+}
+.adp-detail small { display: block; margin-bottom: 6px; font-size: 11px; color: var(--muted); }
+.adp-detail strong { font-size: 13px; overflow-wrap: anywhere; }
+.adp-mproof { margin-bottom: 16px; }
+.adp-mproof > small { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+.adp-mproof .hint { margin-top: 6px; font-size: 11.5px; color: var(--muted); }
+.adp-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.adp-textarea {
+  width: 100%; min-height: 92px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafd;
+  color: var(--text);
+  font-size: 14px;
+  resize: vertical;
+  outline: none;
+}
+.adp-textarea:focus { border-color: #8dbbe8; background: #fff; box-shadow: 0 0 0 3px rgba(31,122,203,.12); }
+.adp-mact { display: flex; gap: 10px; margin-top: 16px; }
+.adp-mact .adp-btn { flex: 1; min-height: 48px; font-size: 14px; }
+
+/* ---------- screenshot viewer ---------- */
+.adp-lb {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: calc(56px + env(safe-area-inset-top, 0px)) 14px calc(20px + env(safe-area-inset-bottom, 0px));
+  background: rgba(10,18,32,.88);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.adp-lb-x {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  right: 14px;
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  font-size: 18px;
+}
+.adp-lb-x:active { transform: scale(.94); }
+.adp-lb-body {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.adp-lb-body img {
+  max-width: 100%; max-height: 100%;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.adp-lb-fail { color: #e5ebf5; font-size: 14px; }
+
+/* ---------- tablet ---------- */
+@media (max-width: 900px) {
+  .adp-in { padding: 18px 16px calc(30px + env(safe-area-inset-bottom, 0px)); }
+}
+
+/* ---------- mobile ---------- */
+@media (max-width: 760px) {
+  .adp-table-wrap { display: none; }
+  .adp-list { display: block; margin-top: 14px; border-top: 1px solid var(--line-soft); }
+
+  .adp-title { font-size: 21px; }
+  .adp-sub { font-size: 12px; }
+  .adp-hbtns { width: 100%; }
+  .adp-hbtns .adp-btn { flex: 1; }
+
+  .adp-stats { gap: 8px; }
+  .adp-stat { padding: 13px 12px; border-radius: 14px; }
+  .adp-stat-label { font-size: 11px; }
+  .adp-stat-val { margin-top: 9px; font-size: 24px; }
+
+  .adp-toolbar { padding: 14px 14px 12px; }
+  .adp-tabs { width: 100%; }
+  .adp-search-row { padding: 0 14px; }
+}
+
+@media (max-width: 560px) {
+  .adp-in { padding: 14px 12px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .adp-mbg { align-items: flex-end; padding: 0; }
+  .adp-modal {
+    max-width: none;
+    max-height: 94vh;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-radius: 22px 22px 0 0;
+  }
+  .adp-details { grid-template-columns: 1fr; }
+  .adp-mact { flex-direction: column-reverse; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adp * { transition: none !important; }
+}
+`;
+
+export default function Admin_Deposit({ go } = {}) {
   const [deposits, setDeposits] = useState([]);
   const [status, setStatus] = useState("pending");
   const [loading, setLoading] = useState(true);
@@ -90,6 +558,8 @@ export default function Admin_Deposit() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
+
+  const [viewer, setViewer] = useState("");
 
   const loadDeposits = useCallback(async () => {
     setLoading(true);
@@ -115,6 +585,18 @@ export default function Admin_Deposit() {
   useEffect(() => {
     loadDeposits();
   }, [loadDeposits]);
+
+  // lock page scroll while a modal / viewer is open
+  useEffect(() => {
+    const lock = !!selected || !!viewer;
+    const prev = document.body.style.overflow;
+    if (lock) document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [selected, viewer]);
+
+  const closeViewer = useCallback(() => setViewer(""), []);
 
   const openReview = (item, action) => {
     setSelected(item);
@@ -197,322 +679,337 @@ export default function Admin_Deposit() {
     rejected: deposits.filter((x) => x.status === "rejected").length,
   };
 
+  const tabs = [
+    ["pending", "Pending"],
+    ["approved", "Approved"],
+    ["rejected", "Rejected"],
+    ["all", "All Deposits"],
+  ];
+
   return (
     <div className="adp">
-      <style>{`
-        .adp {
-          --bg:#080d18; --panel:#101827; --panel2:#0c1422;
-          --line:rgba(148,163,184,.15); --text:#edf4ff;
-          --muted:#8fa1ba; --blue:#72a7ff; --green:#42d6a0;
-          min-height:100%; padding:clamp(15px,2.5vw,30px);
-          color:var(--text); background:
-            radial-gradient(ellipse at 8% 0%,rgba(37,99,235,.13),transparent 34%),
-            radial-gradient(ellipse at 100% 15%,rgba(16,185,129,.07),transparent 28%),
-            var(--bg);
-          font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-        }
-        .adp * { box-sizing:border-box; }
-        .adp-head {
-          display:flex; justify-content:space-between; align-items:center;
-          flex-wrap:wrap; gap:16px; margin-bottom:25px;
-        }
-        .adp-heading { display:flex; align-items:center; gap:14px; }
-        .adp-mark {
-          width:48px;height:48px;display:grid;place-items:center;border-radius:15px;
-          color:#b9d5ff;background:linear-gradient(145deg,#1b3e70,#14233c);
-          border:1px solid rgba(114,167,255,.28);
-          box-shadow:0 10px 28px rgba(0,0,0,.22);font-size:22px;
-        }
-        .adp-title {font-size:clamp(21px,2.4vw,28px);font-weight:850;letter-spacing:-.7px;margin:0;}
-        .adp-sub {font-size:12px;color:var(--muted);margin-top:6px;}
-        .adp-secure {
-          display:inline-flex;align-items:center;gap:7px;margin-top:10px;
-          color:#71dfb4;font-size:10px;font-weight:800;letter-spacing:.8px;
-          text-transform:uppercase;
-        }
-        .adp-secure-dot {width:7px;height:7px;border-radius:50%;background:#42d6a0;box-shadow:0 0 12px #42d6a0;}
-        .adp-card,.adp-stat {
-          background:linear-gradient(145deg,rgba(18,29,47,.97),rgba(13,22,37,.97));
-          border:1px solid var(--line);border-radius:17px;
-          box-shadow:0 14px 36px rgba(0,0,0,.16);
-        }
-        .adp-card {padding:clamp(13px,2vw,21px);margin-bottom:18px;}
-        .adp-stats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:18px;}
-        .adp-stat {padding:17px 18px;position:relative;overflow:hidden;}
-        .adp-stat:after {content:"";position:absolute;width:85px;height:85px;right:-30px;top:-35px;border-radius:50%;background:rgba(96,165,250,.07);}
-        .adp-stat-label {color:var(--muted);font-size:10px;font-weight:800;letter-spacing:1px;}
-        .adp-stat-value {font-size:27px;font-weight:850;letter-spacing:-.8px;margin-top:9px;}
-        .adp-tabs {display:flex;gap:7px;flex-wrap:wrap;}
-        .adp-tab {
-          padding:9px 13px;border:1px solid var(--line);border-radius:10px;
-          background:#0b1423;color:#9aabc2;cursor:pointer;font-size:11px;font-weight:750;
-          transition:.18s ease;
-        }
-        .adp-tab:hover {border-color:rgba(114,167,255,.45);color:#e7f1ff;}
-        .adp-tab.active {color:#dceaff;background:linear-gradient(135deg,#1b477e,#17345b);border-color:#3979c9;box-shadow:0 5px 16px rgba(37,99,235,.15);}
-        .adp-toolbar {display:flex;justify-content:space-between;align-items:center;gap:13px;flex-wrap:wrap;margin-bottom:16px;}
-        .adp-toolbar-title {font-size:14px;font-weight:800;}
-        .adp-toolbar-sub {font-size:11px;color:var(--muted);margin-top:4px;}
-        .adp-input {
-          width:100%;max-width:330px;background:#091321;color:var(--text);
-          border:1px solid var(--line);border-radius:11px;padding:11px 13px;
-          outline:none;font-size:12px;transition:.18s ease;
-        }
-        .adp-input:focus,.adp-textarea:focus {border-color:#528ee4;box-shadow:0 0 0 3px rgba(59,130,246,.12);}
-        .adp-table-wrap {overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
-        .adp-table {width:100%;min-width:980px;border-collapse:collapse;background:rgba(7,14,25,.35);}
-        .adp-table th {text-align:left;color:#8fa2bd;font-size:9px;letter-spacing:.9px;font-weight:850;padding:14px 13px;background:#0b1524;border-bottom:1px solid var(--line);white-space:nowrap;}
-        .adp-table td {font-size:11px;padding:14px 13px;border-bottom:1px solid rgba(148,163,184,.09);vertical-align:middle;}
-        .adp-table tbody tr {transition:background .15s ease;}
-        .adp-table tbody tr:hover {background:rgba(59,130,246,.055);}
-        .adp-table tbody tr:last-child td {border-bottom:0;}
-        .adp-main {font-weight:800;color:#e5efff;}
-        .adp-muted {color:var(--muted);margin-top:5px;font-size:10px;overflow-wrap:anywhere;}
-        .adp-pill {display:inline-flex;align-items:center;gap:6px;border-radius:30px;padding:6px 9px;font-size:9px;font-weight:850;text-transform:uppercase;letter-spacing:.5px;}
-        .adp-pending {background:rgba(234,179,8,.12);color:#f4d36f;border:1px solid rgba(234,179,8,.18);}
-        .adp-approved {background:rgba(16,185,129,.12);color:#69e5ae;border:1px solid rgba(16,185,129,.2);}
-        .adp-rejected {background:rgba(244,63,94,.12);color:#ff9ba8;border:1px solid rgba(244,63,94,.2);}
-        .adp-btn {border:1px solid transparent;border-radius:9px;padding:9px 12px;font-size:10px;font-weight:850;cursor:pointer;transition:.18s ease;white-space:nowrap;}
-        .adp-btn:disabled {opacity:.5;cursor:not-allowed;}
-        .adp-approve {background:rgba(16,185,129,.14);color:#70e6b5;border-color:rgba(16,185,129,.22);}
-        .adp-approve:hover {background:rgba(16,185,129,.23);}
-        .adp-reject {background:rgba(244,63,94,.13);color:#ff9eaa;border-color:rgba(244,63,94,.2);}
-        .adp-reject:hover {background:rgba(244,63,94,.22);}
-        .adp-proof {background:linear-gradient(135deg,#245ba0,#194274);color:#e2efff;border-color:rgba(114,167,255,.25);}
-        .adp-proof:hover {filter:brightness(1.13);transform:translateY(-1px);}
-        .adp-empty {padding:38px 18px;text-align:center;color:var(--muted);font-size:12px;}
-        .adp-alert {padding:12px 14px;border-radius:11px;font-size:12px;margin-bottom:14px;border:1px solid transparent;}
-        .adp-error {background:rgba(244,63,94,.1);color:#ffabb4;border-color:rgba(244,63,94,.2);}
-        .adp-success {background:rgba(16,185,129,.1);color:#7be8ba;border-color:rgba(16,185,129,.2);}
-        .adp-modal-bg {position:fixed;inset:0;z-index:9999;display:flex;justify-content:center;align-items:center;padding:16px;background:rgba(2,6,15,.82);backdrop-filter:blur(8px);}
-        .adp-modal {width:100%;max-width:540px;max-height:90vh;overflow:auto;background:linear-gradient(145deg,#142136,#0d1728);border:1px solid rgba(148,163,184,.2);border-radius:19px;padding:23px;box-shadow:0 25px 80px rgba(0,0,0,.5);}
-        .adp-modal h3 {margin:0 0 18px;font-size:19px;letter-spacing:-.4px;}
-        .adp-details {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:17px;}
-        .adp-detail {background:#0a1423;border:1px solid var(--line);padding:12px;border-radius:11px;min-width:0;}
-        .adp-detail small {color:var(--muted);display:block;margin-bottom:7px;font-size:10px;}
-        .adp-detail strong {font-size:12px;overflow-wrap:anywhere;}
-        .adp-textarea {width:100%;min-height:94px;resize:vertical;background:#091321;color:var(--text);border:1px solid var(--line);border-radius:11px;padding:12px;outline:none;font-size:12px;}
-        .adp-modal-actions {display:flex;gap:9px;margin-top:16px;}
-        .adp-modal-actions button {flex:1;padding:12px;}
-        .adp-cancel {background:#26364d;color:#e7efff;border-color:rgba(148,163,184,.12);}
-        .adp-proof-link {color:#8dbaff;text-decoration:none;font-size:11px;font-weight:750;}
-        .adp-proof-link:hover {text-decoration:underline;}
-        .adp-coin {display:inline-flex;align-items:center;gap:7px;}
-        .adp-coin-icon {width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:rgba(96,165,250,.12);color:#9fc6ff;font-size:11px;font-weight:900;}
-        @media(max-width:650px) {
-          .adp {padding:13px;}
-          .adp-stats {gap:8px;}
-          .adp-stat {padding:12px;}
-          .adp-stat-value {font-size:21px;}
-          .adp-details {grid-template-columns:1fr;}
-          .adp-heading {align-items:flex-start;}
-          .adp-mark {width:42px;height:42px;border-radius:13px;}
-        }
-      `}</style>
+      <style>{CSS}</style>
 
-      <div className="adp-head">
-        <div className="adp-heading">
-          <div className="adp-mark">₿</div>
-          <div>
-            <h1 className="adp-title">Crypto Deposit Center</h1>
-            <div className="adp-sub">
-              Review on-chain payment requests and manage wallet credits
+      <div className="adp-in">
+
+        {/* Header */}
+        <div className="adp-head">
+          <div className="adp-heading">
+            <div className="adp-mark">₿</div>
+            <div>
+              <h1 className="adp-title">Crypto Deposit Center</h1>
+              <div className="adp-sub">
+                Review on-chain payment requests and manage wallet credits
+              </div>
             </div>
-            <div className="adp-secure"><span className="adp-secure-dot" /> Crypto payments only</div>
           </div>
-        </div>
-        <button className="adp-btn adp-proof" onClick={loadDeposits}>
-          ↻ &nbsp; Refresh Data
-        </button>
-      </div>
 
-      {error && !selected && (
-        <div className="adp-alert adp-error">{error}</div>
-      )}
-
-      {success && (
-        <div className="adp-alert adp-success">{success}</div>
-      )}
-
-      <div className="adp-stats">
-        <div className="adp-stat">
-          <div className="adp-stat-label">PENDING</div>
-          <div className="adp-stat-value">{counts.pending}</div>
-        </div>
-        <div className="adp-stat">
-          <div className="adp-stat-label">APPROVED</div>
-          <div className="adp-stat-value">{counts.approved}</div>
-        </div>
-        <div className="adp-stat">
-          <div className="adp-stat-label">REJECTED</div>
-          <div className="adp-stat-value">{counts.rejected}</div>
-        </div>
-      </div>
-
-      <section className="adp-card">
-        <div className="adp-toolbar">
-          <div>
-            <div className="adp-toolbar-title">Deposit Requests</div>
-            <div className="adp-toolbar-sub">Only supported cryptocurrency payment requests are shown</div>
-          </div>
-          <div className="adp-tabs">
-            {[
-              ["pending", "Pending"],
-              ["approved", "Approved"],
-              ["rejected", "Rejected"],
-              ["all", "All Deposits"],
-            ].map(([value, label]) => (
+          <div className="adp-hbtns">
+            {go && (
               <button
-                key={value}
-                className={`adp-tab ${status === value ? "active" : ""}`}
-                onClick={() => setStatus(value)}
+                type="button"
+                className="adp-btn"
+                onClick={() => go("admin")}
               >
-                {label}
+                ‹ Dashboard
               </button>
-            ))}
+            )}
+            <button
+              type="button"
+              className="adp-btn primary"
+              onClick={loadDeposits}
+              disabled={loading}
+            >
+              ↻ {loading ? "Loading..." : "Refresh"}
+            </button>
           </div>
-
-          <input
-            className="adp-input"
-            placeholder="Search ID, User ID, TXID, Coin..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
         </div>
 
-        {loading ? (
-          <div className="adp-empty">Loading deposit requests...</div>
-        ) : (
-          <div className="adp-table-wrap">
-            <table className="adp-table">
-              <thead>
-                <tr>
-                  <th>REQUEST</th>
-                  <th>USER</th>
-                  <th>PAYMENT</th>
-                  <th>AMOUNT PAID</th>
-                  <th>WALLET CREDIT</th>
-                  <th>TXID</th>
-                  <th>STATUS</th>
-                  <th>DATE</th>
-                  <th>ACTION</th>
-                </tr>
-              </thead>
+        {error && !selected && (
+          <div className="adp-alert error">{error}</div>
+        )}
 
-              <tbody>
+        {success && (
+          <div className="adp-alert success">{success}</div>
+        )}
+
+        {/* Stats */}
+        <div className="adp-stats">
+          <div className="adp-stat">
+            <div className="adp-stat-top">
+              <i className="adp-stat-dot" style={{ background: "#e0a416" }} />
+              <span className="adp-stat-label">PENDING</span>
+            </div>
+            <div className="adp-stat-val">{counts.pending}</div>
+          </div>
+          <div className="adp-stat">
+            <div className="adp-stat-top">
+              <i className="adp-stat-dot" style={{ background: "#0e9f6e" }} />
+              <span className="adp-stat-label">APPROVED</span>
+            </div>
+            <div className="adp-stat-val">{counts.approved}</div>
+          </div>
+          <div className="adp-stat">
+            <div className="adp-stat-top">
+              <i className="adp-stat-dot" style={{ background: "#e0415f" }} />
+              <span className="adp-stat-label">REJECTED</span>
+            </div>
+            <div className="adp-stat-val">{counts.rejected}</div>
+          </div>
+        </div>
+
+        {/* List */}
+        <section className="adp-card">
+          <div className="adp-toolbar">
+            <div>
+              <div className="adp-tb-title">Deposit Requests</div>
+              <div className="adp-tb-sub">
+                Only supported cryptocurrency payment requests are shown
+              </div>
+            </div>
+
+            <div className="adp-tabs">
+              {tabs.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  className={"adp-tab" + (status === value ? " on" : "")}
+                  onClick={() => setStatus(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="adp-search-row">
+            <input
+              className="adp-input"
+              placeholder="Search ID, User ID, TXID, Coin..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {loading ? (
+            <div className="adp-empty">Loading deposit requests...</div>
+          ) : !filtered.length ? (
+            <div className="adp-empty">
+              No crypto deposit requests found for this filter.
+            </div>
+          ) : (
+            <>
+              {/* Desktop table */}
+              <div className="adp-table-wrap">
+                <table className="adp-table">
+                  <thead>
+                    <tr>
+                      <th>REQUEST</th>
+                      <th>USER</th>
+                      <th>PAYMENT</th>
+                      <th>AMOUNT PAID</th>
+                      <th>WALLET CREDIT</th>
+                      <th>TXID</th>
+                      <th>PROOF</th>
+                      <th>STATUS</th>
+                      <th>DATE</th>
+                      <th>ACTION</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {filtered.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          <div className="adp-main">#{item.id}</div>
+                          <div className="adp-muted">
+                            Method #{item.payment_method_id}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="adp-main">User #{item.user_id}</div>
+                          <div className="adp-muted">
+                            {item.sender_info || "—"}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="adp-coin">
+                            <span className="adp-coin-ic">
+                              {String(item.currency || item.coin || "₿").slice(0, 1)}
+                            </span>
+                            <div>
+                              <div className="adp-main">{paymentLabel(item)}</div>
+                              <div className="adp-muted">
+                                {item.currency || item.coin || "Crypto asset"}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="adp-main">
+                            {fmt(item.amount)} {item.currency}
+                          </div>
+                          <div className="adp-muted">
+                            Rate: {fmt(item.rate_used)}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="adp-main">
+                            {fmt(item.credit_amount)} {item.coin}
+                          </div>
+                        </td>
+
+                        <td>
+                          <div className="adp-tx" title={item.txid}>
+                            {item.txid || "—"}
+                          </div>
+                        </td>
+
+                        <td>
+                          <ProofThumb
+                            url={item.proof_url}
+                            onOpen={setViewer}
+                            size="sm"
+                          />
+                        </td>
+
+                        <td>
+                          <span className={`adp-pill ${item.status}`}>
+                            {item.status}
+                          </span>
+                        </td>
+
+                        <td>{dateFmt(item.created_at)}</td>
+
+                        <td>
+                          {item.status === "pending" ? (
+                            <div className="adp-acts">
+                              <button
+                                type="button"
+                                className="adp-btn sm approve"
+                                onClick={() => openReview(item, "approve")}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                className="adp-btn sm reject"
+                                onClick={() => openReview(item, "reject")}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="adp-muted">
+                              {item.admin_note || "Reviewed"}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile cards */}
+              <div className="adp-list">
                 {filtered.map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <div className="adp-main">#{item.id}</div>
-                      <div className="adp-muted">
-                        Method #{item.payment_method_id}
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="adp-main">User #{item.user_id}</div>
-                      <div className="adp-muted">
-                        {item.sender_info || "—"}
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="adp-coin">
-                        <span className="adp-coin-icon">{String(item.currency || item.coin || "₿").slice(0, 1)}</span>
-                        <div>
-                          <div className="adp-main">{paymentLabel(item)}</div>
-                          <div className="adp-muted">{item.currency || item.coin || "Crypto asset"}</div>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="adp-main">
-                        {fmt(item.amount)} {item.currency}
-                      </div>
-                      <div className="adp-muted">
-                        Rate: {fmt(item.rate_used)}
-                      </div>
-                    </td>
-
-                    <td>
-                      <div className="adp-main">
-                        {fmt(item.credit_amount)} {item.coin}
-                      </div>
-                    </td>
-
-                    <td>
-                      <div
-                        className="adp-main"
-                        title={item.txid}
-                        style={{ maxWidth: 140, overflowWrap: "anywhere" }}
-                      >
-                        {item.txid}
-                      </div>
-                      {item.proof_url && (
-                        <div style={{ marginTop: 5 }}>
-                          <a
-                            className="adp-proof-link"
-                            href={item.proof_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            View Proof ↗
-                          </a>
-                        </div>
-                      )}
-                    </td>
-
-                    <td>
-                      <span className={`adp-pill adp-${item.status}`}>
+                  <div className="adp-item" key={item.id}>
+                    <div className="adp-item-top">
+                      <span className="adp-item-id">#{item.id}</span>
+                      <span className={`adp-pill ${item.status}`}>
                         {item.status}
                       </span>
-                    </td>
+                    </div>
 
-                    <td>{dateFmt(item.created_at)}</td>
-
-                    <td>
-                      {item.status === "pending" ? (
-                        <div style={{ display: "flex", gap: 6 }}>
-                          <button
-                            className="adp-btn adp-approve"
-                            onClick={() => openReview(item, "approve")}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            className="adp-btn adp-reject"
-                            onClick={() => openReview(item, "reject")}
-                          >
-                            Reject
-                          </button>
+                    <div className="adp-item-row">
+                      <span className="adp-coin-ic" style={{ width: 40, height: 40, fontSize: 15 }}>
+                        {String(item.currency || item.coin || "₿").slice(0, 1)}
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="adp-item-amt">
+                          {fmt(item.amount)} {item.currency}
                         </div>
-                      ) : (
-                        <span className="adp-muted">
-                          {item.admin_note || "Reviewed"}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
+                        <div className="adp-item-sub">
+                          {paymentLabel(item)} · User #{item.user_id}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="adp-kv">
+                      <div>
+                        <span>Wallet credit</span>
+                        <b>{fmt(item.credit_amount)} {item.coin}</b>
+                      </div>
+                      <div>
+                        <span>Rate</span>
+                        <b>{fmt(item.rate_used)}</b>
+                      </div>
+                      <div>
+                        <span>TXID</span>
+                        <b>{item.txid || "—"}</b>
+                      </div>
+                      <div>
+                        <span>Sender</span>
+                        <b>{item.sender_info || "—"}</b>
+                      </div>
+                      <div>
+                        <span>Date</span>
+                        <b>{dateFmt(item.created_at)}</b>
+                      </div>
+                    </div>
+
+                    <div className="adp-proof-row">
+                      <ProofThumb
+                        url={item.proof_url}
+                        onOpen={setViewer}
+                        size="md"
+                      />
+                      {item.proof_url && <small>Tap screenshot to enlarge</small>}
+                    </div>
+
+                    {item.status === "pending" ? (
+                      <div className="adp-item-acts">
+                        <button
+                          type="button"
+                          className="adp-btn approve"
+                          onClick={() => openReview(item, "approve")}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          className="adp-btn reject"
+                          onClick={() => openReview(item, "reject")}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    ) : (
+                      item.admin_note && (
+                        <div className="adp-note">{item.admin_note}</div>
+                      )
+                    )}
+                  </div>
                 ))}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
 
-                {!filtered.length && (
-                  <tr>
-                    <td colSpan="9" className="adp-empty">
-                      No crypto deposit requests found for this filter.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
+      {/* Review modal */}
       {selected && (
-        <div className="adp-modal-bg" onMouseDown={(e) => {
-          if (e.target === e.currentTarget) closeReview();
-        }}>
+        <div
+          className="adp-mbg"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) closeReview();
+          }}
+        >
           <div className="adp-modal">
             <h3>
               {reviewAction === "approve" ? "Approve Deposit" : "Reject Deposit"}
@@ -520,7 +1017,7 @@ export default function Admin_Deposit() {
             </h3>
 
             {error && (
-              <div className="adp-alert adp-error">{error}</div>
+              <div className="adp-alert error">{error}</div>
             )}
 
             <div className="adp-details">
@@ -546,7 +1043,7 @@ export default function Admin_Deposit() {
 
               <div className="adp-detail">
                 <small>Transaction ID</small>
-                <strong>{selected.txid}</strong>
+                <strong>{selected.txid || "—"}</strong>
               </div>
 
               <div className="adp-detail">
@@ -556,24 +1053,18 @@ export default function Admin_Deposit() {
             </div>
 
             {selected.proof_url && (
-              <p>
-                <a
-                  className="adp-proof-link"
-                  href={selected.proof_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Open Payment Proof ↗
-                </a>
-              </p>
+              <div className="adp-mproof">
+                <small>Payment Screenshot</small>
+                <ProofThumb
+                  url={selected.proof_url}
+                  onOpen={setViewer}
+                  size="lg"
+                />
+                <div className="hint">Tap the screenshot to view full size</div>
+              </div>
             )}
 
-            <label style={{
-              display: "block",
-              fontSize: 12,
-              color: "#91a0b8",
-              marginBottom: 8,
-            }}>
+            <label className="adp-label">
               {reviewAction === "reject"
                 ? "Rejection Reason (Required)"
                 : "Admin Note (Optional)"}
@@ -590,11 +1081,12 @@ export default function Admin_Deposit() {
               }
             />
 
-            <div className="adp-modal-actions">
+            <div className="adp-mact">
               <button
-                className={`adp-btn ${
-                  reviewAction === "approve" ? "adp-approve" : "adp-reject"
-                }`}
+                type="button"
+                className={
+                  "adp-btn " + (reviewAction === "approve" ? "approve" : "reject")
+                }
                 onClick={submitReview}
                 disabled={processing}
               >
@@ -606,7 +1098,8 @@ export default function Admin_Deposit() {
               </button>
 
               <button
-                className="adp-btn adp-cancel"
+                type="button"
+                className="adp-btn"
                 onClick={closeReview}
                 disabled={processing}
               >
@@ -616,6 +1109,9 @@ export default function Admin_Deposit() {
           </div>
         </div>
       )}
+
+      {/* Full-screen screenshot viewer */}
+      {viewer && <Lightbox url={viewer} onClose={closeViewer} />}
     </div>
   );
 }
