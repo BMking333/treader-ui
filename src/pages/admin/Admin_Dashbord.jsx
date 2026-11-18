@@ -13,6 +13,7 @@ import {
    Admin Dashboard  (light theme, charts)
    Sidebar + mobile 3-dot button are rendered by App.jsx (all admin pages)
    APIs:
+     GET /admin/stats                      (users + registrations)
      GET /admin/deposits
      GET /admin/withdraws/counts
      GET /admin/withdraws?status=all&page=1&size=5
@@ -203,6 +204,17 @@ const CSS = `
 .ad-lg-r small { font-size: 11.5px; color: var(--muted); min-width: 36px; text-align: right; }
 .ad-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; display: inline-block; }
 
+/* registration summary tiles */
+.ad-regs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.ad-reg {
+  padding: 14px 16px; border: 1px solid var(--line-soft);
+  border-radius: 12px; background: #f8fafd; min-width: 0;
+}
+.ad-reg small { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
+.ad-reg b { display: block; margin-top: 6px; font-size: 22px; font-weight: 800; letter-spacing: -.5px; font-variant-numeric: tabular-nums; }
+.ad-reg.hi { background: var(--primary-soft); border-color: #cfe3f7; }
+.ad-reg.hi b { color: var(--primary); }
+
 /* compare bars */
 .ad-cmp { display: grid; gap: 18px; }
 .ad-cmp-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 13px; font-weight: 700; }
@@ -281,6 +293,7 @@ const CSS = `
 @media (max-width: 900px) {
   .ad-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ad-sumgrid { grid-template-columns: 1fr; }
+  .ad-regs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 680px) {
   .ad-head-in { padding: 10px 14px; gap: 10px; min-height: 62px; }
@@ -308,6 +321,9 @@ const CSS = `
   .ad-ph { padding: 14px 16px; }
   .ad-ph h3 { font-size: 15px; }
   .ad-cb { padding: 14px 14px 16px; }
+  .ad-regs { gap: 10px; }
+  .ad-reg { padding: 12px 14px; }
+  .ad-reg b { font-size: 20px; }
 
   .ad-recent { margin-top: 12px; }
   .ad-table-wrap { display: none; }
@@ -329,6 +345,28 @@ const C_PENDING = "#e0a416";
 const C_APPROVED = GREEN || "#0e9f6e";
 const C_REJECTED = RED || "#e0415f";
 const C_BLUE = BLUE || "#1f7acb";
+const C_GREY = "#a3adbd";
+
+const EMPTY_STATS = {
+  users: 0,
+  active: 0,
+  banned: 0,
+  verified: 0,
+  pending_kyc: 0,
+  rejected_kyc: 0,
+  admins: 0,
+  registrations: {
+    total: 0,
+    today: 0,
+    yesterday: 0,
+    this_week: 0,
+    this_month: 0,
+    last_3_months: 0,
+    last_6_months: 0,
+    last_1_year: 0,
+  },
+  timezone: "",
+};
 
 /* crypto methods filter (same rule as the Payment Methods page) */
 const CRYPTO_COINS = ["USDT", "BTC", "USDC", "ETH", "DOGE", "XRP", "SOL", "PYUSD"];
@@ -368,6 +406,8 @@ const money = (value) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+const num = (value) => Number(value || 0).toLocaleString("en-US");
 
 const dateOf = (value) => {
   if (!value) return "—";
@@ -459,7 +499,8 @@ function Donut({ data, centerTop, centerSub, loading }) {
   );
 }
 
-function ActivityChart({ days }) {
+/* Generic vertical bar chart: items = [{ key, label, sub?, full, value, highlight? }] */
+function BarChart({ items, ariaLabel, unit = "request(s)", gradId = "adbar" }) {
   const W = 680;
   const H = 240;
   const pl = 34;
@@ -469,21 +510,21 @@ function ActivityChart({ days }) {
   const iw = W - pl - pr;
   const ih = H - pt - pb;
 
-  const maxCount = Math.max(0, ...days.map((d) => d.count));
+  const maxCount = Math.max(0, ...items.map((d) => d.value));
   const step = Math.max(1, Math.ceil(maxCount / 4));
   const yMax = step * 4;
 
-  const slot = iw / days.length;
+  const slot = iw / items.length;
   const bw = Math.min(34, slot * 0.6);
 
   return (
-    <svg className="ad-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Deposit requests in the last ${days.length} days`}>
+    <svg className="ad-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={ariaLabel}>
       <defs>
-        <linearGradient id="adbar" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#2a7de1" />
           <stop offset="100%" stopColor="#1fbad0" />
         </linearGradient>
-        <linearGradient id="adbarToday" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradId + "Hi"} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#7c4dd8" />
           <stop offset="100%" stopColor="#2a7de1" />
         </linearGradient>
@@ -501,8 +542,8 @@ function ActivityChart({ days }) {
         );
       })}
 
-      {days.map((d, i) => {
-        const h = yMax > 0 ? (d.count / yMax) * ih : 0;
+      {items.map((d, i) => {
+        const h = yMax > 0 ? (d.value / yMax) * ih : 0;
         const x = pl + slot * i + (slot - bw) / 2;
         const y = pt + ih - h;
         return (
@@ -510,32 +551,34 @@ function ActivityChart({ days }) {
             <rect
               className="ad-bar"
               x={x}
-              y={d.count > 0 ? y : pt + ih - 2}
+              y={d.value > 0 ? y : pt + ih - 2}
               width={bw}
-              height={d.count > 0 ? h : 2}
+              height={d.value > 0 ? h : 2}
               rx="6"
-              fill={d.count > 0 ? (d.today ? "url(#adbarToday)" : "url(#adbar)") : "#e3e8f0"}
+              fill={d.value > 0 ? `url(#${d.highlight ? gradId + "Hi" : gradId})` : "#e3e8f0"}
             >
-              <title>{`${d.full}: ${d.count} request(s), ${money(d.amount)}`}</title>
+              <title>{`${d.full}: ${d.value} ${unit}${d.extra ? ", " + d.extra : ""}`}</title>
             </rect>
-            {d.count > 0 && (
+            {d.value > 0 && (
               <text x={x + bw / 2} y={y - 6} textAnchor="middle" fontSize="11.5" fontWeight="700" fill="#0f1b30">
-                {d.count}
+                {d.value}
               </text>
             )}
             <text
               x={x + bw / 2}
-              y={H - 19}
+              y={d.sub ? H - 19 : H - 12}
               textAnchor="middle"
               fontSize="11.5"
-              fill={d.today ? "#7c4dd8" : "#4a5568"}
-              fontWeight={d.today ? "800" : "600"}
+              fill={d.highlight ? "#7c4dd8" : "#4a5568"}
+              fontWeight={d.highlight ? "800" : "600"}
             >
               {d.label}
             </text>
-            <text x={x + bw / 2} y={H - 5} textAnchor="middle" fontSize="10" fill="#9aa5b8">
-              {d.sub}
-            </text>
+            {d.sub && (
+              <text x={x + bw / 2} y={H - 5} textAnchor="middle" fontSize="10" fill="#9aa5b8">
+                {d.sub}
+              </text>
+            )}
           </g>
         );
       })}
@@ -693,6 +736,7 @@ export default function Admin_Dashbord({ me, go, logout }) {
   const [wdCounts, setWdCounts] = useState({ all: 0, pending: 0, approved: 0, rejected: 0 });
   const [wdRecent, setWdRecent] = useState([]);
   const [methods, setMethods] = useState([]);
+  const [stats, setStats] = useState(EMPTY_STATS);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -709,11 +753,12 @@ export default function Admin_Dashbord({ me, go, logout }) {
 
     setError("");
 
-    const [dep, wc, wl, pm] = await Promise.allSettled([
+    const [dep, wc, wl, pm, st] = await Promise.allSettled([
       api("/admin/deposits"),
       api("/admin/withdraws/counts"),
       api("/admin/withdraws?status=all&page=1&size=5"),
       api("/admin/payment-methods"),
+      api("/admin/stats"),
     ]);
 
     const failed = [];
@@ -738,6 +783,17 @@ export default function Admin_Dashbord({ me, go, logout }) {
 
     if (pm.status === "fulfilled") setMethods(getRows(pm.value).filter(isCryptoMethod));
     else failed.push(["Payment methods", pm.reason]);
+
+    if (st.status === "fulfilled") {
+      const s = st.value?.data ?? st.value ?? {};
+      setStats({
+        ...EMPTY_STATS,
+        ...s,
+        registrations: { ...EMPTY_STATS.registrations, ...(s.registrations || {}) },
+      });
+    } else {
+      failed.push(["Users", st.reason]);
+    }
 
     if (failed.length) {
       setError(
@@ -789,11 +845,11 @@ export default function Admin_Dashbord({ me, go, logout }) {
       const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
       out.push({
         key: dayKey(d),
-        today: i === 0,
+        highlight: i === 0,
         label: i === 0 ? "Today" : d.toLocaleDateString("en-US", { weekday: "short" }),
         sub: d.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
         full: d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }),
-        count: 0,
+        value: 0,
         amount: 0,
       });
     }
@@ -805,14 +861,45 @@ export default function Admin_Dashbord({ me, go, logout }) {
       if (Number.isNaN(dt.getTime())) return;
       const slot = map[dayKey(dt)];
       if (slot) {
-        slot.count += 1;
+        slot.value += 1;
         slot.amount += amountOf(x);
       }
     });
-    return out;
+    return out.map((d) => ({ ...d, extra: money(d.amount) }));
   }, [deposits]);
 
-  const periodTotal = days.reduce((s, d) => s + d.count, 0);
+  const periodTotal = days.reduce((s, d) => s + d.value, 0);
+
+  /* ---------- users & registrations ---------- */
+
+  const reg = stats.registrations;
+
+  const regPeriods = [
+    { key: "today", label: "Today", full: "Registered today", value: reg.today, highlight: true },
+    { key: "yesterday", label: "Yesterday", full: "Registered yesterday", value: reg.yesterday },
+    { key: "week", label: "This week", full: "Registered this week", value: reg.this_week },
+    { key: "month", label: "This month", full: "Registered this month", value: reg.this_month },
+    { key: "m3", label: "3 months", full: "Registered in the last 3 months", value: reg.last_3_months },
+    { key: "m6", label: "6 months", full: "Registered in the last 6 months", value: reg.last_6_months },
+    { key: "y1", label: "1 year", full: "Registered in the last 1 year", value: reg.last_1_year },
+  ];
+
+  const notSubmitted = Math.max(
+    0,
+    stats.users - stats.verified - stats.pending_kyc - stats.rejected_kyc
+  );
+
+  const verifyData = [
+    { label: "Verified", value: stats.verified, color: C_APPROVED },
+    { label: "KYC pending", value: stats.pending_kyc, color: C_PENDING },
+    { label: "KYC rejected", value: stats.rejected_kyc, color: C_REJECTED },
+    { label: "Not submitted", value: notSubmitted, color: C_GREY },
+  ];
+
+  const accountData = [
+    { label: "Active", value: stats.active, color: C_APPROVED },
+    { label: "Banned", value: stats.banned, color: C_REJECTED },
+  ];
 
   /* ---------- navigation ---------- */
 
@@ -825,6 +912,36 @@ export default function Admin_Dashbord({ me, go, logout }) {
   };
 
   const val = (n) => (loading ? <i className="ad-sk" /> : n);
+
+  const userCards = [
+    {
+      label: "Total Users",
+      value: num(stats.users),
+      foot: `${num(stats.active)} active · ${num(stats.banned)} banned`,
+      icon: ICON.user || ICON.doc,
+      color: C_BLUE,
+      bg: "#eaf3fc",
+      to: "adminUsers",
+    },
+    {
+      label: "Verified Users",
+      value: num(stats.verified),
+      foot: `${pct(stats.verified, stats.users)}% of all users`,
+      icon: ICON.lock,
+      color: C_APPROVED,
+      bg: "#e3f6ee",
+      to: "adminUsers",
+    },
+    {
+      label: "Pending KYC",
+      value: num(stats.pending_kyc),
+      foot: "Waiting for admin review",
+      icon: ICON.bell,
+      color: "#c98a0a",
+      bg: "#fdf3dc",
+      to: "adminKyc",
+    },
+  ];
 
   const cards = [
     {
@@ -898,8 +1015,28 @@ export default function Admin_Dashbord({ me, go, logout }) {
 
   const pmData = [
     { label: "Active", value: pmStats.active, color: C_APPROVED },
-    { label: "Disabled", value: pmStats.disabled, color: "#a3adbd" },
+    { label: "Disabled", value: pmStats.disabled, color: C_GREY },
   ];
+
+  const StatCard = (c) => (
+    <button
+      key={c.label}
+      type="button"
+      className="ad-stat"
+      onClick={() => open(c.to)}
+    >
+      <div className="ad-stat-top">
+        <span className="ad-stat-label">{c.label}</span>
+        <span className="ad-stat-ic" style={{ color: c.color, background: c.bg }}>
+          <Ic d={c.icon} s={19} />
+        </span>
+      </div>
+      <div className="ad-stat-val" style={c.small ? { fontSize: 24 } : undefined}>
+        {val(c.value)}
+      </div>
+      <div className="ad-stat-foot">{c.foot}</div>
+    </button>
+  );
 
   return (
     <div className="ad-wrap">
@@ -954,32 +1091,154 @@ export default function Admin_Dashbord({ me, go, logout }) {
             </div>
           )}
 
-          {/* Statistics */}
-          <section className="ad-stats">
-            {cards.map((c) => (
-              <button
-                key={c.label}
-                type="button"
-                className="ad-stat"
-                onClick={() => open(c.to)}
-              >
-                <div className="ad-stat-top">
-                  <span className="ad-stat-label">{c.label}</span>
-                  <span className="ad-stat-ic" style={{ color: c.color, background: c.bg }}>
-                    <Ic d={c.icon} s={19} />
-                  </span>
+          {/* ===== Users & registrations ===== */}
+          <div className="ad-sec" style={{ marginTop: 0 }}>
+            <h2>Users &amp; Registrations</h2>
+            <small>{stats.timezone ? `Time zone: ${stats.timezone}` : "Live data"}</small>
+          </div>
+
+          <section className="ad-stats">{userCards.map(StatCard)}</section>
+
+          <section className="ad-panel" style={{ marginTop: 16 }}>
+            <div className="ad-ph">
+              <h3>
+                New Registrations
+                <small>Users who signed up in each period</small>
+              </h3>
+              <span className="ad-pill blue">
+                {loading ? "—" : `${num(reg.total || stats.users)} TOTAL`}
+              </span>
+            </div>
+            <div className="ad-cb">
+              <div className="ad-regs">
+                <div className="ad-reg hi">
+                  <small>Total registered</small>
+                  <b>{loading ? "—" : num(reg.total || stats.users)}</b>
                 </div>
-                <div className="ad-stat-val" style={c.small ? { fontSize: 24 } : undefined}>
-                  {val(c.value)}
+                <div className="ad-reg">
+                  <small>Today</small>
+                  <b>{loading ? "—" : num(reg.today)}</b>
                 </div>
-                <div className="ad-stat-foot">{c.foot}</div>
-              </button>
-            ))}
+                <div className="ad-reg">
+                  <small>Yesterday</small>
+                  <b>{loading ? "—" : num(reg.yesterday)}</b>
+                </div>
+                <div className="ad-reg">
+                  <small>This week</small>
+                  <b>{loading ? "—" : num(reg.this_week)}</b>
+                </div>
+                <div className="ad-reg">
+                  <small>This month</small>
+                  <b>{loading ? "—" : num(reg.this_month)}</b>
+                </div>
+                <div className="ad-reg">
+                  <small>Last 3 months</small>
+                  <b>{loading ? "—" : num(reg.last_3_months)}</b>
+                </div>
+                <div className="ad-reg">
+                  <small>Last 6 months</small>
+                  <b>{loading ? "—" : num(reg.last_6_months)}</b>
+                </div>
+                <div className="ad-reg">
+                  <small>Last 1 year</small>
+                  <b>{loading ? "—" : num(reg.last_1_year)}</b>
+                </div>
+              </div>
+            </div>
           </section>
+
+          <section className="ad-row2" style={{ marginTop: 16 }}>
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Registration Chart
+                  <small>New users by period (week, month and longer periods include earlier days)</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                {loading ? (
+                  <i className="ad-sk chart" />
+                ) : (
+                  <BarChart
+                    items={regPeriods}
+                    ariaLabel="New user registrations by period"
+                    unit="new user(s)"
+                    gradId="adreg"
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  User Verification
+                  <small>KYC status of all users</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                <Donut data={verifyData} centerTop={num(stats.users)} centerSub="Users" loading={loading} />
+              </div>
+            </div>
+          </section>
+
+          <section className="ad-row3" style={{ marginTop: 16 }}>
+            <div className="ad-panel">
+              <div className="ad-ph">
+                <h3>
+                  Account Status
+                  <small>Active and banned users</small>
+                </h3>
+              </div>
+              <div className="ad-cb">
+                <Donut data={accountData} centerTop={num(stats.users)} centerSub="Users" loading={loading} />
+              </div>
+            </div>
+
+            <div className="ad-panel" style={{ gridColumn: "span 2" }}>
+              <div className="ad-ph">
+                <h3>
+                  User Summary
+                  <small>Quick numbers</small>
+                </h3>
+                <span className="ad-pill blue">LIVE DATA</span>
+              </div>
+              <div className="ad-cb">
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_BLUE }} />Total users</span>
+                  <b>{loading ? <i className="ad-sk" /> : num(stats.users)}</b>
+                </div>
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_APPROVED }} />Verified users</span>
+                  <b>{loading ? <i className="ad-sk" /> : num(stats.verified)}</b>
+                </div>
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_PENDING }} />KYC pending</span>
+                  <b>{loading ? <i className="ad-sk" /> : num(stats.pending_kyc)}</b>
+                </div>
+                <div className="ad-sum-row">
+                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: C_REJECTED }} />KYC rejected</span>
+                  <b>{loading ? <i className="ad-sk" /> : num(stats.rejected_kyc)}</b>
+                </div>
+                <div className="ad-sum-row" style={{ borderBottom: 0 }}>
+                  <span className="ad-sum-l"><i className="ad-dot" style={{ background: "#7c4dd8" }} />Admins</span>
+                  <b>{loading ? <i className="ad-sk" /> : num(stats.admins)}</b>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ===== Statistics ===== */}
+          <div className="ad-sec">
+            <h2>Deposits &amp; Withdrawals</h2>
+            <small>Live data</small>
+          </div>
+
+          <section className="ad-stats">{cards.map(StatCard)}</section>
 
           {/* Charts */}
           <div className="ad-sec">
-            <h2>Statistics & Charts</h2>
+            <h2>Statistics &amp; Charts</h2>
             <small>Live data</small>
           </div>
 
@@ -995,7 +1254,15 @@ export default function Admin_Dashbord({ me, go, logout }) {
                 </span>
               </div>
               <div className="ad-cb">
-                {loading ? <i className="ad-sk chart" /> : <ActivityChart days={days} />}
+                {loading ? (
+                  <i className="ad-sk chart" />
+                ) : (
+                  <BarChart
+                    items={days}
+                    ariaLabel={`Deposit requests in the last ${days.length} days`}
+                    gradId="addep"
+                  />
+                )}
               </div>
             </div>
 
