@@ -1,19 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { api, setToken, BLUE, GREEN, RED } from "../Home";
 
-/* =========================================================
-   Admin_Userlist  —  /v2/admin-dashbord/users
-   Backend: GET /admin/users, PATCH/DELETE /admin/users/{id},
-            POST /admin/users/{id}/password, /login-as, POST /admin/admins
-
-   Rule: Super admin (ebong email user.897) list e sompurno HIDDEN.
-   Kono jaygay dekha jabe na.
-========================================================= */
-
 const SIZE = 20;
-
-// Super admin / user.897 = sompurno hidden
 const HIDDEN_EMAIL = "user.897";
+
 const isHiddenUser = (u) => {
   if (!u) return false;
   if (u.is_super) return true;
@@ -43,6 +33,24 @@ const initials = (u) => {
   return ((parts[0]?.[0] || "?") + (parts[1]?.[0] || "")).toUpperCase();
 };
 
+const place = (city, country) => [city, country].filter(Boolean).join(", ") || "-";
+
+function Info({ title, rows }) {
+  return (
+    <>
+      <div className="au-sec">{title}</div>
+      <div className="au-card">
+        {rows.map(([k, v, cls]) => (
+          <div className="au-kv" key={k}>
+            <span>{k}</span>
+            <b className={cls || ""}>{v || "-"}</b>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 export default function Admin_Userlist({ me, go, logout }) {
   const [q, setQ] = useState("");
   const [qIn, setQIn] = useState("");
@@ -52,12 +60,13 @@ export default function Admin_Userlist({ me, go, logout }) {
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ total: 0, items: [] });
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState(null); // {t:"ok"|"bad", s}
-  const [sel, setSel] = useState(null); // selected user
-  const [mode, setMode] = useState(""); // "" | edit | pw | create
+  const [msg, setMsg] = useState(null);
+  const [sel, setSel] = useState(null);
+  const [mode, setMode] = useState("");
+  const [logins, setLogins] = useState(null);
 
   const isSuper = !!me?.is_super;
-  const selProtected = !!sel?.is_super; // safety: super hole kono action nai
+  const selProtected = !!sel?.is_super;
 
   const load = useCallback(() => {
     setLoading(true);
@@ -87,6 +96,23 @@ export default function Admin_Userlist({ me, go, logout }) {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (!sel?.id || isHiddenUser(sel)) {
+      setLogins(null);
+      return;
+    }
+    let dead = false;
+    setLogins(null);
+    api("/admin/users/" + sel.id + "/logins?size=200")
+      .then((r) => !dead && setLogins(Array.isArray(r) ? r : []))
+      .catch(() => !dead && setLogins([]));
+    return () => {
+      dead = true;
+    };
+  }, [sel?.id]);
+
+  const lastLogin = (logins || []).find((l) => l.success) || null;
+
   const pages = Math.max(1, Math.ceil((data.total || 0) / SIZE));
 
   const search = (e) => {
@@ -105,7 +131,6 @@ export default function Admin_Userlist({ me, go, logout }) {
     setMode("");
   };
 
-  /* ---------- actions ---------- */
   const patch = async (u, body, okText = "Saved") => {
     if (isHiddenUser(u)) return false;
     try {
@@ -291,6 +316,37 @@ export default function Admin_Userlist({ me, go, logout }) {
                   <div className="au-kv"><span>Joined</span><b>{fmtDate(sel.created_at)}</b></div>
                 </div>
 
+                <Info
+                  title="Registration"
+                  rows={[
+                    ["IP", sel.reg_ip, "sel"],
+                    ["City", place(sel.reg_city, sel.reg_country)],
+                    ["ISP", sel.reg_isp],
+                    ["User agent", sel.reg_user_agent, "ua"],
+                  ]}
+                />
+
+                <Info
+                  title="Last login"
+                  rows={
+                    logins === null
+                      ? [["Status", "Loading…"]]
+                      : !lastLogin
+                      ? [
+                          ["Status", "No successful login yet"],
+                          ["Last login", fmtDate(sel.last_login_at)],
+                        ]
+                      : [
+                          ["Time", fmtDate(lastLogin.at)],
+                          ["IP", lastLogin.ip, "sel"],
+                          ["City", place(lastLogin.city, lastLogin.country)],
+                          ["ISP", lastLogin.isp],
+                          ["Device", lastLogin.device],
+                          ["User agent", lastLogin.ua, "ua"],
+                        ]
+                  }
+                />
+
                 {selProtected ? (
                   <div className="au-lock">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -338,8 +394,6 @@ export default function Admin_Userlist({ me, go, logout }) {
     </div>
   );
 }
-
-/* ---------------- sub forms ---------------- */
 
 function EditForm({ u, isSuper, onSave, onCancel }) {
   const [f, setF] = useState({
@@ -451,17 +505,14 @@ function CreateAdmin({ onDone, onErr }) {
   );
 }
 
-/* ---------------- css ---------------- */
 const CSS = `
 .au-pg{padding-bottom:34px}
 
-/* nav segmented */
 .au-nav{display:flex;gap:6px;margin:12px 14px 0;padding:4px;border-radius:14px;background:#eef0f6}
 .au-nav button{flex:1;text-align:center;padding:10px 0;border-radius:10px;border:0;background:transparent;font-size:14.5px;font-weight:600;color:#6b7183;transition:background .15s,color .15s,box-shadow .15s}
 .au-nav button.on{background:#fff;color:${BLUE};box-shadow:0 1px 3px rgba(20,30,60,.12)}
 .au-nav button.add{color:${BLUE}}
 
-/* search */
 .au-search{display:flex;gap:8px;padding:14px 14px 6px}
 .au-sbox{flex:1;min-width:0;position:relative;display:flex;align-items:center}
 .au-sbox svg{position:absolute;left:13px;color:#9aa1b4;pointer-events:none}
@@ -470,12 +521,10 @@ const CSS = `
 .au-search>button{padding:0 20px;border-radius:14px;background:${BLUE};color:#fff;font-weight:600;text-align:center;box-shadow:0 4px 12px rgba(31,122,203,.28)}
 .au-search>button:active{transform:translateY(1px)}
 
-/* filters */
 .au-filters{display:flex;gap:8px;padding:6px 14px 12px;flex-wrap:wrap}
 .au-filters select,.au-form select{flex:1;min-width:100px;height:40px;border:1.5px solid #e1e5ef;border-radius:12px;padding:0 10px;font-size:13.5px;font-weight:500;background:#fff;color:inherit;outline:0}
 .au-filters select:focus,.au-form select:focus{border-color:${BLUE}}
 
-/* list */
 .au-list{margin:0 14px;border:1px solid #e8eaf1;border-radius:18px;overflow:hidden;background:#fff}
 .au-row{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;border:0;border-bottom:1px solid #eef0f5;background:transparent;text-align:start;transition:background .12s}
 .au-row:last-child{border-bottom:0}
@@ -486,25 +535,21 @@ const CSS = `
 .au-tags{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
 .cx-empty{padding:30px 16px;text-align:center;color:#8a90a2}
 
-/* avatar */
 .au-av{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-size:14px;font-weight:700;letter-spacing:.3px;color:#4a5370;background:linear-gradient(145deg,#eef0f7,#dde2ef)}
 .au-av.adm{color:${BLUE};background:linear-gradient(145deg,#e6f1fc,#cfe3f7)}
 .au-av.sup{color:#fff;background:linear-gradient(145deg,#2a7fd0,#16508f);box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(31,122,203,.35)}
 .au-av.lg{width:56px;height:56px;font-size:18px}
 
-/* tags */
 .tg{font-style:normal;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;background:#eceef4;color:#5b6174}
 .tg.verified{background:rgba(14,203,129,.14);color:#0a9b63}
 .tg.pending{background:rgba(245,166,35,.18);color:#b87408}
 .tg.rejected,.tg.off{background:rgba(229,72,77,.14);color:${RED}}
 .tg.ad{background:rgba(31,122,203,.14);color:${BLUE}}
 
-/* pager */
 .au-pager{display:flex;justify-content:space-between;align-items:center;padding:16px 14px 0;color:#6b7183;font-size:14px}
 .au-pager button{padding:10px 16px;border:1px solid #dfe3ee;border-radius:12px;font-size:14.5px;font-weight:600;background:#fff;text-align:center}
 .au-pager button:disabled{opacity:.4}
 
-/* sheet */
 .au-sheet{width:100%;max-width:520px;max-height:90vh;overflow-y:auto;background:#f7f8fc;border-radius:26px 26px 0 0;padding:10px 18px 28px;color:#111;box-shadow:0 -12px 40px rgba(10,20,50,.22);animation:auUp .22s ease-out}
 @keyframes auUp{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
 @media(prefers-reduced-motion:reduce){.au-sheet{animation:none}}
@@ -513,7 +558,6 @@ const CSS = `
 .au-sh b{font-size:19px;font-weight:700}
 .au-sh button{width:32px;height:32px;border-radius:50%;background:#e9ecf4;font-size:14px;color:#6b7183;display:grid;place-items:center;padding:0}
 
-/* hero */
 .au-hero{display:flex;align-items:center;gap:14px;padding:4px 2px 14px}
 .au-hm{min-width:0;flex:1}
 .au-hm b{display:block;font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -522,18 +566,18 @@ const CSS = `
 .au-st.on{background:rgba(14,203,129,.14);color:#0a9b63}
 .au-st.off{background:rgba(229,72,77,.14);color:${RED}}
 
-/* detail card */
 .au-card{background:#fff;border:1px solid #e8eaf1;border-radius:18px;padding:2px 16px}
 .au-kv{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid #eef0f5;font-size:14.5px}
 .au-kv:last-child{border-bottom:0}
 .au-kv span{color:#8a90a2;flex:none}
 .au-kv b{font-weight:600;text-align:end;word-break:break-all}
+.au-kv b.ua{font-size:12px;font-weight:500;line-height:1.4;max-width:70%}
 
-/* protected note */
+.au-sec{margin:18px 4px 8px;font-size:12px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#8a90a2}
+
 .au-lock{display:flex;align-items:center;gap:10px;margin-top:16px;padding:14px 16px;border-radius:14px;background:rgba(31,122,203,.08);border:1px solid rgba(31,122,203,.2);color:${BLUE};font-size:13.5px;font-weight:500;line-height:1.45}
 .au-lock svg{flex:none}
 
-/* actions */
 .au-acts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
 .au-acts.one{grid-template-columns:1fr}
 .au-acts button{padding:14px 0;border-radius:14px;border:1px solid #dfe3ee;background:#fff;text-align:center;font-size:15px;font-weight:600;transition:transform .1s}
@@ -545,13 +589,11 @@ const CSS = `
 .au-acts button.p{background:${BLUE};border-color:${BLUE};color:#fff;box-shadow:0 4px 12px rgba(31,122,203,.28)}
 .au-acts button:disabled{opacity:.5}
 
-/* form */
 .au-form{background:#fff;border:1px solid #e8eaf1;border-radius:18px;padding:4px 16px 16px}
 .au-form label{display:block;font-size:13px;font-weight:600;color:#6b6f7c;margin:14px 0 6px}
 .au-form input{display:block;width:100%;height:48px;border:1.5px solid #e1e5ef;border-radius:12px;padding:0 14px;font-size:16px;background:transparent;color:inherit;outline:0;transition:border-color .15s,box-shadow .15s}
 .au-form input:focus{border-color:${BLUE};box-shadow:0 0 0 4px rgba(31,122,203,.12)}
 
-/* dark */
 .cx.dark .au-nav{background:#14233a}
 .cx.dark .au-nav button{color:#9aa6bb}
 .cx.dark .au-nav button.on{background:#1f3352;color:#fff;box-shadow:none}
@@ -559,7 +601,7 @@ const CSS = `
 .cx.dark .au-list,.cx.dark .au-card,.cx.dark .au-form{background:#14233a;border-color:#22304a}
 .cx.dark .au-row,.cx.dark .au-kv{border-color:#22304a}
 .cx.dark .au-row:active{background:#1d2e49}
-.cx.dark .au-main small,.cx.dark .au-kv span,.cx.dark .au-hm small{color:#8d9ab1}
+.cx.dark .au-main small,.cx.dark .au-kv span,.cx.dark .au-hm small,.cx.dark .au-sec{color:#8d9ab1}
 .cx.dark .au-av{color:#c4cde0;background:linear-gradient(145deg,#233657,#1b2b47)}
 .cx.dark .au-av.adm{color:#7cc0f5;background:linear-gradient(145deg,#1d3a5e,#17304d)}
 .cx.dark .au-av.sup{color:#fff;box-shadow:0 0 0 2px #14233a,0 0 0 4px rgba(31,122,203,.5)}
