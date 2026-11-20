@@ -1,5 +1,5 @@
 
-const API_BASE_URL = "https://treadapi.onlieshop.online";
+const API_BASE_URL = "https://apib.cexvo.com";
 
 export const API = API_BASE_URL;
 
