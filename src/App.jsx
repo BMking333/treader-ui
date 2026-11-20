@@ -149,15 +149,30 @@ const FROM_MAIL = (() => {
   }
 })();
 
+/* =========================================================
+   DEFAULT THEME = LIGHT
+   - New visitors see light mode.
+   - If the user picks dark, it is saved and stays dark.
+   - One-time reset: old users who only had the old default
+     (dark) are moved to light once. After that, their own
+     choice is respected.
+========================================================= */
+const initialDark = () => {
+  if (!store.get("cx_dark_v2", false)) {
+    store.set("cx_dark_v2", true);
+    store.set("cx_dark", false);
+    return false;
+  }
+  return store.get("cx_dark", false);
+};
+
 export default function App() {
   const [lang, setLangS] = useState(() => {
     const l = store.get("cx_lang", "en");
     return isLang(l) ? l : "en";
   });
 
-  const [dark, setDarkS] = useState(() =>
-    store.get("cx_dark", true)
-  );
+  const [dark, setDarkS] = useState(initialDark);
 
   const [me, setMe] = useState(null);
 
