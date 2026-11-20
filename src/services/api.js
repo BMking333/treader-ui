@@ -1,4 +1,3 @@
-
 const API_BASE_URL = "https://apib.cexvo.com";
 
 export const API = API_BASE_URL;
@@ -76,7 +75,7 @@ async function api(path, options = {}) {
     );
   } catch (error) {
     throw new Error(
-      "সার্ভারের সঙ্গে সংযোগ করা যাচ্ছে না। Internet অথবা Backend Server পরীক্ষা করুন।"
+      "Unable to connect to the server. Please check your internet connection or the backend server."
     );
   }
 
