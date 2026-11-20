@@ -55,6 +55,33 @@ export const T3 = T;
   }
 })();
 
+/* ====================== FLAG EMOJI FIX (Windows / PC) ======================
+   Windows Chrome/Edge/Firefox flag emoji dekhay na (PT, US, AE ... letter dekhay).
+   Ei polyfill ekta chhoto flag font load kore, jeta shudhu flag character-er jonno
+   use hoy. Mobile (Android/iOS) e age thekei flag ashe, tai kono change hoy na.
+   Language list-er code e kono change lagbe na.
+==============================================================================*/
+
+(function flagFix() {
+  if (typeof document === "undefined") return;
+  if (document.getElementById("cx-flagfix")) return;
+
+  const s = document.createElement("style");
+  s.id = "cx-flagfix";
+  s.textContent = `
+@font-face{
+  font-family:"Twemoji Country Flags";
+  unicode-range:U+1F1E6-1F1FF,U+1F3F4,U+E0062-E0063,U+E0065,U+E0067,U+E006C,U+E006E,U+E0073-E0074,U+E0077,U+E007F;
+  src:url("https://cdn.jsdelivr.net/npm/country-flag-emoji-polyfill@0.1/dist/TwemojiCountryFlags.woff2") format("woff2");
+  font-display:swap;
+}
+.cx.cx,.cx.cx *{
+  font-family:"Twemoji Country Flags",Roboto,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+`;
+  document.head.appendChild(s);
+})();
+
 /* ====================== CONFIG ====================== */
 
 export const API = "https://apib.cexvo.com";
@@ -484,7 +511,6 @@ export function Coin({ s, size = 42 }) {
 }
 
 /* ====================== CUSTOMER SERVICE ====================== */
-/* ====================== CUSTOMER SERVICE ====================== */
 
 // Telegram username (@ chara). Dorkar hole 2nd agent-er alada username dao.
 export const CS_USERS = ["cexvo_service", "cexvo_service"];
@@ -554,7 +580,7 @@ const HM_CSS = `
 .hm{
   --bg:#ffffff;--card:#f5f7fa;--tx:#1b2433;--mu:#8e99ab;--ln:#e8ebf0;
   --up:#00c087;--dn:#e0485c;--ac:#17c3c9;--acbg:rgba(23,195,201,.12);
-  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
+  font-family:"Twemoji Country Flags",-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Noto Sans","Noto Sans Bengali","Helvetica Neue",Arial,sans-serif;
   -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
   text-rendering:optimizeLegibility;font-kerning:normal;
   color:var(--tx);background:var(--bg);touch-action:manipulation;
